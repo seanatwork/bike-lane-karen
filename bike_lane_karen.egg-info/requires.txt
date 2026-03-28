@@ -3,5 +3,6 @@ beautifulsoup4
 pandas
 pyarrow
 streamlit
+pydeck
 plotly
 typer[all]

@@ -1,4 +1,6 @@
 [console_scripts]
 analyze-311 = analyze_complaints:main
+open311-aggregate = open311_aggregate_heatmap:main
+open311-ingest = open311_ingest:main
 scrape-bicycle = scrape_bicycle_complaints:main
 search-311 = search_311_categories:main

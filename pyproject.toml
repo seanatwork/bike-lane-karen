@@ -9,6 +9,7 @@ dependencies = [
     "pandas",
     "pyarrow",
     "streamlit",
+    "pydeck",
     "plotly",
     "typer[all]",
 ]
@@ -17,6 +18,8 @@ dependencies = [
 search-311 = "search_311_categories:main"
 scrape-bicycle = "scrape_bicycle_complaints:main"
 analyze-311 = "analyze_complaints:main"
+open311-ingest = "open311_ingest:main"
+open311-aggregate = "open311_aggregate_heatmap:main"
 
 [tool.setuptools]
 py-modules = [
@@ -27,6 +30,9 @@ py-modules = [
     "dashboard",
     "bicycle_dashboard",
     "check_tickets",
+    "open311_ingest",
+    "open311_aggregate_heatmap",
+    "open311_parking_heatmap_app",
     "test_category_search"
 ]
 

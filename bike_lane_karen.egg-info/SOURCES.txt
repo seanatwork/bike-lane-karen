@@ -4,6 +4,9 @@ bicycle_dashboard.py
 check_tickets.py
 dashboard.py
 filter_csv.py
+open311_aggregate_heatmap.py
+open311_ingest.py
+open311_parking_heatmap_app.py
 pyproject.toml
 scrape_bicycle_complaints.py
 search_311_categories.py

@@ -8,6 +8,7 @@ Requires-Dist: beautifulsoup4
 Requires-Dist: pandas
 Requires-Dist: pyarrow
 Requires-Dist: streamlit
+Requires-Dist: pydeck
 Requires-Dist: plotly
 Requires-Dist: typer[all]
 
@@ -84,6 +85,49 @@ streamlit run dashboard.py
 ```
 
 The dashboard will open in your web browser at `http://localhost:8501`
+
+## Open311 (No Scraping) Parking Enforcement Heatmap
+
+This project now supports an **API-only** pipeline using Austin’s documented Open311 API. It produces a **public-safe aggregated heatmap** of where people request parking violation enforcement.
+
+Important: this is **not** a parking citation lookup or ticket map. It visualizes **311 requests** for enforcement.
+
+### 1) Discover the `service_code`
+
+The Open311 `services.json` endpoint can be unreliable at times, so the easiest discovery method is to search recent requests by text and see which `service_code` appears.
+
+```bash
+python open311_ingest.py discover "Parking Violation"
+```
+
+Pick the `service_code` whose `service_name` matches “Parking Violation Enforcement”.
+
+### 2) Ingest Open311 requests (90-day backfill)
+
+Open311 date filters are limited to 90-day windows, so ingestion automatically backfills in 90-day slices.
+
+```bash
+python open311_ingest.py ingest --service-code <SERVICE_CODE> --start-date 2025-01-01T00:00:00Z --db-path 311_categories.db
+```
+
+### 3) Aggregate into spatial bins (public-safe)
+
+This writes `open311_parking_heatmap_bins` into the same SQLite DB. By default it suppresses bins with fewer than 3 requests.
+
+```bash
+python open311_aggregate_heatmap.py run --service-code <SERVICE_CODE> --window-days 30 --bin-precision 3 --min-count 3 --db-path 311_categories.db
+```
+
+### 4) View the heatmap
+
+```bash
+streamlit run open311_parking_heatmap_app.py
+```
+
+### Notes
+
+- **Rate limiting**: the API is rate limited (often 10 req/min). If you request an API key, you can pass it to ingestion with `--api-key ...`.
+- **Privacy**: the app is designed to show **aggregates** by default (bins), not individual request addresses.
 
 ### Dashboard Features
 
