@@ -14,6 +14,8 @@ Deploy with TELEGRAM_BOT_TOKEN environment variable.
 import asyncio
 import os
 import logging
+import re
+import time
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 
@@ -176,12 +178,11 @@ _💡 Austin inspects every food establishment at least once a year_
 
 🚔 *Crime:*
 /crime — Recent APD incident stats (citywide)
-_Last 7 days, top crime types, clearance rate_
+_Last 30 days, top crime types, clearance rate_
 _From APD Crime Reports: https://data.austintexas.gov/resource/fdj4-gpfu_
 
 🛡️ *Safety:*
-/safety <district or neighborhood> — Crime check
-_Examples: `/safety 3`, `/safety downtown`, `/safety east austin`_
+/safety — Crime by district with city comparison
 _From APD Crime Reports_
 
  *Directory:*
@@ -794,60 +795,163 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 # APL Library locations - official Austin Public Library branches only
-APL_LIBRARIES = [
-    {"name": "Austin Central Library", "address": "710 W Cesar Chavez St, Austin, TX", "filter": "Austin Central Library"},
-    {"name": "Carver Branch", "address": "1161 Angelina St, Austin, TX", "filter": "Carver Branch Library"},
-    {"name": "Cepeda Branch", "address": "651 N Pleasant Valley Rd, Austin, TX", "filter": "Cepeda Branch Library"},
-    {"name": "Hampton Branch at Oak Hill", "address": "5125 Convict Hill Rd, Austin, TX", "filter": "Hampton Branch Library"},
-    {"name": "Little Walnut Creek Branch", "address": "835 W Rundberg Ln, Austin, TX", "filter": "Little Walnut Creek Branch Library"},
-    {"name": "Milwood Branch", "address": "12500 Amherst Dr, Austin, TX", "filter": "Milwood Branch Library"},
-    {"name": "North Village Branch", "address": "2505 Steck Ave, Austin, TX", "filter": "North Village Branch Library"},
-    {"name": "Old Quarry Branch", "address": "7051 Village Center Dr, Austin, TX", "filter": "Old Quarry Branch Library"},
-    {"name": "Pleasant Hill Branch", "address": "211 E William Cannon Dr, Austin, TX", "filter": "Pleasant Hill Branch Library"},
-    {"name": "Ruiz Branch", "address": "1600 Grove Blvd, Austin, TX", "filter": "Ruiz Branch Library"},
-    {"name": "St. John Branch", "address": "7500 Blessing Ave, Austin, TX", "filter": "St. John Branch Library"},
-    {"name": "Southeast Branch", "address": "5803 Nuckols Crossing Rd, Austin, TX", "filter": "Southeast Branch Library"},
-    {"name": "Terrazas Branch", "address": "1105 E Cesar Chavez St, Austin, TX", "filter": "Terrazas Branch Library"},
-    {"name": "University Hills Branch", "address": "4721 Loyola Ln, Austin, TX", "filter": "University Hills Branch Library"},
-    {"name": "Willie Mae Kirk Branch", "address": "3101 Oak Springs Dr, Austin, TX", "filter": "Willie Mae Kirk Branch Library"},
-    {"name": "Windsor Park Branch", "address": "5833 Westminster Dr, Austin, TX", "filter": "Windsor Park Branch Library"},
-    {"name": "Yarborough Branch", "address": "2200 Hancock Dr, Austin, TX", "filter": "Yarborough Branch Library"},
-]
+# Austin Public Libraries - organized by zone
+APL_LIBRARIES = {
+    "central": [
+        {"name": "Austin Central Library", "address": "710 W Cesar Chavez St, Austin, TX", "filter": "Austin Central Library"},
+        {"name": "Carver Branch", "address": "1161 Angelina St, Austin, TX", "filter": "Carver Branch Library"},
+        {"name": "Terrazas Branch", "address": "1105 E Cesar Chavez St, Austin, TX", "filter": "Terrazas Branch Library"},
+    ],
+    "north": [
+        {"name": "Little Walnut Creek Branch", "address": "835 W Rundberg Ln, Austin, TX", "filter": "Little Walnut Creek Branch Library"},
+        {"name": "Milwood Branch", "address": "12500 Amherst Dr, Austin, TX", "filter": "Milwood Branch Library"},
+        {"name": "North Village Branch", "address": "2505 Steck Ave, Austin, TX", "filter": "North Village Branch Library"},
+        {"name": "Old Quarry Branch", "address": "7051 Village Center Dr, Austin, TX", "filter": "Old Quarry Branch Library"},
+        {"name": "St. John Branch", "address": "7500 Blessing Ave, Austin, TX", "filter": "St. John Branch Library"},
+        {"name": "Yarborough Branch", "address": "2200 Hancock Dr, Austin, TX", "filter": "Yarborough Branch Library"},
+    ],
+    "south": [
+        {"name": "Hampton Branch at Oak Hill", "address": "5125 Convict Hill Rd, Austin, TX", "filter": "Hampton Branch Library"},
+        {"name": "Pleasant Hill Branch", "address": "211 E William Cannon Dr, Austin, TX", "filter": "Pleasant Hill Branch Library"},
+    ],
+    "east": [
+        {"name": "Cepeda Branch", "address": "651 N Pleasant Valley Rd, Austin, TX", "filter": "Cepeda Branch Library"},
+        {"name": "Ruiz Branch", "address": "1600 Grove Blvd, Austin, TX", "filter": "Ruiz Branch Library"},
+        {"name": "Southeast Branch", "address": "5803 Nuckols Crossing Rd, Austin, TX", "filter": "Southeast Branch Library"},
+        {"name": "University Hills Branch", "address": "4721 Loyola Ln, Austin, TX", "filter": "University Hills Branch Library"},
+        {"name": "Willie Mae Kirk Branch", "address": "3101 Oak Springs Dr, Austin, TX", "filter": "Willie Mae Kirk Branch Library"},
+        {"name": "Windsor Park Branch", "address": "5833 Westminster Dr, Austin, TX", "filter": "Windsor Park Branch Library"},
+    ],
+}
 
-# City of Austin Public Pools - official city pools only
-AUSTIN_POOLS = [
-    {"name": "Bartholomew Pool", "address": "5201 Berkman Dr, Austin, TX", "filter": "Bartholomew Pool"},
-    {"name": "Barton Springs Pool", "address": "2201 William Barton Dr, Austin, TX", "filter": "Barton Springs Pool"},
-    {"name": "Big Stacy Pool", "address": "700 E Live Oak St, Austin, TX", "filter": "Big Stacy Pool"},
-    {"name": "Comal Pool", "address": "1709 Comal St, Austin, TX", "filter": "Comal Pool"},
-    {"name": "Deep Eddy Pool", "address": "401 Deep Eddy Ave, Austin, TX", "filter": "Deep Eddy Pool"},
-    {"name": "Dottie Jordan Pool", "address": "2803 Loyola Ln, Austin, TX", "filter": "Dottie Jordan Pool"},
-    {"name": "Emma Long Metropolitan Park Pool", "address": "1700 City Park Rd, Austin, TX", "filter": "Emma Long Pool"},
-    {"name": "Garrison Pool", "address": "6001 Manchaca Rd, Austin, TX", "filter": "Garrison Pool"},
-    {"name": "Gillis Pool", "address": "2209 Hancock Dr, Austin, TX", "filter": "Gillis Pool"},
-    {"name": "Govalle Pool", "address": "5200 Bolm Rd, Austin, TX", "filter": "Govalle Pool"},
-    {"name": "Kimberly Lane Pool", "address": "9006 Galewood Dr, Austin, TX", "filter": "Kimberly Lane Pool"},
-    {"name": "Lamar Pool", "address": "1924 S 1st St, Austin, TX", "filter": "Lamar Pool"},
-    {"name": "Lyndon B. Johnson Pool", "address": "5808 Nuckols Crossing Rd, Austin, TX", "filter": "LBJ Pool"},
-    {"name": "Mary Frances Baylor Pool", "address": "218 Robert E Lee Rd, Austin, TX", "filter": "Mary Frances Baylor Pool"},
-    {"name": "Metz Pool", "address": "2407 Canterbury St, Austin, TX", "filter": "Metz Pool"},
-    {"name": "Montopolis Pool", "address": "631 Montopolis Dr, Austin, TX", "filter": "Montopolis Pool"},
-    {"name": "Murchison Pool", "address": "3700 N Hills Dr, Austin, TX", "filter": "Murchison Pool"},
-    {"name": "Northeast Pool", "address": "1901 Cedar Bend Dr, Austin, TX", "filter": "Northeast Pool"},
-    {"name": "Northwest Pool", "address": "7000 Ardath St, Austin, TX", "filter": "Northwest Pool"},
-    {"name": "Packer Pool", "address": "1020 Duncan Ln, Austin, TX", "filter": "Packer Pool"},
-    {"name": "Palm Park Pool", "address": "711 E 3rd St, Austin, TX", "filter": "Palm Park Pool"},
-    {"name": "Pickle Pool", "address": "1000 Barton Springs Rd, Austin, TX", "filter": "Pickle Pool"},
-    {"name": "Reilly Pool", "address": "1814 Niles Rd, Austin, TX", "filter": "Reilly Pool"},
-    {"name": "Rosewood Pool", "address": "1180 N Pleasant Valley Rd, Austin, TX", "filter": "Rosewood Pool"},
-    {"name": "Sanchez Pool", "address": "2021 Montopolis Dr, Austin, TX", "filter": "Sanchez Pool"},
-    {"name": "Shipe Pool", "address": "6900 Manchaca Rd, Austin, TX", "filter": "Shipe Pool"},
-    {"name": "South Austin Neighborhood Pool", "address": "1100 Cumberland Rd, Austin, TX", "filter": "South Austin Pool"},
-    {"name": "Spicewood Springs Pool", "address": "8620 Spicewood Springs Rd, Austin, TX", "filter": "Spicewood Springs Pool"},
-    {"name": "Springwoods Pool", "address": "13320 Lyndhurst St, Austin, TX", "filter": "Springwoods Pool"},
-    {"name": "Tillery Pool", "address": "300 Tillery St, Austin, TX", "filter": "Tillery Pool"},
-    {"name": "West Austin Neighborhood Pool", "address": "3000 Scenic Dr, Austin, TX", "filter": "West Austin Pool"},
-]
+# City of Austin Public Pools - organized by zone
+AUSTIN_POOLS = {
+    "central": [
+        {"name": "Barton Springs Pool", "address": "2201 William Barton Dr, Austin, TX", "filter": "Barton Springs Pool"},
+        {"name": "Big Stacy Pool", "address": "700 E Live Oak St, Austin, TX", "filter": "Big Stacy Pool"},
+        {"name": "Comal Pool", "address": "1709 Comal St, Austin, TX", "filter": "Comal Pool"},
+        {"name": "Deep Eddy Pool", "address": "401 Deep Eddy Ave, Austin, TX", "filter": "Deep Eddy Pool"},
+        {"name": "Palm Park Pool", "address": "711 E 3rd St, Austin, TX", "filter": "Palm Park Pool"},
+        {"name": "Pickle Pool", "address": "1000 Barton Springs Rd, Austin, TX", "filter": "Pickle Pool"},
+    ],
+    "north": [
+        {"name": "Gillis Pool", "address": "2209 Hancock Dr, Austin, TX", "filter": "Gillis Pool"},
+        {"name": "Kimberly Lane Pool", "address": "9006 Galewood Dr, Austin, TX", "filter": "Kimberly Lane Pool"},
+        {"name": "Murchison Pool", "address": "3700 N Hills Dr, Austin, TX", "filter": "Murchison Pool"},
+        {"name": "Northeast Pool", "address": "1901 Cedar Bend Dr, Austin, TX", "filter": "Northeast Pool"},
+        {"name": "Northwest Pool", "address": "7000 Ardath St, Austin, TX", "filter": "Northwest Pool"},
+        {"name": "Packer Pool", "address": "1020 Duncan Ln, Austin, TX", "filter": "Packer Pool"},
+        {"name": "Reilly Pool", "address": "1814 Niles Rd, Austin, TX", "filter": "Reilly Pool"},
+        {"name": "Spicewood Springs Pool", "address": "8620 Spicewood Springs Rd, Austin, TX", "filter": "Spicewood Springs Pool"},
+        {"name": "Springwoods Pool", "address": "13320 Lyndhurst St, Austin, TX", "filter": "Springwoods Pool"},
+    ],
+    "south": [
+        {"name": "Garrison Pool", "address": "6001 Manchaca Rd, Austin, TX", "filter": "Garrison Pool"},
+        {"name": "Lamar Pool", "address": "1924 S 1st St, Austin, TX", "filter": "Lamar Pool"},
+        {"name": "Mary Frances Baylor Pool", "address": "218 Robert E Lee Rd, Austin, TX", "filter": "Mary Frances Baylor Pool"},
+        {"name": "Shipe Pool", "address": "6900 Manchaca Rd, Austin, TX", "filter": "Shipe Pool"},
+        {"name": "South Austin Neighborhood Pool", "address": "1100 Cumberland Rd, Austin, TX", "filter": "South Austin Pool"},
+        {"name": "West Austin Neighborhood Pool", "address": "3000 Scenic Dr, Austin, TX", "filter": "West Austin Pool"},
+    ],
+    "east": [
+        {"name": "Bartholomew Pool", "address": "5201 Berkman Dr, Austin, TX", "filter": "Bartholomew Pool"},
+        {"name": "Dottie Jordan Pool", "address": "2803 Loyola Ln, Austin, TX", "filter": "Dottie Jordan Pool"},
+        {"name": "Emma Long Metropolitan Park Pool", "address": "1700 City Park Rd, Austin, TX", "filter": "Emma Long Pool"},
+        {"name": "Govalle Pool", "address": "5200 Bolm Rd, Austin, TX", "filter": "Govalle Pool"},
+        {"name": "Lyndon B. Johnson Pool", "address": "5808 Nuckols Crossing Rd, Austin, TX", "filter": "LBJ Pool"},
+        {"name": "Metz Pool", "address": "2407 Canterbury St, Austin, TX", "filter": "Metz Pool"},
+        {"name": "Montopolis Pool", "address": "631 Montopolis Dr, Austin, TX", "filter": "Montopolis Pool"},
+        {"name": "Rosewood Pool", "address": "1180 N Pleasant Valley Rd, Austin, TX", "filter": "Rosewood Pool"},
+        {"name": "Sanchez Pool", "address": "2021 Montopolis Dr, Austin, TX", "filter": "Sanchez Pool"},
+        {"name": "Tillery Pool", "address": "300 Tillery St, Austin, TX", "filter": "Tillery Pool"},
+    ],
+}
+
+
+_CITY_POOL_STATUS_CACHE: dict = {"data": {}, "ts": 0}
+_CITY_POOL_STATUS_URL = "https://www.austintexas.gov/parks/locations/pools-and-splash-pads"
+_CITY_POOL_CACHE_TTL = 3600  # refresh hourly
+
+
+def _get_city_pool_statuses() -> dict[str, str]:
+    """Scrape the City of Austin pools page and return {pool_name_lower: status_text}.
+    Results are cached for one hour.
+    """
+    from bs4 import BeautifulSoup
+
+    now = time.time()
+    if now - _CITY_POOL_STATUS_CACHE["ts"] < _CITY_POOL_CACHE_TTL and _CITY_POOL_STATUS_CACHE["data"]:
+        return _CITY_POOL_STATUS_CACHE["data"]
+
+    try:
+        resp = requests.get(_CITY_POOL_STATUS_URL, timeout=10)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        statuses = {}
+        # The page lists each facility as a heading/title followed by status text.
+        # We look for any element whose text contains a pool name and a status keyword.
+        status_keywords = re.compile(
+            r"(open|closed for season|closed for renovation|closed for cleaning|opens \w+ \d+|open year-round)",
+            re.IGNORECASE,
+        )
+
+        # Each pool entry on the page tends to live in a container with a title and a status line.
+        # Walk all text nodes that contain a status keyword and grab the preceding pool name.
+        for tag in soup.find_all(string=status_keywords):
+            status_text = tag.strip()
+            # Walk up to find the pool name in a sibling or parent heading
+            parent = tag.parent
+            for _ in range(4):  # look up to 4 levels up
+                if parent is None:
+                    break
+                heading = parent.find_previous(re.compile(r"^h[2-6]$|strong"))
+                if heading:
+                    pool_name = heading.get_text(strip=True).lower()
+                    # strip trailing " pool" noise that varies, keep it simple
+                    statuses[pool_name] = status_text
+                    break
+                parent = parent.parent
+
+        _CITY_POOL_STATUS_CACHE["data"] = statuses
+        _CITY_POOL_STATUS_CACHE["ts"] = now
+        return statuses
+    except Exception as e:
+        logger.warning(f"city pool status scrape failed: {e}")
+        return _CITY_POOL_STATUS_CACHE.get("data", {})
+
+
+def _lookup_city_pool_status(pool_name: str) -> str | None:
+    """Return a status string from the city page for the given pool name, or None."""
+    statuses = _get_city_pool_statuses()
+    if not statuses:
+        return None
+
+    name_lower = pool_name.lower()
+    # Try exact match first
+    if name_lower in statuses:
+        return _format_city_pool_status(statuses[name_lower])
+
+    # Try partial: see if any scraped key is contained in the pool name or vice versa
+    for key, status in statuses.items():
+        key_core = key.replace(" pool", "").strip()
+        if key_core and (key_core in name_lower or key_core in name_lower.replace(" pool", "")):
+            return _format_city_pool_status(status)
+
+    return None
+
+
+def _format_city_pool_status(raw: str) -> str:
+    lower = raw.lower()
+    if "open year-round" in lower or lower.startswith("open"):
+        return f"🟢 {raw} (city website)"
+    if "opens" in lower:
+        return f"📅 {raw} (city website)"
+    if "closed for renovation" in lower:
+        return f"🚧 {raw} (city website)"
+    if "closed" in lower:
+        return f"🔴 {raw} (city website)"
+    return f"ℹ️ {raw} (city website)"
 
 
 def _get_place_hours(place_name: str, address: str, api_key: str, name_filter: str = "") -> str:
@@ -873,47 +977,62 @@ def _get_place_hours(place_name: str, address: str, api_key: str, name_filter: s
         place_id = data["candidates"][0]["place_id"]
         
         # Get place details with opening hours
+        # Request both opening_hours and current_opening_hours — seasonal facilities
+        # (like city pools) often only populate current_opening_hours in Google Places.
         details_url = "https://maps.googleapis.com/maps/api/place/details/json"
         details_params = {
             "place_id": place_id,
-            "fields": "opening_hours,name",
+            "fields": "opening_hours,current_opening_hours,name",
             "key": api_key,
         }
         resp = requests.get(details_url, params=details_params, timeout=10)
         data = resp.json()
-        
+
         if data.get("status") != "OK":
             return "⏰ Hours: Not available"
-        
+
         result = data.get("result", {})
         returned_name = result.get("name", "")
-        
+
         # Filter: verify this is the expected place (APL Library or City Pool)
         if name_filter and name_filter.lower() not in returned_name.lower():
-            # Try alternative check for pools
             if "pool" in name_filter.lower() and "pool" not in returned_name.lower():
-                return f"⏰ Hours: Location mismatch (got: {returned_name})"
-            # Try alternative check for libraries
+                return f"⏰ No hours (wrong result: {returned_name})"
             if "library" in name_filter.lower() and "library" not in returned_name.lower():
-                return f"⏰ Hours: Location mismatch (got: {returned_name})"
-        
-        hours_info = result.get("opening_hours", {})
-        
+                return f"⏰ No hours (wrong result: {returned_name})"
+
+        # Prefer current_opening_hours (used by Google for seasonal/irregular places)
+        hours_info = result.get("current_opening_hours") or result.get("opening_hours") or {}
+
         if hours_info.get("open_now") is True:
             status = "🟢 Open now"
         elif hours_info.get("open_now") is False:
             status = "🔴 Closed"
         else:
-            status = "⏰ Hours unknown"
-        
+            status = None  # will try city fallback below
+
         weekday_text = hours_info.get("weekday_text", [])
-        if weekday_text:
+        if status and weekday_text:
             hours_text = "\n".join(weekday_text[:3]) + ("\n..." if len(weekday_text) > 3 else "")
             return f"{status}\n{hours_text}"
-        return status
-        
+        if status:
+            return status
+
+        # Google had no hours — try city website fallback for pools
+        if "pool" in name_filter.lower():
+            city_status = _lookup_city_pool_status(place_name)
+            if city_status:
+                return city_status
+
+        return "⏰ Hours not listed"
+
     except Exception as e:
         logger.error(f"Google Maps API error for {place_name}: {e}")
+        # Still try city fallback on error for pools
+        if "pool" in name_filter.lower():
+            city_status = _lookup_city_pool_status(place_name)
+            if city_status:
+                return city_status
         return "⏰ Hours: Error fetching"
 
 
@@ -921,44 +1040,95 @@ def _format_directory_list(items: list, api_key: str, item_type: str) -> str:
     """Format a list of places with their hours."""
     lines = [f"📍 *{item_type}*\n"]
     
-    for item in items[:5]:  # Show top 5
+    for item in items:
         name = item["name"]
         address = item["address"]
         name_filter = item.get("filter", "")
         hours = _get_place_hours(name, address, api_key, name_filter)
         lines.append(f"*{name}*\n{address}\n{hours}\n")
-    
-    if len(items) > 5:
-        lines.append(f"... and {len(items) - 5} more")
-    
+
     return "\n".join(lines)
+
+
+LIBRARY_ZONE_LABELS = {
+    "central": "Central",
+    "north": "North",
+    "south": "South",
+    "east": "East",
+}
 
 
 async def directory_libraries_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("⏳ Fetching library hours...")
-    
+    keyboard = [
+        [InlineKeyboardButton("🏙 Central", callback_data="directory_libraries_zone_central"),
+         InlineKeyboardButton("⬆️ North", callback_data="directory_libraries_zone_north")],
+        [InlineKeyboardButton("⬇️ South", callback_data="directory_libraries_zone_south"),
+         InlineKeyboardButton("➡️ East", callback_data="directory_libraries_zone_east")],
+    ]
+    await query.edit_message_text(
+        "📚 *Austin Public Libraries*\n\nPick an area to see hours:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def directory_libraries_zone_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    zone = query.data.replace("directory_libraries_zone_", "")
+    label = LIBRARY_ZONE_LABELS.get(zone, zone.title())
+    await query.edit_message_text(f"⏳ Fetching {label} library hours...")
+
     api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
     try:
-        text = _format_directory_list(APL_LIBRARIES, api_key, "Austin Public Libraries")
+        libraries = APL_LIBRARIES.get(zone, [])
+        text = _format_directory_list(libraries, api_key, f"{label} Austin Libraries")
         await _send_chunked(query, text)
     except Exception as e:
-        logger.error(f"directory libraries: {e}")
+        logger.error(f"directory libraries zone {zone}: {e}")
         await query.edit_message_text(f"❌ Error: {e}")
+
+
+POOL_ZONE_LABELS = {
+    "central": "Central",
+    "north": "North",
+    "south": "South",
+    "east": "East",
+}
 
 
 async def directory_pools_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("⏳ Fetching pool hours...")
-    
+    keyboard = [
+        [InlineKeyboardButton("🏙 Central", callback_data="directory_pools_zone_central"),
+         InlineKeyboardButton("⬆️ North", callback_data="directory_pools_zone_north")],
+        [InlineKeyboardButton("⬇️ South", callback_data="directory_pools_zone_south"),
+         InlineKeyboardButton("➡️ East", callback_data="directory_pools_zone_east")],
+    ]
+    await query.edit_message_text(
+        "🏊 *Austin Public Pools*\n\nPick an area to see hours:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def directory_pools_zone_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    zone = query.data.replace("directory_pools_zone_", "")
+    label = POOL_ZONE_LABELS.get(zone, zone.title())
+    await query.edit_message_text(f"⏳ Fetching {label} pool hours...")
+
     api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
     try:
-        text = _format_directory_list(AUSTIN_POOLS, api_key, "Austin Public Pools")
+        pools = AUSTIN_POOLS.get(zone, [])
+        text = _format_directory_list(pools, api_key, f"{label} Austin Pools")
         await _send_chunked(query, text)
     except Exception as e:
-        logger.error(f"directory pools: {e}")
+        logger.error(f"directory pools zone {zone}: {e}")
         await query.edit_message_text(f"❌ Error: {e}")
 
 
@@ -979,106 +1149,164 @@ async def directory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 # =============================================================================
 
 
-def _get_recent_crime_stats(days: int = 7) -> dict:
-    """Query APD Crime Reports API for recent incident stats."""
+def _get_crime_stats(start_date: str, end_date: str = None) -> dict:
+    """Query APD Crime Reports API between two dates (YYYY-MM-DD)."""
+    from datetime import datetime, timezone
     url = "https://data.austintexas.gov/resource/fdj4-gpfu.json"
-    
-    from datetime import datetime, timedelta, timezone
-    start_date = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
-    
-    params = {
-        "$where": f"occ_date >= '{start_date}'",
-        "$limit": 1000,
-    }
-    
-    # Use app token if available (increases rate limits)
+
+    where = f"occ_date >= '{start_date}'"
+    if end_date:
+        where += f" AND occ_date <= '{end_date}'"
+
+    params = {"$where": where, "$limit": 5000}
     app_token = os.getenv("AUSTIN_APP_TOKEN", "")
-    headers = {}
-    if app_token:
-        headers["X-App-Token"] = app_token
-    
+    headers = {"X-App-Token": app_token} if app_token else {}
+
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=30)
         if resp.status_code == 200:
             data = resp.json()
-            
-            # Count by crime type
             crime_types = {}
-            family_violence_count = 0
             cleared = 0
-            total = len(data)
-            hour_counts = {}
-            
             for incident in data:
-                crime_type = incident.get("crime_type", "Unknown")
-                crime_types[crime_type] = crime_types.get(crime_type, 0) + 1
-                
-                if incident.get("family_violence") == "Y":
-                    family_violence_count += 1
-                
+                ct = incident.get("crime_type", "Unknown")
+                crime_types[ct] = crime_types.get(ct, 0) + 1
                 if incident.get("clearance_status") == "C":
                     cleared += 1
-                
-                # Track hour of occurrence
-                occ_time = incident.get("occ_time", "")
-                if occ_time and len(occ_time) >= 2:
-                    try:
-                        hour = int(occ_time[:2])
-                        hour_counts[hour] = hour_counts.get(hour, 0) + 1
-                    except ValueError:
-                        pass
-            
-            # Get top 5 crime types
             top_crimes = sorted(crime_types.items(), key=lambda x: -x[1])[:5]
-            
-            # Find peak crime hour
-            peak_hour = max(hour_counts, key=hour_counts.get) if hour_counts else None
-            
-            return {
-                "total": total,
-                "cleared": cleared,
-                "top_crimes": top_crimes,
-                "family_violence": family_violence_count,
-                "peak_hour": peak_hour,
-                "days": days,
-            }
+            return {"total": len(data), "cleared": cleared, "top_crimes": top_crimes}
     except Exception as e:
         logger.error(f"crime stats: {e}")
-    
-    return {"total": 0, "cleared": 0, "top_crimes": [], "family_violence": 0, "peak_hour": None, "days": days}
+
+    return {"total": 0, "cleared": 0, "top_crimes": []}
+
+
+# Austin city population estimates by year (US Census / City of Austin projections)
+AUSTIN_POPULATION = {
+    2014: 912_791,
+    2015: 931_830,
+    2016: 950_715,
+    2017: 964_177,
+    2018: 978_908,
+    2019: 994_137,
+    2020: 961_855,   # Census count (undercounting noted by city)
+    2021: 974_447,
+    2022: 979_882,
+    2023: 985_000,
+    2024: 995_000,
+    2025: 1_005_000,
+    2026: 1_015_000,
+}
+
+
+def _austin_population(year: int) -> int | None:
+    """Return the best population estimate for a given year."""
+    if year in AUSTIN_POPULATION:
+        return AUSTIN_POPULATION[year]
+    # Clamp to known range rather than extrapolate wildly
+    if year < min(AUSTIN_POPULATION):
+        return AUSTIN_POPULATION[min(AUSTIN_POPULATION)]
+    if year > max(AUSTIN_POPULATION):
+        return AUSTIN_POPULATION[max(AUSTIN_POPULATION)]
+    return None
+
+
+def _format_crime_stats(stats: dict, label: str) -> str:
+    clearance_pct = round(stats['cleared'] / stats['total'] * 100) if stats['total'] else 0
+    msg = f"*{label}*\n"
+    msg += f"📊 *{stats['total']}* total incidents\n"
+    msg += f"✅ {clearance_pct}% cleared\n"
+    if stats['top_crimes']:
+        msg += "*Top Crime Types:*\n"
+        for crime, count in stats['top_crimes']:
+            msg += f"• {crime}: {count}\n"
+    return msg
 
 
 async def crime_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(
-        "⏳ Fetching recent crime data...",
-        parse_mode="Markdown",
-    )
+    from datetime import datetime, timedelta, timezone
+    await update.message.reply_text("⏳ Fetching crime data...")
     try:
-        stats = _get_recent_crime_stats(days=7)
-        
-        msg = f"🚔 *APD Crime Reports (Last {stats['days']} Days)*\n\n"
-        msg += f"📊 *{stats['total']}* total incidents\n"
-        msg += f"✅ *{stats['cleared']}* cleared ({round(stats['cleared']/stats['total']*100) if stats['total'] else 0}%)\n\n"
-        
-        if stats['top_crimes']:
-            msg += "*Top Crime Types:*\n"
-            for crime, count in stats['top_crimes']:
-                msg += f"• {crime}: {count}\n"
-            msg += "\n"
-        
-        # Show family violence stat
-        if stats['family_violence'] > 0:
-            msg += f"⚠️ *{stats['family_violence']}* family violence incidents\n"
-        
-        # Show peak crime time
-        if stats['peak_hour'] is not None:
-            peak_time = f"{stats['peak_hour']}:00-{stats['peak_hour']+1}:00"
-            msg += f"🕐 Peak crime time: *{peak_time}*\n"
-        
-        await update.message.reply_text(msg, parse_mode="Markdown")
+        now = datetime.now(timezone.utc)
+        start = now - timedelta(days=30)
+        start_str = start.strftime("%Y-%m-%d")
+        end_str = now.strftime("%Y-%m-%d")
+        label = f"🚔 APD Crime — {start.strftime('%b %d')} to {now.strftime('%b %d, %Y')}"
+
+        stats = _get_crime_stats(start_str, end_str)
+        msg = _format_crime_stats(stats, label)
+
+        keyboard = [[InlineKeyboardButton(
+            "📅 Compare to 10 years ago",
+            callback_data=f"crime_compare_{start_str}_{end_str}"
+        )]]
+        await update.message.reply_text(
+            msg,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
     except Exception as e:
         logger.error(f"crime command: {e}")
         await update.message.reply_text(f"❌ Error fetching crime data: {e}")
+
+
+async def crime_compare_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    # Parse the current window dates from callback data
+    _, _, start_str, end_str = query.data.split("_", 3)
+
+    await query.edit_message_reply_markup(reply_markup=None)
+    await query.message.reply_text("⏳ Fetching data from 10 years ago...")
+
+    try:
+        from datetime import datetime, timedelta, timezone
+        start_then = datetime.strptime(start_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        end_then = datetime.strptime(end_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        start_10y = (start_then.replace(year=start_then.year - 10)).strftime("%Y-%m-%d")
+        end_10y = (end_then.replace(year=end_then.year - 10)).strftime("%Y-%m-%d")
+
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            f_now = pool.submit(_get_crime_stats, start_str, end_str)
+            f_then = pool.submit(_get_crime_stats, start_10y, end_10y)
+            stats_now = f_now.result()
+            stats_then = f_then.result()
+
+        year_now = datetime.strptime(end_str, "%Y-%m-%d").year
+        year_then = datetime.strptime(end_10y, "%Y-%m-%d").year
+        pop_now = _austin_population(year_now)
+        pop_then = _austin_population(year_then)
+
+        now_label = f"🚔 APD Crime — {datetime.strptime(start_str, '%Y-%m-%d').strftime('%b %d')} to {datetime.strptime(end_str, '%Y-%m-%d').strftime('%b %d, %Y')}"
+        then_label = f"📅 Same Period — {datetime.strptime(start_10y, '%Y-%m-%d').strftime('%b %d')} to {datetime.strptime(end_10y, '%Y-%m-%d').strftime('%b %d, %Y')}"
+
+        msg = _format_crime_stats(stats_now, now_label)
+        msg += "\n"
+        msg += _format_crime_stats(stats_then, then_label)
+
+        if stats_then['total'] > 0 and pop_now and pop_then:
+            # Scale 30-day window to annualised per-100k for a fair comparison
+            rate_now = round(stats_now['total'] / pop_now * 100_000)
+            rate_then = round(stats_then['total'] / pop_then * 100_000)
+            rate_diff = rate_now - rate_then
+            rate_pct = round(abs(rate_diff) / rate_then * 100)
+            direction = "📈" if rate_diff > 0 else "📉"
+            msg += f"\n*Per-capita rate (per 100k residents):*\n"
+            msg += f"{direction} {rate_now}/100k now vs. {rate_then}/100k in {year_then}\n"
+            msg += f"{'Up' if rate_diff > 0 else 'Down'} *{rate_pct}%* adjusted for population growth\n"
+            msg += f"_Austin population: ~{pop_now:,} ({year_now}) vs. ~{pop_then:,} ({year_then})_"
+        elif stats_then['total'] > 0:
+            diff = stats_now['total'] - stats_then['total']
+            pct = round(abs(diff) / stats_then['total'] * 100)
+            direction = "📈 up" if diff > 0 else "📉 down"
+            msg += f"\n{direction} *{pct}%* raw vs. 10 years ago ({diff:+,} incidents)"
+
+        await query.message.reply_text(msg, parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"crime compare cb: {e}")
+        await query.message.reply_text(f"❌ Error: {e}")
 
 
 # Neighborhood to Council District mapping for /safety command
@@ -1166,80 +1394,116 @@ def _resolve_district(input_str: str) -> tuple[str, str]:
     return (None, f"Unknown neighborhood. Try: {neighborhoods} or use district 1-10")
 
 
+DISTRICT_LABELS = {
+    "1": "1 · East",
+    "2": "2 · SE Austin",
+    "3": "3 · South",
+    "4": "4 · NE Austin",
+    "5": "5 · Central",
+    "6": "6 · NW Austin",
+    "7": "7 · North",
+    "8": "8 · SW Austin",
+    "9": "9 · E Central",
+    "10": "10 · Far NW",
+}
+
+
 async def safety_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Get crime stats for a specific council district or neighborhood."""
-    if not context.args:
-        await update.message.reply_text(
-            "🔍 *Safety Check*\n\n"
-            "Usage: `/safety <district>` or `/safety <neighborhood>`\n"
-            "Examples:\n"
-            "• `/safety 3` (Council District 3)\n"
-            "• `/safety downtown`\n"
-            "• `/safety east austin`\n\n"
-            "Or use `/crime` for citywide stats.",
-            parse_mode="Markdown",
-        )
-        return
-    
-    input_str = " ".join(context.args)
-    district, result_msg = _resolve_district(input_str)
-    
-    if district is None:
-        await update.message.reply_text(f"❌ {result_msg}")
-        return
-    
-    await update.message.reply_text(f"⏳ Checking crime in {result_msg}...")
-    
+    keyboard = [
+        [InlineKeyboardButton(DISTRICT_LABELS[str(d)], callback_data=f"safety_district_{d}") for d in pair]
+        for pair in [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
+    ]
+    await update.message.reply_text(
+        "🔍 *Safety by District*\n\nPick a council district to see crime stats and how it compares to the rest of Austin:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def safety_district_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    district = query.data.replace("safety_district_", "")
+    label = DISTRICT_LABELS.get(district, f"District {district}")
+    await query.edit_message_text(f"⏳ Fetching crime data for {label}...")
+
     try:
-        url = "https://data.austintexas.gov/resource/fdj4-gpfu.json"
         from datetime import datetime, timedelta, timezone
         start_date = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
-        
-        params = {
-            "$where": f"council_district='{district}' AND occ_date >= '{start_date}'",
-            "$limit": 500,
-        }
-        
-        # Use app token if available (increases rate limits)
+        url = "https://data.austintexas.gov/resource/fdj4-gpfu.json"
         app_token = os.getenv("AUSTIN_APP_TOKEN", "")
-        headers = {}
-        if app_token:
-            headers["X-App-Token"] = app_token
-        
-        resp = requests.get(url, params=params, headers=headers, timeout=30)
-        if resp.status_code != 200:
-            await update.message.reply_text("❌ Error fetching crime data")
+        headers = {"X-App-Token": app_token} if app_token else {}
+
+        # Fetch district data and citywide data in parallel via two requests
+        import concurrent.futures
+
+        def fetch(params):
+            r = requests.get(url, params=params, headers=headers, timeout=30)
+            r.raise_for_status()
+            return r.json()
+
+        district_params = {
+            "$where": f"council_district='{district}' AND occ_date >= '{start_date}'",
+            "$limit": 1000,
+        }
+        city_params = {
+            "$where": f"occ_date >= '{start_date}'",
+            "$limit": 5000,
+        }
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+            f_district = pool.submit(fetch, district_params)
+            f_city = pool.submit(fetch, city_params)
+            district_data = f_district.result()
+            city_data = f_city.result()
+
+        d_total = len(district_data)
+        city_total = len(city_data)
+
+        if d_total == 0:
+            await query.edit_message_text(f"✅ No incidents reported in {label} (last 30 days)")
             return
-        
-        data = resp.json()
-        total = len(data)
-        
-        if total == 0:
-            await update.message.reply_text(f"✅ No incidents reported in {result_msg} (last 30 days)")
-            return
-        
-        # Count crime types
+
+        # Per-district counts from citywide data for ranking
+        district_counts = {}
+        for inc in city_data:
+            d = inc.get("council_district", "Unknown")
+            district_counts[d] = district_counts.get(d, 0) + 1
+
+        ranked = sorted(district_counts.items(), key=lambda x: -x[1])
+        rank = next((i + 1 for i, (d, _) in enumerate(ranked) if d == district), None)
+        num_districts = len(ranked)
+        city_avg = round(city_total / num_districts) if num_districts else 0
+        pct_of_city = round(d_total / city_total * 100) if city_total else 0
+        diff = d_total - city_avg
+        vs_avg = f"+{diff} above avg" if diff > 0 else f"{abs(diff)} below avg"
+
+        # Crime type breakdown for this district
         crime_types = {}
         cleared = 0
-        for incident in data:
-            crime_type = incident.get("crime_type", "Unknown")
-            crime_types[crime_type] = crime_types.get(crime_type, 0) + 1
-            if incident.get("clearance_status") == "C":
+        for inc in district_data:
+            ct = inc.get("crime_type", "Unknown")
+            crime_types[ct] = crime_types.get(ct, 0) + 1
+            if inc.get("clearance_status") == "C":
                 cleared += 1
-        
+
         top_crimes = sorted(crime_types.items(), key=lambda x: -x[1])[:5]
-        clearance_pct = round(cleared/total*100) if total else 0
-        
-        msg = f" *{total}* incidents (last 30 days)\n"
-        msg += f"✅ {clearance_pct}% cleared\n\n"
+        clearance_pct = round(cleared / d_total * 100)
+
+        msg = f"🔍 *{label}* — Last 30 Days\n\n"
+        msg += f"📊 *{d_total}* incidents ({pct_of_city}% of city total)\n"
+        msg += f"🏙 City avg: {city_avg}/district  ·  {vs_avg}\n"
+        if rank:
+            msg += f"📈 Ranked #{rank} of {num_districts} districts\n"
+        msg += f"✅ {clearance_pct}% of cases cleared\n\n"
         msg += "*Top Crime Types:*\n"
         for crime, count in top_crimes:
             msg += f"• {crime}: {count}\n"
-        
-        await update.message.reply_text(msg, parse_mode="Markdown")
+
+        await _send_chunked(query, msg)
     except Exception as e:
-        logger.error(f"safety command: {e}")
-        await update.message.reply_text(f"❌ Error: {e}")
+        logger.error(f"safety district cb: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
 
 
 # =============================================================================
@@ -1302,7 +1566,8 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(noise_hotspots_cb, pattern="^noise_hotspots"))
     app.add_handler(CallbackQueryHandler(noise_peak_cb, pattern="^noise_peak"))
 
-    # Parking inline
+    # Parking slash command + inline
+    app.add_handler(CommandHandler("parking", parking_command))
     app.add_handler(CallbackQueryHandler(parking_stats_cb, pattern="^parking_stats"))
     app.add_handler(CallbackQueryHandler(parking_hotspots_cb, pattern="^parking_hotspots"))
     app.add_handler(CallbackQueryHandler(parking_resolution_cb, pattern="^parking_resolution"))
@@ -1311,11 +1576,13 @@ def create_application() -> Application:
     # Graffiti slash command
     app.add_handler(CommandHandler("graffiti", graffiti_command))
 
-    # Crime slash command
+    # Crime slash command + inline
     app.add_handler(CommandHandler("crime", crime_command))
+    app.add_handler(CallbackQueryHandler(crime_compare_cb, pattern="^crime_compare_"))
 
-    # Safety slash command
+    # Safety slash command + inline
     app.add_handler(CommandHandler("safety", safety_command))
+    app.add_handler(CallbackQueryHandler(safety_district_cb, pattern="^safety_district_"))
 
     # Bicycle slash commands
     app.add_handler(CommandHandler("bicycle", bicycle_command))
@@ -1337,8 +1604,10 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("code", code_command))
 
     # Directory inline
-    app.add_handler(CallbackQueryHandler(directory_libraries_cb, pattern="^directory_libraries"))
-    app.add_handler(CallbackQueryHandler(directory_pools_cb, pattern="^directory_pools"))
+    app.add_handler(CallbackQueryHandler(directory_libraries_zone_cb, pattern="^directory_libraries_zone_"))
+    app.add_handler(CallbackQueryHandler(directory_libraries_cb, pattern="^directory_libraries$"))
+    app.add_handler(CallbackQueryHandler(directory_pools_zone_cb, pattern="^directory_pools_zone_"))
+    app.add_handler(CallbackQueryHandler(directory_pools_cb, pattern="^directory_pools$"))
 
     # Directory slash command
     app.add_handler(CommandHandler("directory", directory_command))
@@ -1362,7 +1631,7 @@ def create_application() -> Application:
             BotCommand("code",              "Building permits approved (last 365 days)"),
             BotCommand("directory",         "Libraries & pools with hours"),
             BotCommand("crime",             "Recent APD crime stats"),
-            BotCommand("safety",            "Crime by district or neighborhood"),
+            BotCommand("safety",            "Crime by district — stats + city comparison"),
         ])
 
     app.post_init = post_init
