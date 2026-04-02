@@ -178,11 +178,10 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if service == "graffiti":
         keyboard = [
             [InlineKeyboardButton("📊 Analyze", callback_data="graffiti_analyze"),
-             InlineKeyboardButton("🗺️ Hotspots", callback_data="graffiti_hotspot")],
-            [InlineKeyboardButton("⏰ Remediation", callback_data="graffiti_remediation")],
+             InlineKeyboardButton("⏰ Remediation", callback_data="graffiti_remediation")],
             [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
         ]
-        text = "*🎨 Graffiti Analysis*\nPattern detection, hotspots, remediation tracking."
+        text = "*🎨 Graffiti Analysis*\nPattern detection and remediation tracking."
 
     elif service == "bicycle":
         keyboard = [
@@ -272,17 +271,6 @@ async def graffiti_analyze_cb(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.edit_message_text(f"❌ Error: {e}")
 
 
-async def graffiti_hotspot_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Finding hotspots...")
-    try:
-        result = hotspot_command()
-        await _send_chunked(query, result)
-    except Exception as e:
-        logger.error(f"graffiti hotspot: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
 
 async def graffiti_remediation_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -300,8 +288,7 @@ async def graffiti_remediation_cb(update: Update, context: ContextTypes.DEFAULT_
 async def graffiti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [InlineKeyboardButton("📊 Analyze", callback_data="graffiti_analyze"),
-         InlineKeyboardButton("🗺️ Hotspots", callback_data="graffiti_hotspot")],
-        [InlineKeyboardButton("⏰ Remediation", callback_data="graffiti_remediation")],
+         InlineKeyboardButton("⏰ Remediation", callback_data="graffiti_remediation")],
     ]
     await update.message.reply_text(
         "*🎨 Graffiti Analysis*\nChoose a view:",
@@ -609,7 +596,6 @@ def create_application() -> Application:
 
     # Graffiti inline
     app.add_handler(CallbackQueryHandler(graffiti_analyze_cb, pattern="^graffiti_analyze"))
-    app.add_handler(CallbackQueryHandler(graffiti_hotspot_cb, pattern="^graffiti_hotspot"))
     app.add_handler(CallbackQueryHandler(graffiti_remediation_cb, pattern="^graffiti_remediation"))
 
     # Bicycle inline

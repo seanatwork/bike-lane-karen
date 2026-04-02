@@ -1,0 +1,12 @@
+app = "austin311bot"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PYTHONUNBUFFERED = "1"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

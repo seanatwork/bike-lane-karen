@@ -1,11 +1,7 @@
 # Core dependencies
 pandas
-streamlit
-pydeck
-plotly
 requests
 beautifulsoup4
-pyarrow
 
 # Telegram Bot
 python-telegram-bot==21.0
