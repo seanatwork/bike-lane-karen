@@ -138,8 +138,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        [InlineKeyboardButton("🏗️ Code Violations", callback_data="service_code"),
-         InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
+        [InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
     ]
     await update.message.reply_text(
         "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
@@ -168,7 +167,7 @@ _💡 Austin has 100\+ miles of dedicated bike lanes — among the most in Texas
 _💡 Pothole repair is one of the top 311 categories in Austin_
 
 🔊 *Noise Complaints:*
-/noisecomplaints — Hotspots · stats · response times
+/noise — Hotspots · stats · response times
 _💡 Austin's 6th Street corridor generates some of the highest noise complaint volumes in the city_
 
 🅿️ *Parking:*
@@ -283,17 +282,6 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         ]
         text = "*🚔 Police & Crime*\nAPD incident stats and safety by district."
 
-    elif service == "code":
-        await query.answer()
-        await query.edit_message_text("⏳ Querying building permits...")
-        try:
-            stats = await asyncio.to_thread(_get_building_permit_stats)
-            await query.edit_message_text(_format_permit_stats(stats), parse_mode="Markdown")
-        except Exception as e:
-            logger.error(f"service code: {e}")
-            await query.edit_message_text(f"❌ Error querying data: {e}")
-        return
-
     elif service == "report":
         await query.answer()
         await query.edit_message_text(
@@ -322,8 +310,7 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        [InlineKeyboardButton("🏗️ Code Violations", callback_data="service_code"),
-         InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
+        [InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
     ]
     await query.edit_message_text(
         "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
@@ -1688,7 +1675,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("traffic", traffic_command))
 
     # Noise slash command
-    app.add_handler(CommandHandler("noisecomplaints", noisecomplaints_command))
+    app.add_handler(CommandHandler("noise", noisecomplaints_command))
 
     # Report slash command
     app.add_handler(CommandHandler("report", report_command))
@@ -1708,7 +1695,7 @@ def create_application() -> Application:
             BotCommand("animal",          "Animal complaints — hotspots · stats · response times"),
             BotCommand("bicycle",         "Bicycle complaints — recent · stats"),
             BotCommand("traffic",         "Traffic & infrastructure — potholes · signals · lights"),
-            BotCommand("noisecomplaints", "Noise complaints — hotspots · stats · response times"),
+            BotCommand("noise", "Noise complaints — hotspots · stats · response times"),
             BotCommand("parking",         "Parking enforcement — citations · hot zones · stats"),
             BotCommand("rest",            "Restaurant inspections — worst scores · grades · search"),
             BotCommand("ticket",          "Look up any 311 ticket by ID"),
