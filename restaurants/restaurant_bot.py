@@ -95,10 +95,26 @@ def search_restaurants(search_term: str, limit: int = 10) -> list:
 
 
 def get_lowest_scoring(limit: int = 10) -> list:
-    """Return restaurants with the lowest inspection scores."""
-    params = _build_params("score is not null", "score ASC", limit)
+    """Return unique restaurants with the lowest scores, sorted by most recent inspection date."""
+    params = _build_params("score is not null", "score ASC", limit * 20)
     logger.debug("Fetching lowest scoring restaurants")
-    return _make_request(params)
+    records = _make_request(params)
+
+    # Deduplicate: keep only the most recent inspection per restaurant
+    seen: dict = {}
+    for r in records:
+        key = (
+            (r.get("restaurant_name") or "").lower(),
+            (r.get("address") or "").lower(),
+        )
+        date = r.get("inspection_date") or ""
+        if key not in seen or date > seen[key].get("inspection_date", ""):
+            seen[key] = r
+
+    # Take the `limit` worst unique restaurants, then sort by most recent inspection first
+    worst = sorted(seen.values(), key=lambda r: float(r.get("score") or 999))[:limit]
+    worst.sort(key=lambda r: r.get("inspection_date") or "", reverse=True)
+    return worst
 
 
 def format_search_results(restaurants: list, search_term: str) -> str:
@@ -281,7 +297,7 @@ def format_low_scores(restaurants: list) -> str:
         return "No restaurant scores found. Please try again later."
 
     msg = "🚨 *Lowest Scoring Restaurants* 🚨\n\n"
-    msg += f"Showing {len(restaurants)} restaurants with lowest inspection scores:\n\n"
+    msg += f"Showing {len(restaurants)} unique restaurants with lowest scores (most recently inspected first):\n\n"
 
     for i, r in enumerate(restaurants, 1):
         score = r.get("score")

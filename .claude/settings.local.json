@@ -11,7 +11,11 @@
       "Bash(curl -s \"https://data.austintexas.gov/api/views/i7fg-wrk5.json\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d['name']\\); print\\([c['fieldName'] for c in d['columns']]\\)\")",
       "Bash(curl -s 'https://data.austintexas.gov/resource/i7fg-wrk5.json?$limit=5&$where=nibrs_category='\\\\''Homicide Offenses'\\\\''')",
-      "Bash(curl -g -s 'https://data.austintexas.gov/resource/i7fg-wrk5.json?$limit=5&$where=nibrs_category=%27Homicide+Offenses%27')"
+      "Bash(curl -g -s 'https://data.austintexas.gov/resource/i7fg-wrk5.json?$limit=5&$where=nibrs_category=%27Homicide+Offenses%27')",
+      "Bash(xclip -selection clipboard)",
+      "Bash(xsel --clipboard --input)",
+      "Bash(xclip -selection clipboard -o)",
+      "Bash(xsel --clipboard --output)"
     ],
     "defaultMode": "bypassPermissions"
   }

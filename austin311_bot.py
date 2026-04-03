@@ -133,6 +133,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("🚦 Traffic & Infrastructure", callback_data="service_traffic")],
         [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
+        [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
     ]
     await update.message.reply_text(
         "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
@@ -263,6 +264,14 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         ]
         text = "*🅿️ Parking Enforcement*\nCitations, hot zones, and enforcement patterns."
 
+    elif service == "police":
+        keyboard = [
+            [InlineKeyboardButton("🚔 Crime Stats", callback_data="police_crime"),
+             InlineKeyboardButton("🛡️ Safety by District", callback_data="police_safety")],
+            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
+        ]
+        text = "*🚔 Police & Crime*\nAPD incident stats and safety by district."
+
     else:
         return
 
@@ -282,6 +291,7 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🚦 Traffic & Infrastructure", callback_data="service_traffic")],
         [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
+        [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
     ]
     await query.edit_message_text(
         "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
@@ -344,10 +354,44 @@ async def bicycle_recent_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await query.edit_message_text("⏳ Fetching recent bicycle complaints...")
     try:
         complaints = get_recent_complaints(limit=10)
-        result = format_complaints(complaints)
-        await _send_chunked(query, result)
+        if not complaints:
+            await query.edit_message_text("📝 No bicycle complaints found.")
+            return
+
+        keyboard = []
+        for r in complaints:
+            req_id = r.get("service_request_id") or "N/A"
+            date = (r.get("requested_datetime") or "").split("T")[0]
+            desc = (r.get("description") or r.get("service_name") or "Bicycle complaint")
+            status = (r.get("status") or "").lower()
+            icon = "🟢" if status == "closed" else "🔴"
+            label = f"{icon} #{req_id} · {date} — {desc[:35]}"
+            keyboard.append([InlineKeyboardButton(label, callback_data=f"bicycle_ticket_{req_id}")])
+
+        await query.edit_message_text(
+            "🚴 *Recent Bicycle Complaints*\n_Tap a ticket to see the full complaint:_",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
     except Exception as e:
         logger.error(f"bicycle recent: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
+
+
+async def bicycle_ticket_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    ticket_id = query.data.replace("bicycle_ticket_", "")
+    await query.edit_message_text(f"⏳ Looking up ticket #{ticket_id}...")
+    try:
+        record = lookup_ticket(ticket_id)
+        if not record:
+            await query.edit_message_text(f"❌ Ticket #{ticket_id} not found.")
+            return
+        result = format_ticket(record)
+        await _send_chunked(query, result)
+    except Exception as e:
+        logger.error(f"bicycle ticket cb: {e}")
         await query.edit_message_text(f"❌ Error: {e}")
 
 
@@ -933,6 +977,28 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 # =============================================================================
 
 
+# Human-readable labels for raw APD crime_type values that are ambiguous or jargon-heavy.
+# "Family Disturbance" = non-violent domestic dispute (officers keep the peace).
+# "Family Violence"    = physical assault between family members / intimate partners (DV).
+_CRIME_TYPE_LABELS: dict[str, str] = {
+    "Family Disturbance":          "Family Disturbance (non-violent domestic dispute)",
+    "Family Violence":             "Family/Domestic Violence (physical assault)",
+    "Auto Theft":                  "Auto Theft (vehicle stolen)",
+    "Burglary of Vehicle":         "Burglary of Vehicle (break-in, not stolen)",
+    "Criminal Mischief":           "Criminal Mischief (vandalism/property damage)",
+    "Disturbance - Other":         "Disturbance (non-family, non-violent)",
+    "Assault W/Injury-Fv":         "Assault with Injury — Domestic Violence",
+    "Assault W/Injury":            "Assault with Injury (non-domestic)",
+    "Terroristic Threat-Family":   "Terroristic Threat — Domestic",
+    "Harassment":                  "Harassment",
+}
+
+
+def _crime_label(raw: str) -> str:
+    """Return a clearer display label for a raw APD crime_type string."""
+    return _CRIME_TYPE_LABELS.get(raw, raw)
+
+
 def _get_crime_stats(start_date: str, end_date: str = None) -> dict:
     """Query APD Crime Reports API between two dates (YYYY-MM-DD)."""
     from datetime import datetime, timezone
@@ -996,14 +1062,16 @@ def _austin_population(year: int) -> int | None:
 
 
 def _format_crime_stats(stats: dict, label: str) -> str:
-    clearance_pct = round(stats['cleared'] / stats['total'] * 100) if stats['total'] else 0
+    total = stats['total']
+    clearance_pct = round(stats['cleared'] / total * 100) if total else 0
     msg = f"*{label}*\n"
-    msg += f"📊 *{stats['total']}* total incidents\n"
+    msg += f"📊 *{total}* total incidents\n"
     msg += f"✅ {clearance_pct}% cleared\n"
     if stats['top_crimes']:
         msg += "*Top Crime Types:*\n"
         for crime, count in stats['top_crimes']:
-            msg += f"• {crime}: {count}\n"
+            pct = round(count / total * 100) if total else 0
+            msg += f"• {_crime_label(crime)}: {count} ({pct}%)\n"
     return msg
 
 
@@ -1395,12 +1463,56 @@ async def safety_district_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         msg += f"✅ {clearance_pct}% of cases cleared\n\n"
         msg += "*Top Crime Types:*\n"
         for crime, count in top_crimes:
-            msg += f"• {crime}: {count}\n"
+            pct = round(count / d_total * 100) if d_total else 0
+            msg += f"• {_crime_label(crime)}: {count} ({pct}%)\n"
 
         await _send_chunked(query, msg)
     except Exception as e:
         logger.error(f"safety district cb: {e}")
         await query.edit_message_text(f"❌ Error: {e}")
+
+
+async def police_crime_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    from datetime import datetime, timedelta, timezone
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Fetching crime data...")
+    try:
+        now = datetime.now(timezone.utc)
+        start = now - timedelta(days=30)
+        start_str = start.strftime("%Y-%m-%d")
+        end_str = now.strftime("%Y-%m-%d")
+        label = f"🚔 APD Crime — {start.strftime('%b %d')} to {now.strftime('%b %d, %Y')}"
+
+        stats = _get_crime_stats(start_str, end_str)
+        msg = _format_crime_stats(stats, label)
+
+        keyboard = [
+            [InlineKeyboardButton("📅 Compare to 10 years ago", callback_data=f"crime_compare_{start_str}_{end_str}")],
+            [InlineKeyboardButton("⚰️ Homicides (2019–present)", callback_data="crime_homicides")],
+        ]
+        await query.edit_message_text(
+            msg, parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            disable_web_page_preview=True,
+        )
+    except Exception as e:
+        logger.error(f"police crime cb: {e}")
+        await query.edit_message_text(f"❌ Error fetching crime data: {e}")
+
+
+async def police_safety_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    keyboard = [
+        [InlineKeyboardButton(DISTRICT_LABELS[str(d)], callback_data=f"safety_district_{d}") for d in pair]
+        for pair in [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
+    ]
+    await query.edit_message_text(
+        "🔍 *Safety by District*\n\nPick a council district to see crime stats and how it compares to the rest of Austin:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
 
 # =============================================================================
@@ -1445,6 +1557,7 @@ def create_application() -> Application:
     # Bicycle inline
     app.add_handler(CallbackQueryHandler(bicycle_recent_cb, pattern="^bicycle_recent"))
     app.add_handler(CallbackQueryHandler(bicycle_stats_cb, pattern="^bicycle_stats"))
+    app.add_handler(CallbackQueryHandler(bicycle_ticket_cb, pattern="^bicycle_ticket_"))
 
     # Restaurant inline
     app.add_handler(CallbackQueryHandler(restaurants_lowscores_cb, pattern="^restaurants_lowscores"))
@@ -1482,6 +1595,10 @@ def create_application() -> Application:
     # Safety slash command + inline
     app.add_handler(CommandHandler("safety", safety_command))
     app.add_handler(CallbackQueryHandler(safety_district_cb, pattern="^safety_district_"))
+
+    # Police & Crime menu inline
+    app.add_handler(CallbackQueryHandler(police_crime_cb, pattern="^police_crime$"))
+    app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
 
     # Bicycle slash commands
     app.add_handler(CommandHandler("animal", animal_command))
