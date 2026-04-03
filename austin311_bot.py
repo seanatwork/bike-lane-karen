@@ -185,11 +185,11 @@ _From APD Crime Reports: https://data.austintexas.gov/resource/fdj4-gpfu_
 /safety — Crime by district with city comparison
 _From APD Crime Reports_
 
- *Directory:*
+📁 *Directory:*
 /directory — Libraries & pools with hours
 _Austin Public Library & City Pool hours_
 
-_🚧 Under Consideration
+🚧 _Under Consideration_
 
 📋 *Code Violations:*
 /code — Building permits approved
