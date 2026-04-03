@@ -154,13 +154,18 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 /graffiti — Analysis · hotspots · remediation · trends
 _💡 Austin cleans graffiti on public property in ~4 days on average_
 
-🐾 *Animal Services:*
-/animal — Hotspots · stats · response times
-_💡 Loose dog complaints are the most common 311 call in Austin_
-
 🚴 *Bicycle:*
 /bicycle — Recent complaints · stats
 _💡 Austin has 100\+ miles of dedicated bike lanes — among the most in Texas_
+
+🍽️ *Restaurants:*
+/rest — Worst scores · grade report
+/rest <name or address> — Search directly
+_💡 Austin inspects every food establishment at least once a year_
+
+🐾 *Animal Services:*
+/animal — Hotspots · stats · response times
+_💡 Loose dog complaints are the most common 311 call in Austin_
 
 🚦 *Traffic & Infrastructure:*
 /traffic — Potholes · signals · street lights · sidewalks
@@ -174,23 +179,16 @@ _💡 Austin's 6th Street corridor generates some of the highest noise complaint
 /parking — Citations · hot zones · stats
 _💡 Parking enforcement is one of the top 10 most-requested 311 services in Austin_
 
-🍽️ *Restaurants:*
-/rest — Worst scores · grade report
-/rest <name or address> — Search directly
-_💡 Austin inspects every food establishment at least once a year_
+🚔 *Police & Crime:*
+/crime — Recent APD incident stats (citywide)
+_Last 30 days, top crime types, clearance rate_
+_From APD Crime Reports: https://data.austintexas.gov/resource/fdj4-gpfu_
+/safety — Crime by district with city comparison
 
 🎫 *Ticket Lookup:*
 /ticket <id> — Look up any 311 ticket by ID
 
-🚔 *Crime:*
-/crime — Recent APD incident stats (citywide)
-_Last 30 days, top crime types, clearance rate_
-_From APD Crime Reports: https://data.austintexas.gov/resource/fdj4-gpfu_
-
-🛡️ *Safety:*
-/safety — Crime by district with city comparison
-_From APD Crime Reports_
-
+🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
 🚧 _Under Consideration_
 
@@ -200,8 +198,6 @@ _🏗️ permits data (last 365 days)_
 
 📝 *Report Issue:*
 /report — Under consideration
-
-🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
 ℹ️ /start — Main menu  |  /help — This message"""
     await update.message.reply_text(help_text, parse_mode="Markdown")
