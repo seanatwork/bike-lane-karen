@@ -138,6 +138,8 @@ def format_ticket(record: dict) -> str:
         msg += f"\n💬 *Description:*\n{description}\n"
     if notes:
         msg += f"\n📝 *Status notes:*\n{notes}\n"
+    if ticket_id != "N/A":
+        msg += f"\n🔗 [View ticket on Austin 311](https://311.austintexas.gov/open311/v2/requests/{ticket_id}.json)"
     return msg
 
 

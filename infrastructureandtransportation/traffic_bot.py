@@ -215,7 +215,7 @@ def get_pothole_repair_times(days_back: int = 180) -> dict:
 
     repair_days: list = []
     open_count = 0
-    slowest: list = []  # (days, address)
+    longest_waiting: list = []  # (days_waiting, address)
 
     for r in records:
         status = (r.get("status") or "").lower()
@@ -226,6 +226,14 @@ def get_pothole_repair_times(days_back: int = 180) -> dict:
 
         if status != "closed":
             open_count += 1
+            try:
+                req = datetime.fromisoformat(requested_str.replace("Z", "+00:00"))
+                days_waiting = (end - req).days
+                if 0 <= days_waiting <= 365:
+                    addr = (r.get("address") or "Unknown").replace(", Austin", "").strip()
+                    longest_waiting.append((days_waiting, addr))
+            except (ValueError, TypeError):
+                pass
             continue
 
         try:
@@ -234,8 +242,6 @@ def get_pothole_repair_times(days_back: int = 180) -> dict:
             d = (upd - req).days
             if 0 <= d <= 365:
                 repair_days.append(d)
-                addr = (r.get("address") or "Unknown").replace(", Austin", "").strip()
-                slowest.append((d, addr))
         except (ValueError, TypeError):
             pass
 
@@ -246,7 +252,7 @@ def get_pothole_repair_times(days_back: int = 180) -> dict:
     avg = round(sum(repair_days) / len(repair_days), 1)
     median = repair_days[len(repair_days) // 2]
     fastest = repair_days[0]
-    slowest_5 = sorted(slowest, key=lambda x: -x[0])[:5]
+    longest_waiting_5 = sorted(longest_waiting, key=lambda x: -x[0])[:5]
 
     # Bucket distribution: <1 week, 1–2 wks, 2–4 wks, >4 wks
     buckets = {"< 1 week": 0, "1–2 weeks": 0, "2–4 weeks": 0, "> 4 weeks": 0}
@@ -266,7 +272,7 @@ def get_pothole_repair_times(days_back: int = 180) -> dict:
         "avg": avg,
         "median": median,
         "fastest": fastest,
-        "slowest_5": slowest_5,
+        "longest_waiting_5": longest_waiting_5,
         "buckets": buckets,
         "days_back": days_back,
     }
@@ -285,7 +291,7 @@ def format_pothole_repair_times(data: dict) -> str:
     fastest = data["fastest"]
     open_count = data["open_count"]
     buckets = data["buckets"]
-    slowest_5 = data["slowest_5"]
+    longest_waiting_5 = data["longest_waiting_5"]
     days_back = data["days_back"]
 
     if avg <= 7:
@@ -308,9 +314,9 @@ def format_pothole_repair_times(data: dict) -> str:
         pct = round(count / total * 100)
         msg += f"  `{label:<12}` {bar} {count} ({pct}%)\n"
 
-    if slowest_5:
-        msg += "\n*Slowest repairs:*\n"
-        for d, addr in slowest_5:
-            msg += f"  🔴 {d} days — _{addr}_\n"
+    if longest_waiting_5:
+        msg += "\n*Still open — longest waiting:*\n"
+        for d, addr in longest_waiting_5:
+            msg += f"  🕐 {d} days — _{addr}_\n"
 
     return msg

@@ -113,10 +113,10 @@ async def _send_chunked(target, text: str, parse_mode: str = "Markdown") -> None
     chunks = [text[i:i + 4000] for i in range(0, len(text), 4000)]
     for i, chunk in enumerate(chunks):
         if i == 0 and hasattr(target, "edit_message_text"):
-            await target.edit_message_text(chunk, parse_mode=parse_mode)
+            await target.edit_message_text(chunk, parse_mode=parse_mode, disable_web_page_preview=True)
         else:
             msg = target.message if hasattr(target, "message") else target
-            await msg.reply_text(chunk, parse_mode=parse_mode)
+            await msg.reply_text(chunk, parse_mode=parse_mode, disable_web_page_preview=True)
 
 
 # =============================================================================
@@ -185,15 +185,14 @@ _From APD Crime Reports: https://data.austintexas.gov/resource/fdj4-gpfu_
 /safety — Crime by district with city comparison
 _From APD Crime Reports_
 
-📁 *Directory:*
-/directory — Libraries & pools with hours
-_Austin Public Library & City Pool hours_
 
 🚧 _Under Consideration_
 
 📋 *Code Violations:*
 /code — Building permits approved
 _🏗️ permits data (last 365 days)_
+
+🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
 ℹ️ /start — Main menu  |  /help — This message"""
     await update.message.reply_text(help_text, parse_mode="Markdown")
@@ -600,19 +599,19 @@ import requests
 from datetime import datetime, timedelta, timezone
 
 
-def _count_abandoned_vehicles() -> int:
-    """Query Open311 API for abandoned vehicle report count (last 365 days)."""
+def _get_abandoned_vehicle_stats() -> dict:
+    """Query Open311 API for abandoned vehicle stats (last 365 days)."""
     url = "https://311.austintexas.gov/open311/v2/requests.json"
     start_date = (datetime.now(timezone.utc) - timedelta(days=365)).isoformat().replace("+00:00", "Z")
-    
+
     params = {
         "service_code": "PARKINGV",
         "q": "abandoned",
         "start_date": start_date,
         "per_page": 100,
     }
-    
-    total = 0
+
+    all_records = []
     page = 1
     while True:
         params["page"] = page
@@ -622,17 +621,61 @@ def _count_abandoned_vehicles() -> int:
                 data = resp.json()
                 if not data:
                     break
-                total += len(data)
+                all_records.extend(data)
                 if len(data) < 100:
                     break
                 page += 1
-                if page > 50:  # Safety limit
+                if page > 50:
                     break
             else:
                 break
         except Exception:
             break
-    return total
+
+    open_count = sum(1 for r in all_records if (r.get("status") or "").lower() == "open")
+    closed_count = sum(1 for r in all_records if (r.get("status") or "").lower() == "closed")
+
+    # Most recent ticket for sample link
+    sample_id = None
+    for r in all_records:
+        rid = r.get("service_request_id")
+        if rid:
+            sample_id = rid
+            break
+
+    # Oldest open ticket
+    oldest_open = None
+    oldest_dt = None
+    for r in all_records:
+        if (r.get("status") or "").lower() != "open":
+            continue
+        dt_str = r.get("requested_datetime") or ""
+        if dt_str:
+            try:
+                from dateutil import parser as dtparser
+                dt = dtparser.parse(dt_str)
+                if oldest_dt is None or dt < oldest_dt:
+                    oldest_dt = dt
+                    oldest_open = r
+            except Exception:
+                pass
+
+    oldest_info = None
+    if oldest_open and oldest_dt:
+        days_ago = (datetime.now(timezone.utc) - oldest_dt.replace(tzinfo=timezone.utc) if oldest_dt.tzinfo is None else datetime.now(timezone.utc) - oldest_dt).days
+        oldest_info = {
+            "id": oldest_open.get("service_request_id"),
+            "address": oldest_open.get("address") or "Unknown location",
+            "days_ago": days_ago,
+        }
+
+    return {
+        "total": len(all_records),
+        "open": open_count,
+        "closed": closed_count,
+        "sample_id": sample_id,
+        "oldest_open": oldest_info,
+    }
 
 
 # =============================================================================
@@ -640,18 +683,112 @@ def _count_abandoned_vehicles() -> int:
 # =============================================================================
 
 
+def _get_parking_pulse() -> dict:
+    """Fetch today's parking transactions and compute activity summary."""
+    from collections import Counter
+    since = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%S")
+    url = "https://data.austintexas.gov/resource/5bb2-gtef.json"
+    params = {
+        "$where": f"start_time >= '{since}'",
+        "$limit": 1000,
+        "$order": "start_time DESC",
+    }
+    resp = requests.get(url, params=params, timeout=15)
+    resp.raise_for_status()
+    entries = resp.json()
+    if not entries:
+        return {}
+
+    amounts = []
+    durations = []
+    locations = Counter()
+    methods = Counter()
+    hours = Counter()
+
+    for e in entries:
+        try:
+            amounts.append(float(e["amount"]))
+        except (KeyError, ValueError, TypeError):
+            pass
+        try:
+            durations.append(float(e["duration_min"]))
+        except (KeyError, ValueError, TypeError):
+            pass
+        if e.get("location_name"):
+            locations[e["location_name"]] += 1
+        if e.get("payment_method"):
+            methods[e["payment_method"]] += 1
+        start = e.get("start_time") or ""
+        if "T" in start:
+            try:
+                hours[int(start.split("T")[1][:2])] += 1
+            except (ValueError, IndexError):
+                pass
+
+    peak_hour = max(hours, key=hours.get) if hours else None
+
+    return {
+        "total": len(entries),
+        "revenue": round(sum(amounts), 2),
+        "avg_amount": round(sum(amounts) / len(amounts), 2) if amounts else 0,
+        "avg_duration_min": round(sum(durations) / len(durations)) if durations else 0,
+        "locations": locations.most_common(5),
+        "card": methods.get("CARD", 0),
+        "coins": methods.get("COINS", 0),
+        "peak_hour": peak_hour,
+    }
+
+
+async def parking_top_payments_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Fetching today's parking activity...")
+    try:
+        data = _get_parking_pulse()
+        if not data:
+            await query.edit_message_text("📝 No parking transactions found for today.")
+            return
+
+        peak_str = f"{data['peak_hour']}:00–{data['peak_hour']+1}:00" if data["peak_hour"] is not None else "N/A"
+        avg_hrs = round(data["avg_duration_min"] / 60, 1)
+
+        msg = "🅿️ *Austin Parking — Last 24 Hours*\n\n"
+        msg += f"🔢 *Transactions:* {data['total']:,}\n"
+        msg += f"💵 *Total revenue:* ${data['revenue']:,.2f}\n"
+        msg += f"📊 *Avg session:* ${data['avg_amount']} · {avg_hrs} hrs\n"
+        msg += f"⏰ *Peak hour:* {peak_str}\n"
+        msg += f"💳 *Card:* {data['card']}  🪙 *Coins:* {data['coins']}\n"
+
+        if data["locations"]:
+            msg += "\n*Activity by neighborhood:*\n"
+            max_loc = data["locations"][0][1]
+            for name, count in data["locations"]:
+                bar = "█" * min(10, round(count / max_loc * 10))
+                msg += f"  {bar} {name} — {count}\n"
+
+        await query.edit_message_text(msg, parse_mode="Markdown")
+    except Exception as e:
+        logger.error(f"parking pulse: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
+
+
 async def parking_abandoned_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
-    await query.edit_message_text("⏳ Counting abandoned vehicles...")
+    await query.edit_message_text("⏳ Fetching abandoned vehicle data...")
     try:
-        count = _count_abandoned_vehicles()
-        await query.edit_message_text(
+        stats = _get_abandoned_vehicle_stats()
+        msg = (
             f"🚗 *Abandoned Vehicle Reports*\n\n"
-            f"📊 *{count}* reports in the last 365 days\n\n"
-            f"_Abandoned vehicles are handled under Parking Violation Enforcement (PARKINGV)_",
-            parse_mode="Markdown",
+            f"📊 *{stats['total']}* reports in the last 365 days\n"
+            f"✅ *Closed:* {stats['closed']}  🔴 *Open:* {stats['open']}\n"
         )
+        if stats.get("oldest_open"):
+            o = stats["oldest_open"]
+            msg += f"\n🕰️ *Longest open:* #{o['id']}\n   📍 {o['address']}\n   {o['days_ago']} days unresolved\n"
+        if stats.get("sample_id"):
+            msg += f"\n🔗 [View sample ticket #{stats['sample_id']}](https://311.austintexas.gov/open311/v2/requests/{stats['sample_id']}.json)"
+        await query.edit_message_text(msg, parse_mode="Markdown", disable_web_page_preview=True)
     except Exception as e:
         logger.error(f"parking abandoned: {e}")
         await query.edit_message_text(f"❌ Error: {e}")
@@ -706,7 +843,8 @@ async def parking_hotspots_cb(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def parking_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [InlineKeyboardButton("🔥 Hot Zones", callback_data="parking_hotspots"),
-         InlineKeyboardButton("🚗 Abandoned", callback_data="parking_abandoned")],
+         InlineKeyboardButton("🚗 Abandoned", callback_data="parking_abandoned"),
+         InlineKeyboardButton("📈 Daily Pulse", callback_data="parking_top_payments")],
     ]
     await update.message.reply_text(
         "*🅿️ Parking Enforcement*\nChoose a view:",
@@ -789,360 +927,6 @@ async def report_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
 
 
-# =============================================================================
-# DIRECTORY COMMAND (Libraries & Pools)
-# =============================================================================
-
-
-# APL Library locations - official Austin Public Library branches only
-# Austin Public Libraries - organized by zone
-APL_LIBRARIES = {
-    "central": [
-        {"name": "Austin Central Library", "address": "710 W Cesar Chavez St, Austin, TX", "filter": "Austin Central Library"},
-        {"name": "Carver Branch", "address": "1161 Angelina St, Austin, TX", "filter": "Carver Branch Library"},
-        {"name": "Terrazas Branch", "address": "1105 E Cesar Chavez St, Austin, TX", "filter": "Terrazas Branch Library"},
-    ],
-    "north": [
-        {"name": "Little Walnut Creek Branch", "address": "835 W Rundberg Ln, Austin, TX", "filter": "Little Walnut Creek Branch Library"},
-        {"name": "Milwood Branch", "address": "12500 Amherst Dr, Austin, TX", "filter": "Milwood Branch Library"},
-        {"name": "North Village Branch", "address": "2505 Steck Ave, Austin, TX", "filter": "North Village Branch Library"},
-        {"name": "Old Quarry Branch", "address": "7051 Village Center Dr, Austin, TX", "filter": "Old Quarry Branch Library"},
-        {"name": "St. John Branch", "address": "7500 Blessing Ave, Austin, TX", "filter": "St. John Branch Library"},
-        {"name": "Yarborough Branch", "address": "2200 Hancock Dr, Austin, TX", "filter": "Yarborough Branch Library"},
-    ],
-    "south": [
-        {"name": "Hampton Branch at Oak Hill", "address": "5125 Convict Hill Rd, Austin, TX", "filter": "Hampton Branch Library"},
-        {"name": "Pleasant Hill Branch", "address": "211 E William Cannon Dr, Austin, TX", "filter": "Pleasant Hill Branch Library"},
-    ],
-    "east": [
-        {"name": "Cepeda Branch", "address": "651 N Pleasant Valley Rd, Austin, TX", "filter": "Cepeda Branch Library"},
-        {"name": "Ruiz Branch", "address": "1600 Grove Blvd, Austin, TX", "filter": "Ruiz Branch Library"},
-        {"name": "Southeast Branch", "address": "5803 Nuckols Crossing Rd, Austin, TX", "filter": "Southeast Branch Library"},
-        {"name": "University Hills Branch", "address": "4721 Loyola Ln, Austin, TX", "filter": "University Hills Branch Library"},
-        {"name": "Willie Mae Kirk Branch", "address": "3101 Oak Springs Dr, Austin, TX", "filter": "Willie Mae Kirk Branch Library"},
-        {"name": "Windsor Park Branch", "address": "5833 Westminster Dr, Austin, TX", "filter": "Windsor Park Branch Library"},
-    ],
-}
-
-# City of Austin Public Pools - organized by zone
-AUSTIN_POOLS = {
-    "central": [
-        {"name": "Barton Springs Pool", "address": "2201 William Barton Dr, Austin, TX", "filter": "Barton Springs Pool"},
-        {"name": "Big Stacy Pool", "address": "700 E Live Oak St, Austin, TX", "filter": "Big Stacy Pool"},
-        {"name": "Comal Pool", "address": "1709 Comal St, Austin, TX", "filter": "Comal Pool"},
-        {"name": "Deep Eddy Pool", "address": "401 Deep Eddy Ave, Austin, TX", "filter": "Deep Eddy Pool"},
-        {"name": "Palm Park Pool", "address": "711 E 3rd St, Austin, TX", "filter": "Palm Park Pool"},
-        {"name": "Pickle Pool", "address": "1000 Barton Springs Rd, Austin, TX", "filter": "Pickle Pool"},
-    ],
-    "north": [
-        {"name": "Gillis Pool", "address": "2209 Hancock Dr, Austin, TX", "filter": "Gillis Pool"},
-        {"name": "Kimberly Lane Pool", "address": "9006 Galewood Dr, Austin, TX", "filter": "Kimberly Lane Pool"},
-        {"name": "Murchison Pool", "address": "3700 N Hills Dr, Austin, TX", "filter": "Murchison Pool"},
-        {"name": "Northeast Pool", "address": "1901 Cedar Bend Dr, Austin, TX", "filter": "Northeast Pool"},
-        {"name": "Northwest Pool", "address": "7000 Ardath St, Austin, TX", "filter": "Northwest Pool"},
-        {"name": "Packer Pool", "address": "1020 Duncan Ln, Austin, TX", "filter": "Packer Pool"},
-        {"name": "Reilly Pool", "address": "1814 Niles Rd, Austin, TX", "filter": "Reilly Pool"},
-        {"name": "Spicewood Springs Pool", "address": "8620 Spicewood Springs Rd, Austin, TX", "filter": "Spicewood Springs Pool"},
-        {"name": "Springwoods Pool", "address": "13320 Lyndhurst St, Austin, TX", "filter": "Springwoods Pool"},
-    ],
-    "south": [
-        {"name": "Garrison Pool", "address": "6001 Manchaca Rd, Austin, TX", "filter": "Garrison Pool"},
-        {"name": "Lamar Pool", "address": "1924 S 1st St, Austin, TX", "filter": "Lamar Pool"},
-        {"name": "Mary Frances Baylor Pool", "address": "218 Robert E Lee Rd, Austin, TX", "filter": "Mary Frances Baylor Pool"},
-        {"name": "Shipe Pool", "address": "6900 Manchaca Rd, Austin, TX", "filter": "Shipe Pool"},
-        {"name": "South Austin Neighborhood Pool", "address": "1100 Cumberland Rd, Austin, TX", "filter": "South Austin Pool"},
-        {"name": "West Austin Neighborhood Pool", "address": "3000 Scenic Dr, Austin, TX", "filter": "West Austin Pool"},
-    ],
-    "east": [
-        {"name": "Bartholomew Pool", "address": "5201 Berkman Dr, Austin, TX", "filter": "Bartholomew Pool"},
-        {"name": "Dottie Jordan Pool", "address": "2803 Loyola Ln, Austin, TX", "filter": "Dottie Jordan Pool"},
-        {"name": "Emma Long Metropolitan Park Pool", "address": "1700 City Park Rd, Austin, TX", "filter": "Emma Long Pool"},
-        {"name": "Govalle Pool", "address": "5200 Bolm Rd, Austin, TX", "filter": "Govalle Pool"},
-        {"name": "Lyndon B. Johnson Pool", "address": "5808 Nuckols Crossing Rd, Austin, TX", "filter": "LBJ Pool"},
-        {"name": "Metz Pool", "address": "2407 Canterbury St, Austin, TX", "filter": "Metz Pool"},
-        {"name": "Montopolis Pool", "address": "631 Montopolis Dr, Austin, TX", "filter": "Montopolis Pool"},
-        {"name": "Rosewood Pool", "address": "1180 N Pleasant Valley Rd, Austin, TX", "filter": "Rosewood Pool"},
-        {"name": "Sanchez Pool", "address": "2021 Montopolis Dr, Austin, TX", "filter": "Sanchez Pool"},
-        {"name": "Tillery Pool", "address": "300 Tillery St, Austin, TX", "filter": "Tillery Pool"},
-    ],
-}
-
-
-_CITY_POOL_STATUS_CACHE: dict = {"data": {}, "ts": 0}
-_CITY_POOL_STATUS_URL = "https://www.austintexas.gov/parks/locations/pools-and-splash-pads"
-_CITY_POOL_CACHE_TTL = 3600  # refresh hourly
-
-
-def _get_city_pool_statuses() -> dict[str, str]:
-    """Scrape the City of Austin pools page and return {pool_name_lower: status_text}.
-    Results are cached for one hour.
-    """
-    from bs4 import BeautifulSoup
-
-    now = time.time()
-    if now - _CITY_POOL_STATUS_CACHE["ts"] < _CITY_POOL_CACHE_TTL and _CITY_POOL_STATUS_CACHE["data"]:
-        return _CITY_POOL_STATUS_CACHE["data"]
-
-    try:
-        resp = requests.get(_CITY_POOL_STATUS_URL, timeout=10)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        statuses = {}
-        # The page lists each facility as a heading/title followed by status text.
-        # We look for any element whose text contains a pool name and a status keyword.
-        status_keywords = re.compile(
-            r"(open|closed for season|closed for renovation|closed for cleaning|opens \w+ \d+|open year-round)",
-            re.IGNORECASE,
-        )
-
-        # Each pool entry on the page tends to live in a container with a title and a status line.
-        # Walk all text nodes that contain a status keyword and grab the preceding pool name.
-        for tag in soup.find_all(string=status_keywords):
-            status_text = tag.strip()
-            # Walk up to find the pool name in a sibling or parent heading
-            parent = tag.parent
-            for _ in range(4):  # look up to 4 levels up
-                if parent is None:
-                    break
-                heading = parent.find_previous(re.compile(r"^h[2-6]$|strong"))
-                if heading:
-                    pool_name = heading.get_text(strip=True).lower()
-                    # strip trailing " pool" noise that varies, keep it simple
-                    statuses[pool_name] = status_text
-                    break
-                parent = parent.parent
-
-        _CITY_POOL_STATUS_CACHE["data"] = statuses
-        _CITY_POOL_STATUS_CACHE["ts"] = now
-        return statuses
-    except Exception as e:
-        logger.warning(f"city pool status scrape failed: {e}")
-        return _CITY_POOL_STATUS_CACHE.get("data", {})
-
-
-def _lookup_city_pool_status(pool_name: str) -> str | None:
-    """Return a status string from the city page for the given pool name, or None."""
-    statuses = _get_city_pool_statuses()
-    if not statuses:
-        return None
-
-    name_lower = pool_name.lower()
-    # Try exact match first
-    if name_lower in statuses:
-        return _format_city_pool_status(statuses[name_lower])
-
-    # Try partial: see if any scraped key is contained in the pool name or vice versa
-    for key, status in statuses.items():
-        key_core = key.replace(" pool", "").strip()
-        if key_core and (key_core in name_lower or key_core in name_lower.replace(" pool", "")):
-            return _format_city_pool_status(status)
-
-    return None
-
-
-def _format_city_pool_status(raw: str) -> str:
-    lower = raw.lower()
-    if "open year-round" in lower or lower.startswith("open"):
-        return f"🟢 {raw} (city website)"
-    if "opens" in lower:
-        return f"📅 {raw} (city website)"
-    if "closed for renovation" in lower:
-        return f"🚧 {raw} (city website)"
-    if "closed" in lower:
-        return f"🔴 {raw} (city website)"
-    return f"ℹ️ {raw} (city website)"
-
-
-def _get_place_hours(place_name: str, address: str, api_key: str, name_filter: str = "") -> str:
-    """Fetch operating hours from Google Maps API with filtering."""
-    if not api_key:
-        return "⚠️ Google Maps API key not configured"
-    
-    try:
-        # First, find the place
-        find_url = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
-        find_params = {
-            "input": f"{place_name} {address}",
-            "inputtype": "textquery",
-            "fields": "place_id",
-            "key": api_key,
-        }
-        resp = requests.get(find_url, params=find_params, timeout=10)
-        data = resp.json()
-        
-        if data.get("status") != "OK" or not data.get("candidates"):
-            return "⏰ Hours: Not found"
-        
-        place_id = data["candidates"][0]["place_id"]
-        
-        # Get place details with opening hours
-        # Request both opening_hours and current_opening_hours — seasonal facilities
-        # (like city pools) often only populate current_opening_hours in Google Places.
-        details_url = "https://maps.googleapis.com/maps/api/place/details/json"
-        details_params = {
-            "place_id": place_id,
-            "fields": "opening_hours,current_opening_hours,name",
-            "key": api_key,
-        }
-        resp = requests.get(details_url, params=details_params, timeout=10)
-        data = resp.json()
-
-        if data.get("status") != "OK":
-            return "⏰ Hours: Not available"
-
-        result = data.get("result", {})
-        returned_name = result.get("name", "")
-
-        # Filter: verify this is the expected place (APL Library or City Pool)
-        if name_filter and name_filter.lower() not in returned_name.lower():
-            if "pool" in name_filter.lower() and "pool" not in returned_name.lower():
-                return f"⏰ No hours (wrong result: {returned_name})"
-            if "library" in name_filter.lower() and "library" not in returned_name.lower():
-                return f"⏰ No hours (wrong result: {returned_name})"
-
-        # Prefer current_opening_hours (used by Google for seasonal/irregular places)
-        hours_info = result.get("current_opening_hours") or result.get("opening_hours") or {}
-
-        if hours_info.get("open_now") is True:
-            status = "🟢 Open now"
-        elif hours_info.get("open_now") is False:
-            status = "🔴 Closed"
-        else:
-            status = None  # will try city fallback below
-
-        weekday_text = hours_info.get("weekday_text", [])
-        if status and weekday_text:
-            hours_text = "\n".join(weekday_text[:3]) + ("\n..." if len(weekday_text) > 3 else "")
-            return f"{status}\n{hours_text}"
-        if status:
-            return status
-
-        # Google had no hours — try city website fallback for pools
-        if "pool" in name_filter.lower():
-            city_status = _lookup_city_pool_status(place_name)
-            if city_status:
-                return city_status
-
-        return "⏰ Hours not listed"
-
-    except Exception as e:
-        logger.error(f"Google Maps API error for {place_name}: {e}")
-        # Still try city fallback on error for pools
-        if "pool" in name_filter.lower():
-            city_status = _lookup_city_pool_status(place_name)
-            if city_status:
-                return city_status
-        return "⏰ Hours: Error fetching"
-
-
-def _format_directory_list(items: list, api_key: str, item_type: str) -> str:
-    """Format a list of places with their hours."""
-    lines = [f"📍 *{item_type}*\n"]
-    
-    for item in items:
-        name = item["name"]
-        address = item["address"]
-        name_filter = item.get("filter", "")
-        hours = _get_place_hours(name, address, api_key, name_filter)
-        lines.append(f"*{name}*\n{address}\n{hours}\n")
-
-    return "\n".join(lines)
-
-
-LIBRARY_ZONE_LABELS = {
-    "central": "Central",
-    "north": "North",
-    "south": "South",
-    "east": "East",
-}
-
-
-async def directory_libraries_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    keyboard = [
-        [InlineKeyboardButton("🏙 Central", callback_data="directory_libraries_zone_central"),
-         InlineKeyboardButton("⬆️ North", callback_data="directory_libraries_zone_north")],
-        [InlineKeyboardButton("⬇️ South", callback_data="directory_libraries_zone_south"),
-         InlineKeyboardButton("➡️ East", callback_data="directory_libraries_zone_east")],
-    ]
-    await query.edit_message_text(
-        "📚 *Austin Public Libraries*\n\nPick an area to see hours:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-
-async def directory_libraries_zone_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    zone = query.data.replace("directory_libraries_zone_", "")
-    label = LIBRARY_ZONE_LABELS.get(zone, zone.title())
-    await query.edit_message_text(f"⏳ Fetching {label} library hours...")
-
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
-    try:
-        libraries = APL_LIBRARIES.get(zone, [])
-        text = _format_directory_list(libraries, api_key, f"{label} Austin Libraries")
-        await _send_chunked(query, text)
-    except Exception as e:
-        logger.error(f"directory libraries zone {zone}: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
-
-POOL_ZONE_LABELS = {
-    "central": "Central",
-    "north": "North",
-    "south": "South",
-    "east": "East",
-}
-
-
-async def directory_pools_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    keyboard = [
-        [InlineKeyboardButton("🏙 Central", callback_data="directory_pools_zone_central"),
-         InlineKeyboardButton("⬆️ North", callback_data="directory_pools_zone_north")],
-        [InlineKeyboardButton("⬇️ South", callback_data="directory_pools_zone_south"),
-         InlineKeyboardButton("➡️ East", callback_data="directory_pools_zone_east")],
-    ]
-    await query.edit_message_text(
-        "🏊 *Austin Public Pools*\n\nPick an area to see hours:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-
-async def directory_pools_zone_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    zone = query.data.replace("directory_pools_zone_", "")
-    label = POOL_ZONE_LABELS.get(zone, zone.title())
-    await query.edit_message_text(f"⏳ Fetching {label} pool hours...")
-
-    api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
-    try:
-        pools = AUSTIN_POOLS.get(zone, [])
-        text = _format_directory_list(pools, api_key, f"{label} Austin Pools")
-        await _send_chunked(query, text)
-    except Exception as e:
-        logger.error(f"directory pools zone {zone}: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
-
-async def directory_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton("📚 Libraries", callback_data="directory_libraries"),
-         InlineKeyboardButton("🏊 Pools", callback_data="directory_pools")],
-    ]
-    await update.message.reply_text(
-        "📍 *Austin Directory*\n\nFind operating hours for:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
 
 # =============================================================================
 # CRIME DATA COMMAND (APD Crime Reports)
@@ -1223,6 +1007,113 @@ def _format_crime_stats(stats: dict, label: str) -> str:
     return msg
 
 
+def _get_nibrs_homicides() -> list:
+    """Fetch all homicide offenses from NIBRS Group A dataset."""
+    resp = requests.get(
+        "https://data.austintexas.gov/resource/i7fg-wrk5.json",
+        params={"$where": "nibrs_group='Homicide Offenses'", "$limit": 2000},
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+async def crime_homicides_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Fetching homicide data...")
+    try:
+        records = _get_nibrs_homicides()
+        if not records:
+            await query.edit_message_text("📝 No homicide records found.")
+            return
+
+        # Short labels for nibrs_desc
+        TYPE_LABELS = {
+            "09A Homicide: Murder and Non- Negligent Manslaughter": "Murder / Non-Neg. Manslaughter",
+            "09B Homicide: Negligent Manslaughter":                  "Negligent Manslaughter",
+            "09C Homicide: Justifiable Homicide (NOT A CRIME)":      "Justifiable Homicide",
+        }
+        CLEARED = {"CLEARED BY ARREST", "CLEARED EXCEPTIONALLY", "CLEARED ADMINISTRATIVELY"}
+
+        by_year: dict = {}
+        for r in records:
+            year = int(r.get("occ_year") or 0)
+            if not year:
+                continue
+            if year not in by_year:
+                by_year[year] = {"total": 0, "cleared": 0, "types": {}}
+            by_year[year]["total"] += 1
+            if r.get("internal_clearance_status") in CLEARED:
+                by_year[year]["cleared"] += 1
+            label = TYPE_LABELS.get(r.get("nibrs_desc", ""), r.get("nibrs_desc", "Unknown"))
+            by_year[year]["types"][label] = by_year[year]["types"].get(label, 0) + 1
+
+        years = sorted(y for y in by_year if y >= 2019)
+        cur_year = datetime.now(timezone.utc).year
+        cur_month = datetime.now(timezone.utc).month
+
+        # YTD comparison: current year vs last year same months
+        ytd_now = sum(
+            1 for r in records
+            if int(r.get("occ_year") or 0) == cur_year
+        )
+        ytd_prev = sum(
+            1 for r in records
+            if int(r.get("occ_year") or 0) == cur_year - 1
+            and datetime.strptime(r["occurred_date"][:7], "%Y-%m").month <= cur_month
+        )
+        if ytd_prev > 0:
+            ytd_pct = round((ytd_now - ytd_prev) / ytd_prev * 100)
+            ytd_arrow = "📈" if ytd_pct > 0 else "📉" if ytd_pct < 0 else "➡️"
+            ytd_str = f"{ytd_arrow} {cur_year} YTD: *{ytd_now}* vs {cur_year-1} same period: *{ytd_prev}* ({'+' if ytd_pct > 0 else ''}{ytd_pct}%)"
+        else:
+            ytd_str = f"📊 {cur_year} YTD: *{ytd_now}*"
+
+        # Overall clearance rate (excluding current partial year)
+        full_years = [y for y in years if y < cur_year]
+        total_full = sum(by_year[y]["total"] for y in full_years)
+        cleared_full = sum(by_year[y]["cleared"] for y in full_years)
+        open_full = sum(
+            1 for r in records
+            if int(r.get("occ_year") or 0) in full_years
+            and r.get("internal_clearance_status") == "OPEN"
+        )
+        clearance_pct = round(cleared_full / total_full * 100) if total_full else 0
+
+        msg = "⚰️ *Austin Homicides — NIBRS Data*\n"
+        msg += f"_Murder, manslaughter & justifiable homicide · 2019–{cur_year}_\n\n"
+        msg += f"{ytd_str}\n"
+        msg += f"🔍 *Clearance rate:* {clearance_pct}% solved · 🔴 *Open/unsolved:* {open_full} ({min(full_years)}–{max(full_years)})\n\n"
+
+        msg += "*Year-by-year (per 100k population):*\n"
+        max_total = max(by_year[y]["total"] for y in years)
+        for year in years:
+            d = by_year[year]
+            pop = _austin_population(year)
+            rate = round(d["total"] / pop * 100_000, 1) if pop else None
+            rate_str = f"  _{rate}/100k_" if rate else ""
+            bar = "█" * min(10, round(d["total"] / max_total * 10))
+            suffix = " *(partial)*" if year == cur_year else ""
+            msg += f"*{year}:* {bar} {d['total']}{rate_str}{suffix}\n"
+
+        # Type breakdown across all years
+        type_totals: dict = {}
+        for d in by_year.values():
+            for t, c in d["types"].items():
+                type_totals[t] = type_totals.get(t, 0) + c
+        msg += "\n*By offense type (all years):*\n"
+        total_all = sum(type_totals.values())
+        for t, c in sorted(type_totals.items(), key=lambda x: -x[1]):
+            pct = round(c / total_all * 100)
+            msg += f"  • {t}: {c} ({pct}%)\n"
+
+        await _send_chunked(query, msg)
+    except Exception as e:
+        logger.error(f"crime homicides: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
+
+
 async def crime_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     from datetime import datetime, timedelta, timezone
     await update.message.reply_text("⏳ Fetching crime data...")
@@ -1236,10 +1127,16 @@ async def crime_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         stats = _get_crime_stats(start_str, end_str)
         msg = _format_crime_stats(stats, label)
 
-        keyboard = [[InlineKeyboardButton(
-            "📅 Compare to 10 years ago",
-            callback_data=f"crime_compare_{start_str}_{end_str}"
-        )]]
+        keyboard = [
+            [InlineKeyboardButton(
+                "📅 Compare to 10 years ago",
+                callback_data=f"crime_compare_{start_str}_{end_str}"
+            )],
+            [InlineKeyboardButton(
+                "⚰️ Homicides (2019–present)",
+                callback_data="crime_homicides"
+            )],
+        ]
         await update.message.reply_text(
             msg,
             parse_mode="Markdown",
@@ -1572,6 +1469,7 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(parking_hotspots_cb, pattern="^parking_hotspots"))
     app.add_handler(CallbackQueryHandler(parking_resolution_cb, pattern="^parking_resolution"))
     app.add_handler(CallbackQueryHandler(parking_abandoned_cb, pattern="^parking_abandoned"))
+    app.add_handler(CallbackQueryHandler(parking_top_payments_cb, pattern="^parking_top_payments"))
 
     # Graffiti slash command
     app.add_handler(CommandHandler("graffiti", graffiti_command))
@@ -1579,12 +1477,14 @@ def create_application() -> Application:
     # Crime slash command + inline
     app.add_handler(CommandHandler("crime", crime_command))
     app.add_handler(CallbackQueryHandler(crime_compare_cb, pattern="^crime_compare_"))
+    app.add_handler(CallbackQueryHandler(crime_homicides_cb, pattern="^crime_homicides"))
 
     # Safety slash command + inline
     app.add_handler(CommandHandler("safety", safety_command))
     app.add_handler(CallbackQueryHandler(safety_district_cb, pattern="^safety_district_"))
 
     # Bicycle slash commands
+    app.add_handler(CommandHandler("animal", animal_command))
     app.add_handler(CommandHandler("bicycle", bicycle_command))
     app.add_handler(CommandHandler("ticket", ticket_command))
 
@@ -1603,14 +1503,6 @@ def create_application() -> Application:
     # Code violations slash command
     app.add_handler(CommandHandler("code", code_command))
 
-    # Directory inline
-    app.add_handler(CallbackQueryHandler(directory_libraries_zone_cb, pattern="^directory_libraries_zone_"))
-    app.add_handler(CallbackQueryHandler(directory_libraries_cb, pattern="^directory_libraries$"))
-    app.add_handler(CallbackQueryHandler(directory_pools_zone_cb, pattern="^directory_pools_zone_"))
-    app.add_handler(CallbackQueryHandler(directory_pools_cb, pattern="^directory_pools$"))
-
-    # Directory slash command
-    app.add_handler(CommandHandler("directory", directory_command))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     app.add_error_handler(error_handler)
 
@@ -1629,7 +1521,6 @@ def create_application() -> Application:
             BotCommand("ticket",          "Look up any 311 ticket by ID"),
             BotCommand("report",          "Submit a 311 report (under construction)"),
             BotCommand("code",              "Building permits approved (last 365 days)"),
-            BotCommand("directory",         "Libraries & pools with hours"),
             BotCommand("crime",             "Recent APD crime stats"),
             BotCommand("safety",            "Crime by district — stats + city comparison"),
         ])
