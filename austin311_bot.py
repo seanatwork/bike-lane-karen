@@ -152,53 +152,35 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 🎨 *Graffiti:*
 /graffiti — Analysis · hotspots · remediation · trends
-_💡 Austin cleans graffiti on public property in ~4 days on average_
 
 🚴 *Bicycle:*
 /bicycle — Recent complaints · stats
-_💡 Austin has 100\+ miles of dedicated bike lanes — among the most in Texas_
 
 🍽️ *Restaurants:*
 /rest — Worst scores · grade report
 /rest <name or address> — Search directly
-_💡 Austin inspects every food establishment at least once a year_
 
 🐾 *Animal Services:*
 /animal — Hotspots · stats · response times
-_💡 Loose dog complaints are the most common 311 call in Austin_
 
 🚦 *Traffic & Infrastructure:*
 /traffic — Potholes · signals · street lights · sidewalks
-_💡 Pothole repair is one of the top 311 categories in Austin_
 
 🔊 *Noise Complaints:*
 /noise — Hotspots · stats · response times
-_💡 Austin's 6th Street corridor generates some of the highest noise complaint volumes in the city_
 
 🅿️ *Parking:*
 /parking — Citations · hot zones · stats
-_💡 Parking enforcement is one of the top 10 most-requested 311 services in Austin_
 
 🚔 *Police & Crime:*
 /crime — Recent APD incident stats (citywide)
-_Last 30 days, top crime types, clearance rate_
-_From APD Crime Reports: https://data.austintexas.gov/resource/fdj4-gpfu_
 /safety — Crime by district with city comparison
-/homeless — Homelessness budget impact across city departments
+/budget — Homelessness services, NGO grants, pension & benefits
 
 🎫 *Ticket Lookup:*
 /ticket <id> — Look up any 311 ticket by ID
 
 🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
-
-🚧 _Under Consideration_
-
-📋 *Code Violations:*
-/code — Building permits approved
-_🏗️ permits data (last 365 days)_
-
-📝 *Report Issue:*
-/report — Under consideration
 
 ℹ️ /start — Main menu  |  /help — This message"""
     await update.message.reply_text(help_text, parse_mode="Markdown")
@@ -1631,17 +1613,16 @@ def _get_homeless_budget() -> dict:
     url = "https://data.austintexas.gov/resource/yeeq-kk6v.json"
     all_depts = _HOMELESS_DIRECT_DEPTS + [n for n, _ in _HOMELESS_DOWNSTREAM_DEPTS]
     dept_list = ",".join(f"'{d}'" for d in all_depts)
-    params = {
-        "$select": "fy,dept_nm,sum(act) as actual,sum(bud) as budget",
-        "$where":  f"dept_nm in({dept_list})",
-        "$group":  "fy,dept_nm",
-        "$order":  "fy ASC,dept_nm ASC",
-        "$limit":  500,
-    }
     app_token = os.getenv("AUSTIN_APP_TOKEN")
     headers = {"X-App-Token": app_token} if app_token else {}
     try:
-        resp = requests.get(url, params=params, headers=headers, timeout=20)
+        resp = requests.get(url, params={
+            "$select": "fy,dept_nm,sum(act) as actual,sum(bud) as budget",
+            "$where":  f"dept_nm in({dept_list})",
+            "$group":  "fy,dept_nm",
+            "$order":  "fy ASC,dept_nm ASC",
+            "$limit":  500,
+        }, headers=headers, timeout=20)
         resp.raise_for_status()
         result: dict[str, dict[str, dict]] = {}
         for row in resp.json():
@@ -1653,6 +1634,57 @@ def _get_homeless_budget() -> dict:
             except (ValueError, TypeError):
                 continue
             result.setdefault(dept, {})[fy] = {"actual": actual, "budget": budget}
+
+        # Fetch grants-to-subrecipients (NGO/nonprofit pass-through) by year
+        grants_resp = requests.get(url, params={
+            "$select": "fy,sum(act) as actual,sum(bud) as budget",
+            "$where":  "dept_nm='Homeless Strategies and Operations' AND obj_desc='Grants to subrecipients'",
+            "$group":  "fy",
+            "$order":  "fy ASC",
+            "$limit":  100,
+        }, headers=headers, timeout=20)
+        grants_resp.raise_for_status()
+        grants: dict[str, dict] = {}
+        for row in grants_resp.json():
+            fy = row.get("fy", "")
+            try:
+                actual = float(row.get("actual") or 0)
+                budget = float(row.get("budget") or 0)
+            except (ValueError, TypeError):
+                continue
+            grants[fy] = {"actual": actual, "budget": budget}
+        result["_grants_to_subrecipients"] = grants
+
+        # Fetch citywide pension contributions and health/dental benefits by year
+        pension_obj = (
+            "Contribution to employees ret",
+            "Contribution to police ret",
+            "Contribution to firefighter rt",
+        )
+        pension_list = ",".join(f"'{o}'" for o in pension_obj)
+        pension_resp = requests.get(url, params={
+            "$select": "fy,obj_desc,sum(act) as actual,sum(bud) as budget",
+            "$where":  f"obj_desc in({pension_list},'Insurance-health/life/dental')",
+            "$group":  "fy,obj_desc",
+            "$order":  "fy ASC",
+            "$limit":  200,
+        }, headers=headers, timeout=20)
+        pension_resp.raise_for_status()
+        pension: dict[str, dict] = {}   # fy -> {pension: float, health: float}
+        for row in pension_resp.json():
+            fy = row.get("fy", "")
+            desc = row.get("obj_desc", "")
+            try:
+                actual = float(row.get("actual") or 0)
+            except (ValueError, TypeError):
+                continue
+            entry = pension.setdefault(fy, {"pension": 0.0, "health": 0.0})
+            if desc in pension_obj:
+                entry["pension"] += actual
+            else:
+                entry["health"] += actual
+        result["_pension_benefits"] = pension
+
         return result
     except Exception as e:
         logger.error(f"homeless budget: {e}")
@@ -1663,7 +1695,7 @@ def _format_homeless_budget(data: dict) -> str:
     if not data:
         return "🏠 *Austin Homelessness Budget*\n\nNo data available."
 
-    all_years = sorted({fy for dept_data in data.values() for fy in dept_data})
+    all_years = sorted({fy for k, dept_data in data.items() if not k.startswith("_") for fy in dept_data})
     if not all_years:
         return "🏠 *Austin Homelessness Budget*\n\nNo data available."
 
@@ -1685,8 +1717,15 @@ def _format_homeless_budget(data: dict) -> str:
         trend = _budget_trend(_dept_spend(dept_data, first_yr), _dept_spend(dept_data, last_yr))
         msg += f"*{label}*\n{year_strs}\n{trend}\n\n"
 
+    grants = data.get("_grants_to_subrecipients", {})
+    if grants:
+        year_strs = "  ".join(
+            f"FY{fy}: {_fmt_millions(_dept_spend(grants, fy))}" for fy in recent
+        )
+        trend = _budget_trend(_dept_spend(grants, first_yr), _dept_spend(grants, last_yr))
+        msg += f"*Grants to NGOs/Nonprofits*\n{year_strs}\n{trend}\n\n"
+
     msg += "*Downstream Departments:*\n"
-    msg += "_Total dept spend — homelessness is a contributing factor, not the sole driver_\n\n"
     for dept_name, emoji in _HOMELESS_DOWNSTREAM_DEPTS:
         dept_data = data.get(dept_name)
         if not dept_data:
@@ -1699,6 +1738,29 @@ def _format_homeless_budget(data: dict) -> str:
             f"  FY{first_yr}: {_fmt_millions(first_spend)} → "
             f"FY{last_yr}: {_fmt_millions(last_spend)}  {trend}\n\n"
         )
+
+    pension = data.get("_pension_benefits", {})
+    if pension:
+        pension_years = sorted(pension.keys())
+        p_recent = pension_years[-5:]
+        p_first, p_last = p_recent[0], p_recent[-1]
+        msg += "*Citywide Pension & Benefits:*\n"
+        p_strs = "  ".join(
+            f"FY{fy}: {_fmt_millions(pension.get(fy, {}).get('pension', 0.0))}" for fy in p_recent
+        )
+        p_trend = _budget_trend(
+            pension.get(p_first, {}).get("pension", 0.0),
+            pension.get(p_last, {}).get("pension", 0.0),
+        )
+        msg += f"*Pension contributions*\n{p_strs}\n{p_trend}\n\n"
+        h_strs = "  ".join(
+            f"FY{fy}: {_fmt_millions(pension.get(fy, {}).get('health', 0.0))}" for fy in p_recent
+        )
+        h_trend = _budget_trend(
+            pension.get(p_first, {}).get("health", 0.0),
+            pension.get(p_last, {}).get("health", 0.0),
+        )
+        msg += f"*Health/dental insurance*\n{h_strs}\n{h_trend}\n\n"
 
     msg += "_Source: [Austin Open Budget](https://data.austintexas.gov/d/yeeq-kk6v)_"
     return msg
@@ -1969,7 +2031,7 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
     app.add_handler(CallbackQueryHandler(police_hate_cb, pattern="^police_hate$"))
     app.add_handler(CallbackQueryHandler(police_homeless_cb, pattern="^police_homeless$"))
-    app.add_handler(CommandHandler("homeless", homeless_command))
+    app.add_handler(CommandHandler("budget", homeless_command))
 
 
     # Bicycle slash commands
@@ -2000,7 +2062,7 @@ def create_application() -> Application:
         await application.bot.set_my_commands([
             BotCommand("start",    "Main menu"),
             BotCommand("crime",    "Recent APD crime stats"),
-            BotCommand("homeless", "Homelessness budget — direct services + downstream dept trends"),
+            BotCommand("budget", "City budget — homelessness services, NGO grants, pension & benefits"),
             BotCommand("safety",   "Crime by district — stats + city comparison"),
             BotCommand("traffic",  "Traffic & infrastructure — signals · lights · sidewalks"),
             BotCommand("parking",  "Parking enforcement — citations · hot zones · stats"),

@@ -32,7 +32,8 @@
       "WebFetch(domain:dev.socrata.com)",
       "WebFetch(domain:catalog.data.gov)",
       "WebFetch(domain:austinmonitor.com)",
-      "WebFetch(domain:atxtoday.6amcity.com)"
+      "WebFetch(domain:atxtoday.6amcity.com)",
+      "Bash(printf 'feat: Add /budget command with NGO grants and citywide pension/benefits\\\\n\\\\nRenames /homeless to /budget. Adds grants-to-subrecipients breakdown \\(NGO/nonprofit\\\\npass-through\\) and citywide pension contributions + health/dental benefits from the\\\\nAustin Open Budget dataset. Trims help text fluff.')"
     ],
     "defaultMode": "bypassPermissions"
   }
