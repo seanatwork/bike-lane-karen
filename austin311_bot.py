@@ -2525,11 +2525,11 @@ def _get_water_quality() -> dict:
 
     # Parameters of interest
     params_of_interest = {
-        "FECAL COLIFORM BACTERIA": ("Fecal Coliform", "col/100mL"),
-        "DISSOLVED OXYGEN":        ("Dissolved Oxygen", "mg/L"),
-        "NITRATE AS N":            ("Nitrate (as N)", "mg/L"),
-        "PHOSPHORUS":              ("Phosphorus", "mg/L"),
-        "PH":                      ("pH", ""),
+        "E COLI BACTERIA":            ("E. coli", "col/100mL"),
+        "24-HOUR AVG DISSOLVED OXYGEN": ("Dissolved Oxygen", "mg/L"),
+        "NITRATE AS N":               ("Nitrate (as N)", "mg/L"),
+        "FREE REACTIVE PHOSPHORUS":   ("Phosphorus", "µg/L"),
+        "24-HOUR AVG PH":             ("pH", ""),
     }
 
     results: dict[str, dict] = {}  # watershed -> param -> {value, unit, date}
@@ -2537,8 +2537,8 @@ def _get_water_quality() -> dict:
     for param_raw, (label, unit) in params_of_interest.items():
         try:
             resp = session.get(url, params={
-                "$select":  "watershed, parameter_type, result, unit, sample_date",
-                "$where":   f"medium='Surface Water' AND upper(parameter_type) like '%{param_raw}%'",
+                "$select":  "watershed, parameter, result, unit, sample_date",
+                "$where":   f"medium='Surface Water' AND upper(parameter) like '%{param_raw}%'",
                 "$order":   "sample_date DESC",
                 "$limit":   200,
             }, timeout=20)
@@ -2558,8 +2558,8 @@ def _get_water_quality() -> dict:
                     "unit":  row.get("unit", unit) or unit,
                     "date":  row.get("sample_date", "")[:10],
                 }
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"water quality fetch failed for {param_raw}: {e}")
 
     return results
 
@@ -2591,7 +2591,7 @@ def _format_water_quality(data: dict) -> str:
         if not params:
             continue
 
-        ecoli = params.get("Fecal Coliform")
+        ecoli = params.get("E. coli")
         if ecoli:
             try:
                 val = float(ecoli["value"])
