@@ -218,19 +218,30 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
-        "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
+        "📡 *Welcome to ATX Pulse!*\n\nSelect a service:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
 
-_HELP_TEXT = """🏛️ *AUSTIN 311 BOT*
+_HELP_TEXT = """📡 *ATX PULSE*
 
-🎨 *Graffiti:*
-/graffiti — Analysis · hotspots · remediation · trends
+🚔 *Police & Crime:*
+/crime — Recent APD incident stats (citywide)
+/safety — Crime by district with city comparison
+/budget — Homelessness services, NGO grants, pension & benefits
+
+🚦 *Traffic & Infrastructure:*
+/traffic — Potholes · signals · live incidents · crash stats
 
 🚴 *Bicycle:*
 /bicycle — Recent complaints · stats
+
+💧 *Water Quality:*
+/water — Surface water quality by watershed
+
+🎨 *Graffiti:*
+/graffiti — Analysis · hotspots · remediation · trends
 
 🍽️ *Restaurants:*
 /rest — Worst scores · grade report
@@ -239,29 +250,17 @@ _HELP_TEXT = """🏛️ *AUSTIN 311 BOT*
 🐾 *Animal Services:*
 /animal — Hotspots · stats · response times
 
-🚦 *Traffic & Infrastructure:*
-/traffic — Potholes · signals · live incidents · crash stats
-
 🔊 *Noise Complaints:*
 /noise — Hotspots · stats · response times
 
 🅿️ *Parking:*
 /parking — Citations · hot zones · stats
 
-🚔 *Police & Crime:*
-/crime — Recent APD incident stats (citywide)
-/safety — Crime by district with city comparison
-/budget — Homelessness services, NGO grants, pension & benefits
-
 🎫 *Ticket Lookup:*
 /ticket <id> — Look up any 311 ticket by ID
 
-💧 *Water Quality:*
-/water — Surface water quality by watershed
-
 🏗️ *Building Permits:*
 /permits — Permit activity last 30 days
-
 
 🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
@@ -387,7 +386,7 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
-        "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
+        "📡 *Welcome to ATX Pulse!*\n\nSelect a service:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
