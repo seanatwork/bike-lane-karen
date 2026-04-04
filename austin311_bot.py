@@ -219,6 +219,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
         [InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
+        [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
         "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
@@ -227,9 +228,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
-@rate_limited
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    help_text = """🏛️ *AUSTIN 311 BOT*
+_HELP_TEXT = """🏛️ *AUSTIN 311 BOT*
 
 🎨 *Graffiti:*
 /graffiti — Analysis · hotspots · remediation · trends
@@ -273,7 +272,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
 ℹ️ /start — Main menu  |  /help — This message"""
-    await update.message.reply_text(help_text, parse_mode="Markdown")
+
+
+@rate_limited
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(_HELP_TEXT, parse_mode="Markdown")
 
 
 # =============================================================================
@@ -386,9 +389,21 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
         [InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
+        [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
         "🏛️ *Welcome to Austin 311 Bot!*\n\nSelect a service:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def about_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]]
+    await query.edit_message_text(
+        _HELP_TEXT,
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -2787,6 +2802,7 @@ def create_application() -> Application:
     # Inline menu navigation
     app.add_handler(CallbackQueryHandler(service_menu, pattern="^service_"))
     app.add_handler(CallbackQueryHandler(back_to_main, pattern="^back_to_main"))
+    app.add_handler(CallbackQueryHandler(about_cb, pattern="^about$"))
 
     # Graffiti inline
     app.add_handler(CallbackQueryHandler(graffiti_analyze_cb, pattern="^graffiti_analyze"))
