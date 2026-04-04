@@ -31,6 +31,9 @@ wheels/
 # Claude Code
 .claude/settings.local.json
 
+# Local notes
+brainstorm.md
+
 # IDE
 .idea/
 .vscode/

@@ -164,7 +164,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 /animal — Hotspots · stats · response times
 
 🚦 *Traffic & Infrastructure:*
-/traffic — Potholes · signals · street lights · sidewalks
+/traffic — Potholes · signals · live incidents · crash stats
 
 🔊 *Noise Complaints:*
 /noise — Hotspots · stats · response times
@@ -232,6 +232,8 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         keyboard = [
             [InlineKeyboardButton("📋 Infra Backlog", callback_data="traffic_backlog"),
              InlineKeyboardButton("🚦 Broken Signals", callback_data="traffic_signals")],
+            [InlineKeyboardButton("🚨 Live Incidents", callback_data="traffic_live"),
+             InlineKeyboardButton("💥 Crash Stats", callback_data="traffic_crashes")],
             [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
         ]
         text = "*🚦 Traffic & Infrastructure*\nPotholes, signals, street lights, sidewalks, and more."
@@ -596,12 +598,253 @@ async def traffic_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     keyboard = [
         [InlineKeyboardButton("📋 Infra Backlog", callback_data="traffic_backlog"),
          InlineKeyboardButton("🚦 Broken Signals", callback_data="traffic_signals")],
+        [InlineKeyboardButton("🚨 Live Incidents", callback_data="traffic_live"),
+         InlineKeyboardButton("💥 Crash Stats", callback_data="traffic_crashes")],
     ]
     await update.message.reply_text(
         "*🚦 Traffic & Infrastructure*\nChoose a view:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
+
+# =============================================================================
+# LIVE TRAFFIC INCIDENTS (Real-Time Traffic Incident Reports dx9v-zd7x)
+# =============================================================================
+
+_TRAFFIC_SESSION: requests.Session | None = None
+
+def _get_traffic_session() -> requests.Session:
+    global _TRAFFIC_SESSION
+    if _TRAFFIC_SESSION is None:
+        _TRAFFIC_SESSION = requests.Session()
+        app_token = os.getenv("AUSTIN_APP_TOKEN")
+        if app_token:
+            _TRAFFIC_SESSION.headers.update({"X-App-Token": app_token})
+    return _TRAFFIC_SESSION
+
+
+# Normalise the inconsistent casing in issue_reported
+_INCIDENT_LABELS: dict[str, str] = {
+    "crash urgent":               "Crash (urgent)",
+    "collision":                  "Collision",
+    "collision with injury":      "Collision w/ injury",
+    "collisn/ lvng scn":          "Collision — leaving scene",
+    "collision/private property": "Collision (private property)",
+    "traffic fatality":           "Traffic fatality",
+    "crash service":              "Crash (service)",
+    "traffic hazard":             "Traffic hazard",
+    "trfc hazd/ debris":          "Hazard / debris",
+    "stalled vehicle":            "Stalled vehicle",
+    "vehicle fire":               "Vehicle fire",
+    "loose livestock":            "Loose livestock",
+}
+
+def _normalise_incident(raw: str) -> str:
+    return _INCIDENT_LABELS.get(raw.lower().strip(), raw.title())
+
+
+def _get_live_incidents() -> list[dict]:
+    """Fetch currently ACTIVE traffic incidents."""
+    session = _get_traffic_session()
+    resp = session.get(
+        "https://data.austintexas.gov/resource/dx9v-zd7x.json",
+        params={
+            "$where":  "traffic_report_status='ACTIVE'",
+            "$order":  "published_date DESC",
+            "$limit":  50,
+        },
+        timeout=20,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _format_live_incidents(rows: list[dict]) -> str:
+    if not rows:
+        return "🚨 *Live Traffic Incidents*\n\n✅ No active incidents reported right now."
+
+    now = datetime.now(timezone.utc)
+
+    # Group by normalised type
+    by_type: dict[str, list[dict]] = {}
+    for r in rows:
+        label = _normalise_incident(r.get("issue_reported", "Unknown"))
+        by_type.setdefault(label, []).append(r)
+
+    msg = f"🚨 *Live Traffic Incidents* — {len(rows)} active\n\n"
+
+    # Severity-first ordering: fatalities and collisions first
+    priority = ["Traffic fatality", "Collision w/ injury", "Collision (urgent)",
+                "Crash (urgent)", "Collision", "Collision — leaving scene"]
+    ordered = sorted(by_type.keys(), key=lambda k: (priority.index(k) if k in priority else 99, k))
+
+    for label in ordered:
+        incidents = by_type[label]
+        msg += f"*{label}* ({len(incidents)})\n"
+        for inc in incidents[:5]:  # cap per-type list
+            addr = inc.get("address", "Unknown location")
+            pub = inc.get("published_date", "")
+            try:
+                dt = datetime.fromisoformat(pub.replace("Z", "+00:00"))
+                age_min = int((now - dt).total_seconds() / 60)
+                age_str = f"{age_min}m ago" if age_min < 60 else f"{age_min // 60}h {age_min % 60}m ago"
+            except Exception:
+                age_str = ""
+            agency = inc.get("agency", "")
+            msg += f"  • {addr}"
+            if age_str:
+                msg += f" · {age_str}"
+            if agency:
+                msg += f" · {agency}"
+            msg += "\n"
+        if len(incidents) > 5:
+            msg += f"  _+{len(incidents) - 5} more_\n"
+        msg += "\n"
+
+    msg += "_Source: [Real-Time Traffic Incidents](https://data.austintexas.gov/d/dx9v-zd7x)_"
+    return msg
+
+
+async def traffic_live_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Fetching live traffic incidents...")
+    try:
+        rows = await asyncio.to_thread(_get_live_incidents)
+        msg = _format_live_incidents(rows)
+        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="service_traffic")]]
+        await query.edit_message_text(msg, parse_mode="Markdown",
+                                      reply_markup=InlineKeyboardMarkup(keyboard))
+    except Exception as e:
+        logger.error(f"traffic live cb: {e}")
+        await query.edit_message_text(f"❌ Error fetching live incidents: {e}")
+
+
+# =============================================================================
+# CRASH STATS (Austin Crash Report Data y2wy-tgr5)
+# =============================================================================
+
+_CRASH_SEV: dict[str, str] = {
+    "1": "Fatal",
+    "2": "Serious injury",
+    "3": "Minor injury",
+    "4": "Possible injury",
+    "5": "Property damage only",
+    "0": "Unknown",
+}
+
+
+def _get_crash_stats() -> dict:
+    """Fetch 90-day crash summary and YTD fatality counts."""
+    session = _get_traffic_session()
+    url = "https://data.austintexas.gov/resource/y2wy-tgr5.json"
+
+    cutoff_90 = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%dT00:00:00")
+    ytd_start = datetime.now().strftime("%Y-01-01T00:00:00")
+
+    # 90-day totals
+    totals_resp = session.get(url, params={
+        "$select": "sum(death_cnt) as deaths, sum(tot_injry_cnt) as injuries,"
+                   "sum(sus_serious_injry_cnt) as serious,"
+                   "sum(pedestrian_death_count) as ped_deaths,"
+                   "sum(bicycle_death_count) as bike_deaths,"
+                   "count(*) as total",
+        "$where":  f"crash_timestamp_ct > '{cutoff_90}'",
+        "$limit":  1,
+    }, timeout=20)
+    totals_resp.raise_for_status()
+    totals = totals_resp.json()[0] if totals_resp.json() else {}
+
+    # Top collision types (90 days)
+    collsn_resp = session.get(url, params={
+        "$select": "collsn_desc, count(*) as total",
+        "$where":  f"crash_timestamp_ct > '{cutoff_90}' AND collsn_desc IS NOT NULL",
+        "$group":  "collsn_desc",
+        "$order":  "total DESC",
+        "$limit":  6,
+    }, timeout=20)
+    collsn_resp.raise_for_status()
+
+    # YTD fatalities
+    ytd_resp = session.get(url, params={
+        "$select": "sum(death_cnt) as deaths, count(*) as total",
+        "$where":  f"crash_timestamp_ct > '{ytd_start}'",
+        "$limit":  1,
+    }, timeout=20)
+    ytd_resp.raise_for_status()
+    ytd = ytd_resp.json()[0] if ytd_resp.json() else {}
+
+    return {
+        "totals":   totals,
+        "collsn":   collsn_resp.json(),
+        "ytd":      ytd,
+        "cutoff":   cutoff_90[:10],
+        "ytd_start": ytd_start[:4],
+    }
+
+
+def _fmt_int(val) -> str:
+    try:
+        return f"{int(float(val)):,}"
+    except (TypeError, ValueError):
+        return "0"
+
+
+def _format_crash_stats(data: dict) -> str:
+    t = data.get("totals", {})
+    ytd = data.get("ytd", {})
+    collsn = data.get("collsn", [])
+    cutoff = data.get("cutoff", "")
+    year = data.get("ytd_start", "")
+
+    msg = f"💥 *Austin Crash Report — Last 90 Days*\n_{cutoff} to today_\n\n"
+
+    msg += (
+        f"*Overview:*\n"
+        f"• Total crashes: {_fmt_int(t.get('total'))}\n"
+        f"• Fatalities: {_fmt_int(t.get('deaths'))}\n"
+        f"• Serious injuries: {_fmt_int(t.get('serious'))}\n"
+        f"• All injuries: {_fmt_int(t.get('injuries'))}\n"
+        f"• Pedestrian fatalities: {_fmt_int(t.get('ped_deaths'))}\n"
+        f"• Bicycle fatalities: {_fmt_int(t.get('bike_deaths'))}\n\n"
+    )
+
+    msg += (
+        f"*{year} YTD:*\n"
+        f"• Crashes: {_fmt_int(ytd.get('total'))}\n"
+        f"• Fatalities: {_fmt_int(ytd.get('deaths'))}\n\n"
+    )
+
+    if collsn:
+        msg += "*Top Collision Types:*\n"
+        for row in collsn:
+            desc = row.get("collsn_desc", "Unknown")
+            # Shorten verbose TxDOT descriptions
+            desc = desc.replace("SAME DIRECTION - ", "Same dir — ")
+            desc = desc.replace("OPPOSITE DIRECTION - ", "Opp dir — ")
+            desc = desc.replace("ONE MOTOR VEHICLE - ", "Single vehicle — ")
+            desc = desc.replace("ANGLE - ", "Angle — ")
+            msg += f"• {desc.title()}: {_fmt_int(row.get('total'))}\n"
+        msg += "\n"
+
+    msg += "_Source: [Austin Crash Report Data](https://data.austintexas.gov/d/y2wy-tgr5)_"
+    return msg
+
+
+async def traffic_crashes_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Fetching crash stats...")
+    try:
+        data = await asyncio.to_thread(_get_crash_stats)
+        msg = _format_crash_stats(data)
+        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="service_traffic")]]
+        await query.edit_message_text(msg, parse_mode="Markdown",
+                                      reply_markup=InlineKeyboardMarkup(keyboard))
+    except Exception as e:
+        logger.error(f"traffic crashes cb: {e}")
+        await query.edit_message_text(f"❌ Error fetching crash stats: {e}")
 
 
 # =============================================================================
@@ -2016,6 +2259,8 @@ def create_application() -> Application:
     # Traffic inline
     app.add_handler(CallbackQueryHandler(traffic_backlog_cb, pattern="^traffic_backlog"))
     app.add_handler(CallbackQueryHandler(traffic_signals_cb, pattern="^traffic_signals"))
+    app.add_handler(CallbackQueryHandler(traffic_live_cb, pattern="^traffic_live$"))
+    app.add_handler(CallbackQueryHandler(traffic_crashes_cb, pattern="^traffic_crashes$"))
     app.add_handler(CallbackQueryHandler(ticket_lookup_cb, pattern="^tlookup_"))
 
     # Noise inline
