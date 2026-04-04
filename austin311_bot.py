@@ -109,49 +109,46 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# RATE LIMITING (Sliding window: 5 requests per 60 seconds per user)
+# RATE LIMITING (Global: 30 requests per 60 seconds across all users)
+# No user data is stored or tracked.
 # =============================================================================
 
-from collections import defaultdict, deque
 from time import time
 
-_RATE_LIMIT_MAX = 5      # Max requests per window
-_RATE_LIMIT_WINDOW = 60  # Window in seconds
-_rate_tracker: dict[int, deque[float]] = defaultdict(deque)
+_RATE_LIMIT_MAX = 30      # Max requests per window (global)
+_RATE_LIMIT_WINDOW = 60   # Window in seconds
+_request_times: list[float] = []
 
 
-def _is_rate_limited(user_id: int) -> tuple[bool, int]:
-    """Check if user is rate limited. Returns (is_limited, retry_after_seconds)."""
+def _is_rate_limited() -> tuple[bool, int]:
+    """Check if global rate limit is hit. Returns (is_limited, retry_after_seconds)."""
     now = time()
     window_start = now - _RATE_LIMIT_WINDOW
+    global _request_times
     
-    # Clean old entries outside window
-    dq = _rate_tracker[user_id]
-    while dq and dq[0] < window_start:
-        dq.popleft()
+    # Remove old entries outside the window
+    _request_times = [t for t in _request_times if t > window_start]
     
-    if len(dq) >= _RATE_LIMIT_MAX:
-        retry_after = int(dq[0] + _RATE_LIMIT_WINDOW - now) + 1
+    if len(_request_times) >= _RATE_LIMIT_MAX:
+        retry_after = int(_request_times[0] + _RATE_LIMIT_WINDOW - now) + 1
         return True, max(1, retry_after)
     
-    dq.append(now)
+    _request_times.append(now)
     return False, 0
 
 
 def rate_limited(handler):
-    """Decorator to apply rate limiting to command handlers."""
+    """Decorator to apply global rate limiting. No user data is collected."""
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user_id = update.effective_user.id if update.effective_user else None
-        if user_id:
-            limited, retry = _is_rate_limited(user_id)
-            if limited:
-                msg = f"⏳ Rate limit reached. Please wait {retry}s before trying again."
-                if update.callback_query:
-                    await update.callback_query.answer()
-                    await update.callback_query.edit_message_text(msg)
-                elif update.message:
-                    await update.message.reply_text(msg)
-                return
+        limited, retry = _is_rate_limited()
+        if limited:
+            msg = f"⏳ Bot is busy. Please try again in {retry}s."
+            if update.callback_query:
+                await update.callback_query.answer()
+                await update.callback_query.edit_message_text(msg)
+            elif update.message:
+                await update.message.reply_text(msg)
+            return
         return await handler(update, context)
     return wrapper
 
@@ -270,6 +267,8 @@ _HELP_TEXT = """🏛️ *AUSTIN 311 BOT*
 /report — File a 311 request (pothole · graffiti · noise · parking · more)
 
 🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
+
+_This bot does not collect, store, or transmit any user data. All requests are processed anonymously._
 
 ℹ️ /start — Main menu  |  /help — This message"""
 
@@ -423,7 +422,7 @@ async def graffiti_analyze_cb(update: Update, context: ContextTypes.DEFAULT_TYPE
         result = await asyncio.to_thread(analyze_graffiti_command, 90)
         await _send_chunked(query, result)
     except Exception as e:
-        logger.error(f"graffiti analyze: {e}")
+        logger.error(f"graffiti analyze failed: {e}", exc_info=True)
         await query.edit_message_text(f"❌ Error: {e}")
 
 
