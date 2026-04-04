@@ -215,7 +215,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        [InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
@@ -263,8 +262,6 @@ _HELP_TEXT = """🏛️ *AUSTIN 311 BOT*
 🏗️ *Building Permits:*
 /permits — Permit activity last 30 days
 
-📋 *Submit a Report:*
-/report — File a 311 request (pothole · graffiti · noise · parking · more)
 
 🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
@@ -387,7 +384,6 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
         [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        [InlineKeyboardButton("📝 Report Issue", callback_data="service_report")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
@@ -2875,31 +2871,7 @@ def create_application() -> Application:
     # Noise slash command
     app.add_handler(CommandHandler("noise", noisecomplaints_command))
 
-    # Report slash command — ConversationHandler for multi-step 311 submission
-    report_conv = ConversationHandler(
-        entry_points=[CommandHandler("report", report_command)],
-        states={
-            _REPORT_TYPE: [
-                CallbackQueryHandler(report_type_cb, pattern="^rpt_type_"),
-                CallbackQueryHandler(report_cancel_cb, pattern="^rpt_cancel$"),
-            ],
-            _REPORT_LOCATION: [
-                MessageHandler(filters.LOCATION, report_location_msg),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, report_location_msg),
-            ],
-            _REPORT_DESCRIPTION: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, report_description_msg),
-            ],
-            _REPORT_CONFIRM: [
-                CallbackQueryHandler(report_confirm_cb, pattern="^rpt_confirm$"),
-                CallbackQueryHandler(report_cancel_cb, pattern="^rpt_cancel$"),
-            ],
-        },
-        fallbacks=[CommandHandler("cancel", report_cancel_cmd)],
-        per_user=True,
-        per_chat=True,
-    )
-    app.add_handler(report_conv)
+    # /report archived — incompatible with privacy-first (no user data) policy
 
     # Code violations slash command
     app.add_handler(CommandHandler("code", code_command))
@@ -2928,7 +2900,6 @@ def create_application() -> Application:
             BotCommand("ticket",   "Look up any 311 ticket by ID"),
             BotCommand("water",    "Surface water quality — fecal coliform · DO · nutrients"),
             BotCommand("permits",  "Building permits — last 30 days by type · district"),
-            BotCommand("report",   "Submit a 311 request — pothole · graffiti · noise · more"),
             BotCommand("help",     "All commands"),
         ])
 
