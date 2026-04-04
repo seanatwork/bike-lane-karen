@@ -16,7 +16,15 @@
       "Bash(xsel --clipboard --input)",
       "Bash(xclip -selection clipboard -o)",
       "Bash(xsel --clipboard --output)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "WebFetch(domain:data.austintexas.gov)",
+      "Bash(python -c \"import austin311_bot; print\\('OK'\\)\")",
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(python3 -m py_compile /home/sean/Documents/Projects/austin311bot-unofficial/austin311_bot.py)",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)"
     ],
     "defaultMode": "bypassPermissions"
   }
