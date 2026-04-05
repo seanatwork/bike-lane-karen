@@ -48,7 +48,11 @@
       "WebFetch(domain:www.epa.gov)",
       "WebFetch(domain:www.bathing-water-directive.eu)",
       "WebFetch(domain:www.tabc.texas.gov)",
-      "WebFetch(domain:data.texas.gov)"
+      "WebFetch(domain:data.texas.gov)",
+      "Bash(python -c \"import austin311_bot\")",
+      "Bash(python -c ':*)",
+      "Bash(python -c \"*)",
+      "Bash(printf 'feat: Add /childcare and expand crash stats with hot streets, collision types, peak hours\\\\n\\\\nAdds /childcare command using HHSC CCL datasets \\(bc5r-88dy + tqgd-mf4x\\) showing\\\\nAustin facility summary, compliance flags, and top deficiency violators.\\\\n\\\\nExpands existing traffic Crash Stats button \\(y2wy-tgr5\\) to include most\\\\ncrash-prone streets, top collision types, and peak crash hours alongside the\\\\nexisting road-user fatality breakdown.')"
     ],
     "defaultMode": "bypassPermissions"
   }

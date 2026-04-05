@@ -90,6 +90,10 @@ from parking.parking_bot import (
     format_hotspots as format_parking_hotspots,
 )
 
+# Child care licensing service
+from childcare.childcare_bot import get_childcare_stats, format_childcare
+
+
 # Restaurant inspections service
 from restaurants.restaurant_bot import (
     search_restaurants,
@@ -268,6 +272,9 @@ _HELP_TEXT = """📡 *ATX PULSE*
 
 🍺 *Bar of the Month:*
 /bars — Top TABC mixed beverage sales · biggest movers
+
+🧒 *Child Care:*
+/childcare — Austin licensed facilities · compliance flags · top deficiencies
 
 🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
 
@@ -908,15 +915,26 @@ _CRASH_SEV: dict[str, str] = {
 }
 
 
+_COLLSN_LABELS: dict[str, str] = {
+    "SAME DIRECTION - BOTH GOING STRAIGHT-REAR END":     "Rear-end",
+    "ONE MOTOR VEHICLE - GOING STRAIGHT":                "Single vehicle",
+    "ANGLE - BOTH GOING STRAIGHT":                       "Angle (T-bone)",
+    "SAME DIRECTION - ONE STRAIGHT-ONE STOPPED":         "Hit stopped vehicle",
+    "SAME DIRECTION - BOTH GOING STRAIGHT-SIDESWIPE":    "Sideswipe",
+    "OPPOSITE DIRECTION - ONE STRAIGHT-ONE LEFT TURN":   "Head-on / left turn",
+    "ANGLE - ONE STRAIGHT-ONE LEFT TURN":                "Left turn — angle",
+}
+
+
 def _get_crash_stats() -> dict:
-    """Fetch 90-day crash summary and YTD fatality counts."""
+    """Fetch 90-day crash summary, YTD fatalities, hot streets, collision types, peak hours."""
     session = _get_traffic_session()
     url = "https://data.austintexas.gov/resource/y2wy-tgr5.json"
 
     cutoff_90 = (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%dT00:00:00")
     ytd_start = datetime.now().strftime("%Y-01-01T00:00:00")
 
-    # 90-day totals
+    # 90-day totals + road-user fatality breakdown
     totals_resp = session.get(url, params={
         "$select": "sum(death_cnt) as deaths, sum(tot_injry_cnt) as injuries,"
                    "sum(sus_serious_injry_cnt) as serious,"
@@ -941,11 +959,58 @@ def _get_crash_stats() -> dict:
     ytd_resp.raise_for_status()
     ytd = ytd_resp.json()[0] if ytd_resp.json() else {}
 
+    # Top crash streets
+    streets_resp = session.get(url, params={
+        "$select": "rpt_street_name, count(*) as cnt",
+        "$where":  f"crash_timestamp_ct > '{cutoff_90}' AND rpt_street_name != 'NOT REPORTED'",
+        "$group":  "rpt_street_name",
+        "$order":  "cnt DESC",
+        "$limit":  6,
+    }, timeout=20)
+    streets_resp.raise_for_status()
+    top_streets = [
+        (r["rpt_street_name"].title(), int(r["cnt"]))
+        for r in streets_resp.json()
+    ]
+
+    # Top collision types
+    collsn_resp = session.get(url, params={
+        "$select": "collsn_desc, count(*) as cnt",
+        "$where":  f"crash_timestamp_ct > '{cutoff_90}'",
+        "$group":  "collsn_desc",
+        "$order":  "cnt DESC",
+        "$limit":  6,
+    }, timeout=20)
+    collsn_resp.raise_for_status()
+    collision_types = [
+        (_COLLSN_LABELS.get(r["collsn_desc"], r["collsn_desc"].title()), int(r["cnt"]))
+        for r in collsn_resp.json()
+        if r.get("collsn_desc")
+    ][:5]
+
+    # Peak crash hours
+    hours_resp = session.get(url, params={
+        "$select": "date_extract_hh(crash_timestamp_ct) as hour, count(*) as cnt",
+        "$where":  f"crash_timestamp_ct > '{cutoff_90}'",
+        "$group":  "hour",
+        "$order":  "cnt DESC",
+        "$limit":  3,
+    }, timeout=20)
+    hours_resp.raise_for_status()
+    peak_hours = [
+        (int(r["hour"]), int(r["cnt"]))
+        for r in hours_resp.json()
+        if r.get("hour") is not None
+    ]
+
     return {
-        "totals":    totals,
-        "ytd":       ytd,
-        "cutoff":    cutoff_90[:10],
-        "ytd_start": ytd_start[:4],
+        "totals":          totals,
+        "ytd":             ytd,
+        "cutoff":          cutoff_90[:10],
+        "ytd_start":       ytd_start[:4],
+        "top_streets":     top_streets,
+        "collision_types": collision_types,
+        "peak_hours":      peak_hours,
     }
 
 
@@ -956,11 +1021,18 @@ def _fmt_int(val) -> str:
         return "0"
 
 
+def _fmt_hour(h: int) -> str:
+    if h == 0:   return "12am"
+    if h < 12:   return f"{h}am"
+    if h == 12:  return "12pm"
+    return f"{h - 12}pm"
+
+
 def _format_crash_stats(data: dict) -> str:
-    t = data.get("totals", {})
-    ytd = data.get("ytd", {})
+    t      = data.get("totals", {})
+    ytd    = data.get("ytd", {})
     cutoff = data.get("cutoff", "")
-    year = data.get("ytd_start", "")
+    year   = data.get("ytd_start", "")
 
     msg = f"💥 *Austin Crash Report — Last 90 Days*\n_{cutoff} to today_\n\n"
 
@@ -990,6 +1062,25 @@ def _format_crash_stats(data: dict) -> str:
         f"• Crashes: {_fmt_int(ytd.get('total'))}\n"
         f"• Fatalities: {_fmt_int(ytd.get('deaths'))}\n\n"
     )
+
+    top_streets = data.get("top_streets", [])
+    if top_streets:
+        msg += "*Most Crash-Prone Streets:*\n"
+        for street, cnt in top_streets:
+            msg += f"• {street}: {cnt:,}\n"
+        msg += "\n"
+
+    collision_types = data.get("collision_types", [])
+    if collision_types:
+        msg += "*Top Collision Types:*\n"
+        for label, cnt in collision_types:
+            msg += f"• {label}: {cnt:,}\n"
+        msg += "\n"
+
+    peak_hours = data.get("peak_hours", [])
+    if peak_hours:
+        hours_str = " · ".join(f"{_fmt_hour(h)} ({cnt:,})" for h, cnt in peak_hours)
+        msg += f"*Peak crash hours:* {hours_str}\n\n"
 
     msg += "_Source: [Austin Crash Report Data](https://data.austintexas.gov/d/y2wy-tgr5)_"
     return msg
@@ -2977,6 +3068,23 @@ async def bars_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 # =============================================================================
+# CHILD CARE LICENSING
+# =============================================================================
+
+
+@rate_limited
+async def childcare_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("⏳ Fetching child care licensing data...")
+    try:
+        stats = await asyncio.to_thread(get_childcare_stats)
+        msg = format_childcare(stats)
+        await _send_chunked(update.message, msg)
+    except Exception as e:
+        logger.error(f"childcare command: {e}")
+        await update.message.reply_text(f"❌ Error fetching child care data: {e}")
+
+
+# =============================================================================
 # FALLBACK
 # =============================================================================
 
@@ -3093,6 +3201,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("water", water_command))
     app.add_handler(CommandHandler("permits", permits_command))
     app.add_handler(CommandHandler("bars", bars_command))
+    app.add_handler(CommandHandler("childcare", childcare_command))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     app.add_error_handler(error_handler)
@@ -3114,8 +3223,9 @@ def create_application() -> Application:
             BotCommand("ticket",   "Look up any 311 ticket by ID"),
             BotCommand("water",    "Surface water quality — fecal coliform · DO · nutrients"),
             BotCommand("permits",  "Building permits — last 30 days by type · district"),
-            BotCommand("bars",     "Bar of the month — top TABC mixed beverage sales"),
-            BotCommand("help",     "All commands"),
+            BotCommand("bars",      "Bar of the month — top TABC mixed beverage sales"),
+            BotCommand("childcare", "Child care licensing — Austin facilities · compliance flags"),
+            BotCommand("help",      "All commands"),
         ])
 
     app.post_init = post_init
