@@ -93,6 +93,9 @@ from parking.parking_bot import (
 # Child care licensing service
 from childcare.childcare_bot import get_childcare_stats, format_childcare
 
+# Water conservation violations
+from waterconservation.water_conservation_bot import get_water_conservation_stats, format_water_conservation
+
 
 # Restaurant inspections service
 from restaurants.restaurant_bot import (
@@ -247,6 +250,7 @@ _HELP_TEXT = """📡 *ATX PULSE*
 
 💧 *Water Quality:*
 /water — Surface water quality by watershed
+/waterviolations — Water conservation violations · sprinklers · leaks
 
 🎨 *Graffiti:*
 /graffiti — Analysis · hotspots · remediation · trends
@@ -2778,6 +2782,18 @@ async def water_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await update.message.reply_text(f"❌ Error fetching water quality data: {e}")
 
 
+@rate_limited
+async def waterviolations_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("⏳ Fetching water conservation data...")
+    try:
+        stats = await asyncio.to_thread(get_water_conservation_stats)
+        msg = format_water_conservation(stats)
+        await _send_chunked(update.message, msg)
+    except Exception as e:
+        logger.error(f"waterviolations command: {e}")
+        await update.message.reply_text(f"❌ Error fetching water conservation data: {e}")
+
+
 # =============================================================================
 # PERMITS COMMAND (Building Permits 3syk-w9eu)
 # =============================================================================
@@ -3199,6 +3215,7 @@ def create_application() -> Application:
 
     # Water quality & building permits
     app.add_handler(CommandHandler("water", water_command))
+    app.add_handler(CommandHandler("waterviolations", waterviolations_command))
     app.add_handler(CommandHandler("permits", permits_command))
     app.add_handler(CommandHandler("bars", bars_command))
     app.add_handler(CommandHandler("childcare", childcare_command))
@@ -3221,8 +3238,9 @@ def create_application() -> Application:
             BotCommand("graffiti", "Graffiti — analysis · hotspots · remediation"),
             BotCommand("animal",   "Animal complaints — hotspots · stats · response times"),
             BotCommand("ticket",   "Look up any 311 ticket by ID"),
-            BotCommand("water",    "Surface water quality — fecal coliform · DO · nutrients"),
-            BotCommand("permits",  "Building permits — last 30 days by type · district"),
+            BotCommand("water",            "Surface water quality — fecal coliform · DO · nutrients"),
+            BotCommand("waterviolations",  "Water conservation violations — sprinklers · leaks · waste"),
+            BotCommand("permits",          "Building permits — last 30 days by type · district"),
             BotCommand("bars",      "Bar of the month — top TABC mixed beverage sales"),
             BotCommand("childcare", "Child care licensing — Austin facilities · compliance flags"),
             BotCommand("help",      "All commands"),

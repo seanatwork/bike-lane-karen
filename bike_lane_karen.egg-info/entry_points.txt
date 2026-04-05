@@ -1,6 +1,0 @@
-[console_scripts]
-austin311-bot = austin311_bot:main
-open311-aggregate = tools.open311_aggregate_heatmap:main
-open311-ingest = open311_ingest:main
-scrape-bicycle = bicycle.scrape_bicycle_complaints:main
-search-311 = tools.search_311_categories:main

@@ -1,2 +1,0 @@
-austin311_bot
-open311_ingest
