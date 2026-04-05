@@ -61,6 +61,16 @@ from animalsvc.animal_bot import (
     format_response_times,
 )
 
+# Coyote complaints (sub-service of animal)
+from animalsvc.coyote_bot import (
+    get_seasonal_patterns,
+    get_coyote_overview,
+    get_hotspots as get_coyote_hotspots,
+    format_seasonal_patterns,
+    format_overview as format_coyote_overview,
+    format_hotspots as format_coyote_hotspots,
+)
+
 # Infrastructure & Transportation service
 from infrastructureandtransportation.traffic_bot import (
     get_infra_backlog,
@@ -261,6 +271,9 @@ _HELP_TEXT = """📡 *ATX PULSE*
 
 🐾 *Animal Services:*
 /animal — Hotspots · stats · response times
+
+🐺 *Coyote Complaints:*
+/coyote — Seasonal patterns · hotspots · overview
 
 🔊 *Noise Complaints:*
 /noise — Hotspots · stats · response times
@@ -711,9 +724,89 @@ async def animal_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     keyboard = [
         [InlineKeyboardButton("🗺 Hotspots", callback_data="animal_hotspots"),
          InlineKeyboardButton("📊 Stats", callback_data="animal_stats")],
+        [InlineKeyboardButton("🐺 Coyote Complaints", callback_data="coyote_menu")],
     ]
     await update.message.reply_text(
         "*🐾 Animal Services*\nChoose a view:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+# =============================================================================
+# COYOTE COMPLAINT HANDLERS (Sub-service of Animal)
+# =============================================================================
+
+
+async def coyote_menu_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = [
+        [InlineKeyboardButton("📊 Overview", callback_data="coyote_overview"),
+         InlineKeyboardButton("🌸 Seasonal", callback_data="coyote_seasonal")],
+        [InlineKeyboardButton("🗺 Hotspots", callback_data="coyote_hotspots")],
+        [InlineKeyboardButton("🔙 Back to Animal", callback_data="service_animal")],
+    ]
+    text = (
+        "🐺 *Coyote Complaints*\n\n"
+        "Austin sees ~11K coyote complaints. Pupping season (March–May) "
+        "typically spikes activity as parents seek food and defend dens.\n\n"
+        "Choose a view:"
+    )
+    await query.edit_message_text(
+        text, parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def coyote_overview_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Fetching coyote complaint overview...")
+    try:
+        data = await asyncio.to_thread(get_coyote_overview)
+        await _send_chunked(query, format_coyote_overview(data))
+    except Exception as e:
+        logger.error(f"coyote overview: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
+
+
+async def coyote_seasonal_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Analyzing seasonal patterns...")
+    try:
+        data = await asyncio.to_thread(get_seasonal_patterns)
+        await _send_chunked(query, format_seasonal_patterns(data))
+    except Exception as e:
+        logger.error(f"coyote seasonal: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
+
+
+async def coyote_hotspots_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("⏳ Finding coyote complaint hotspots...")
+    try:
+        data = await asyncio.to_thread(get_coyote_hotspots)
+        await _send_chunked(query, format_coyote_hotspots(data))
+    except Exception as e:
+        logger.error(f"coyote hotspots: {e}")
+        await query.edit_message_text(f"❌ Error: {e}")
+
+
+@rate_limited
+async def coyote_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
+        [InlineKeyboardButton("📊 Overview", callback_data="coyote_overview"),
+         InlineKeyboardButton("🌸 Seasonal", callback_data="coyote_seasonal")],
+        [InlineKeyboardButton("🗺 Hotspots", callback_data="coyote_hotspots")],
+        [InlineKeyboardButton("🔙 Back", callback_data="service_animal")],
+    ]
+    await update.message.reply_text(
+        "🐺 *Coyote Complaints*\n\n"
+        "Coyote pupping season is March–May. Choose a view:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -3153,6 +3246,12 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(animal_hotspots_cb, pattern="^animal_hotspots"))
     app.add_handler(CallbackQueryHandler(animal_stats_cb, pattern="^animal_stats"))
 
+    # Coyote inline (sub-service of animal)
+    app.add_handler(CallbackQueryHandler(coyote_menu_cb, pattern="^coyote_menu"))
+    app.add_handler(CallbackQueryHandler(coyote_overview_cb, pattern="^coyote_overview"))
+    app.add_handler(CallbackQueryHandler(coyote_seasonal_cb, pattern="^coyote_seasonal"))
+    app.add_handler(CallbackQueryHandler(coyote_hotspots_cb, pattern="^coyote_hotspots"))
+
     # Traffic inline
     app.add_handler(CallbackQueryHandler(traffic_backlog_cb, pattern="^traffic_backlog"))
     app.add_handler(CallbackQueryHandler(traffic_signals_cb, pattern="^traffic_signals"))
@@ -3196,6 +3295,7 @@ def create_application() -> Application:
 
     # Bicycle slash commands
     app.add_handler(CommandHandler("animal", animal_command))
+    app.add_handler(CommandHandler("coyote", coyote_command))
     app.add_handler(CommandHandler("bicycle", bicycle_command))
     app.add_handler(CommandHandler("ticket", ticket_command))
 
@@ -3237,6 +3337,7 @@ def create_application() -> Application:
             BotCommand("noise",    "Noise complaints — hotspots · stats · response times"),
             BotCommand("graffiti", "Graffiti — analysis · hotspots · remediation"),
             BotCommand("animal",   "Animal complaints — hotspots · stats · response times"),
+            BotCommand("coyote",   "Coyote complaints — seasonal patterns · hotspots"),
             BotCommand("ticket",   "Look up any 311 ticket by ID"),
             BotCommand("water",            "Surface water quality — fecal coliform · DO · nutrients"),
             BotCommand("waterviolations",  "Water conservation violations — sprinklers · leaks · waste"),

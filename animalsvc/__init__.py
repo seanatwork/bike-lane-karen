@@ -13,6 +13,15 @@ from .animal_bot import (
     format_response_times,
 )
 
+from .coyote_bot import (
+    get_seasonal_patterns,
+    get_hotspots as get_coyote_hotspots,
+    get_coyote_overview,
+    format_seasonal_patterns,
+    format_hotspots as format_coyote_hotspots,
+    format_overview as format_coyote_overview,
+)
+
 __all__ = [
     "get_hotspots",
     "get_stats",
@@ -20,4 +29,11 @@ __all__ = [
     "format_hotspots",
     "format_stats",
     "format_response_times",
+    # Coyote complaints
+    "get_seasonal_patterns",
+    "get_coyote_hotspots",
+    "get_coyote_overview",
+    "format_seasonal_patterns",
+    "format_coyote_hotspots",
+    "format_coyote_overview",
 ]
