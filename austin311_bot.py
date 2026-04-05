@@ -2828,7 +2828,8 @@ def _get_bar_stats() -> dict:
     session = _get_tabc_session()
     url = "https://data.texas.gov/resource/g5bj-yb6k.json"
 
-    # Find the two most complete recent months (pick by row count, not date)
+    # Get the 4 most recent months by date, skip the newest if still incomplete
+    # (incomplete = fewer than 50% of the next month's row count)
     months_resp = session.get(url, params={
         "$select": "obligation_end_date, count(*) as cnt",
         "$where":  "upper(location_city)='AUSTIN'",
@@ -2837,16 +2838,26 @@ def _get_bar_stats() -> dict:
         "$limit":  4,
     }, timeout=20)
     months_resp.raise_for_status()
-    months = sorted(months_resp.json(), key=lambda r: -int(r.get("cnt", 0)))
+    months = sorted(months_resp.json(), key=lambda r: r["obligation_end_date"], reverse=True)
     if len(months) < 2:
         raise ValueError("Not enough monthly data available")
 
-    # Use the two most-populated months as current/prior
+    # Drop the most recent month if it has < 50% of the next month's count
+    counts = [int(m.get("cnt", 0)) for m in months]
+    if counts[0] < counts[1] * 0.5:
+        months = months[1:]
+
     current_month = months[0]["obligation_end_date"][:10]
     prior_month   = months[1]["obligation_end_date"][:10]
 
     def fetch_month(month: str) -> dict[str, dict]:
-        """Return {permit_number: {name, address, sales}} deduplicated."""
+        """Return {permit_number: {name, address, sales}} deduplicated.
+
+        Some venues hold multiple TABC permits and report identical sales on
+        each — dedup by (address, sales) to avoid counting the same revenue
+        twice. Where the same address reports different amounts (genuinely
+        separate outlets), keep each as its own entry keyed by permit number.
+        """
         resp = session.get(url, params={
             "$select": "tabc_permit_number, location_name, location_address, total_sales_receipts",
             "$where":  f"upper(location_city)='AUSTIN' AND obligation_end_date='{month}T00:00:00.000'",
@@ -2854,19 +2865,25 @@ def _get_bar_stats() -> dict:
             "$limit":  5000,
         }, timeout=30)
         resp.raise_for_status()
+
+        seen_addr_sales: set[tuple] = set()
         result: dict[str, dict] = {}
         for r in resp.json():
-            permit = r.get("tabc_permit_number", "")
+            permit  = r.get("tabc_permit_number", "")
+            address = (r.get("location_address") or "").strip().upper()
             try:
                 sales = float(r.get("total_sales_receipts", 0) or 0)
             except (ValueError, TypeError):
                 continue
-            if permit not in result or sales > result[permit]["sales"]:
-                result[permit] = {
-                    "name":    (r.get("location_name") or "Unknown").title(),
-                    "address": (r.get("location_address") or "").title(),
-                    "sales":   sales,
-                }
+            key = (address, sales)
+            if key in seen_addr_sales:
+                continue
+            seen_addr_sales.add(key)
+            result[permit] = {
+                "name":    (r.get("location_name") or "Unknown").title(),
+                "address": (r.get("location_address") or "").title(),
+                "sales":   sales,
+            }
         return result
 
     current = fetch_month(current_month)
