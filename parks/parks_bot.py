@@ -510,7 +510,7 @@ def get_park_resolution(days_back: int = 90) -> dict:
     }
 
 
-def build_park_name_keyboard(hotspots_data: dict, days: int) -> InlineKeyboardMarkup:
+def build_park_name_keyboard(hotspots_data: dict, days: int):
     """Build keyboard with actual park names for top parks."""
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     
