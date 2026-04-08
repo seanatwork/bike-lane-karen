@@ -52,6 +52,11 @@ SERVICE_CODES = {
 # All comparisons are lower-case.
 ENCAMPMENT_KEYWORDS = ("encampment", "homelessness", "homeless camp", "homeless", "camp", "tent", "transient", "vagrant")
 
+# Keywords that appear in city status/closure notes when a report is routed
+# to the Homeless Strategy Office (HSO). These fire on status_notes, not
+# the citizen's original description.
+HSO_KEYWORDS = ("homeless strategy", "hso")
+
 # "trash" or "debris" alone is too noisy; only flag when paired with
 # a co-occurring homeless keyword in the same description.
 TRASH_KEYWORDS = ("trash", "debris", "garbage")
@@ -87,24 +92,39 @@ def _isoformat_z(dt: datetime) -> str:
 
 
 def _is_encampment_report(record: dict) -> bool:
-    """Return True if the record description mentions an encampment or
-    homeless-related issue."""
-    text = " ".join(filter(None, [
+    """Return True if the record is encampment / homeless-related.
+
+    Checks three text sources:
+      - description: the citizen's original complaint text
+      - address: sometimes contains location notes with keywords
+      - status_notes: city closure/routing note — often says "referred to
+        Homeless Strategy Office (HSO)", which is the strongest signal that
+        a report was administratively handled as an encampment issue
+    """
+    citizen_text = " ".join(filter(None, [
         record.get("description") or "",
         record.get("address") or "",
     ])).lower()
 
-    if not text.strip():
+    status_text = (record.get("status_notes") or "").lower()
+    full_text = f"{citizen_text} {status_text}"
+
+    if not full_text.strip():
         return False
 
-    # Direct encampment / homeless keywords — match any one
+    # Direct encampment / homeless keywords in any field
     for kw in ENCAMPMENT_KEYWORDS:
-        if kw in text:
+        if kw in full_text:
+            return True
+
+    # HSO routing keywords — primarily appear in status_notes
+    for kw in HSO_KEYWORDS:
+        if kw in status_text:
             return True
 
     # Trash/debris only counts when "homeless" also appears nearby
-    has_trash = any(kw in text for kw in TRASH_KEYWORDS)
-    has_homeless = "homeless" in text
+    has_trash = any(kw in full_text for kw in TRASH_KEYWORDS)
+    has_homeless = "homeless" in full_text
     if has_trash and has_homeless:
         return True
 
