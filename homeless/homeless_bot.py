@@ -155,8 +155,45 @@ def _make_request(params: dict, retries: int = 0) -> list:
         raise
 
 
+def _looks_truncated(text: str | None) -> bool:
+    """Return True if a text field appears to have been cut off by the API.
+
+    The bulk list endpoint truncates long text fields at ~255 characters
+    without a trailing punctuation mark or space boundary.
+    """
+    if not text:
+        return False
+    t = text.rstrip()
+    if len(t) < 200:
+        return False
+    # Truncated strings end mid-word (no sentence-ending punctuation or space)
+    return t[-1] not in ".!?,;: \t\n"
+
+
+def _fetch_detail(service_request_id: str) -> dict:
+    """Fetch a single ticket by ID to get untruncated field values."""
+    session = _get_session()
+    url = f"{OPEN311_BASE_URL}/requests/{service_request_id}.json"
+    try:
+        resp = session.get(url, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        if isinstance(data, list) and data:
+            return data[0]
+        if isinstance(data, dict):
+            return data
+    except Exception as e:
+        logger.debug(f"Detail fetch failed for {service_request_id}: {e}")
+    return {}
+
+
 def _fetch_code(service_code: str, days_back: int) -> list:
-    """Fetch all requests for one service code with pagination."""
+    """Fetch all requests for one service code with pagination.
+
+    After the bulk fetch, any record with a truncated description or
+    status_notes is re-fetched individually using the single-ticket endpoint
+    so keyword matching sees the full text.
+    """
     end = _utc_now()
     start = end - timedelta(days=days_back)
     all_records: list = []
@@ -188,6 +225,20 @@ def _fetch_code(service_code: str, days_back: int) -> list:
 
         page += 1
         time.sleep(0.5 if API_KEY else 1.0)
+
+    # Re-fetch individual records whose text fields look truncated
+    for i, r in enumerate(all_records):
+        if _looks_truncated(r.get("description")) or _looks_truncated(r.get("status_notes")):
+            sid = r.get("service_request_id")
+            if not sid:
+                continue
+            detail = _fetch_detail(sid)
+            if detail:
+                # Merge full-text fields back; preserve our private labels
+                for field in ("description", "status_notes"):
+                    if detail.get(field):
+                        r[field] = detail[field]
+            time.sleep(0.25 if API_KEY else 0.5)
 
     return all_records
 
