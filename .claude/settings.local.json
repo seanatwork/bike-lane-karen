@@ -9,7 +9,11 @@
       "Bash(curl -s \"https://311.austintexas.gov/open311/v2/requests/26-00085651.json\")",
       "Bash(python3 -m json.tool)",
       "Bash(python3 -c ':*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(curl -s \"https://311.austintexas.gov/issues/26-00079973\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s \"https://311.austintexas.gov/requests/26-00079973\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s \"https://311.austintexas.gov/open311/v2/requests/26-00079973\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s \"https://311.austintexas.gov/\")"
     ]
   }
 }
