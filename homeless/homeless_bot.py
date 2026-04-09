@@ -576,7 +576,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         # Use description if available, fall back to status_notes
         detail_text = description or status_notes
         detail_label = "Description" if description else "Resolution Notes"
-        truncate_at = 300 if not description else 150
+        truncate_at = 500
         detail_short = (detail_text[:truncate_at] + "...") if len(detail_text) > truncate_at else detail_text
         detail_short = detail_short.replace("\n", "<br/>")
 
@@ -609,31 +609,30 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
 
         folium.Marker(location=[lat, lon], popup=popup, icon=icon, tooltip=tooltip).add_to(target_cluster)
 
-    # Custom filter control (top right): time window + open/closed toggles
+    # Single centered control panel: title + summary + filters
     map_var = m.get_name()
-    # Build a JS object mapping logical name -> actual Folium variable name
     layer_map_js = "{" + ", ".join(
         f'"{k}": {fg_objects[k].get_name()}' for k in fg_objects
     ) + "}"
-    filter_html = f"""
-    <div id="map-filter" style="position: absolute; top: 10px; right: 10px; z-index: 9999;
-                background: white; padding: 10px 14px; border-radius: 6px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-family: sans-serif; font-size: 13px;">
-        <div style="margin-bottom: 6px; font-weight: bold; color: #333;">Time window</div>
-        <div style="display: flex; gap: 4px; margin-bottom: 10px;">
+    panel_html = f"""
+    <div id="map-panel" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+                background: white; padding: 10px 16px; border-radius: 6px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 9999;
+                font-family: sans-serif; text-align: center;">
+        <b style="font-size: 15px;">🏕️ Austin Homeless Encampment 311 Reports</b><br/>
+        <span id="map-summary" style="font-size: 12px; color: #555;"></span>
+        <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
             <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
             <button id="btn-90" onclick="setDayFilter(90)" class="fbtn">90d</button>
-        </div>
-        <div style="margin-bottom: 6px; font-weight: bold; color: #333;">Status</div>
-        <div style="display: flex; gap: 4px;">
+            <span style="margin: 0 4px; color: #ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
         </div>
     </div>
     <style>
         .fbtn {{
-            padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
+            padding: 3px 9px; border: 1px solid #ccc; border-radius: 4px;
             background: #f5f5f5; cursor: pointer; font-size: 12px; color: #444;
         }}
         .fbtn.active {{ background: #2563eb; color: white; border-color: #2563eb; }}
@@ -645,6 +644,16 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         var showClosed = true;
         var layerMap = null;
         var leafletMap = null;
+        var bucketCounts = {counts_js};
+
+        function updateSummary() {{
+            var d = String(currentDays);
+            var counts = bucketCounts[d] || {{}};
+            var o = showOpen ? (counts.open || 0) : 0;
+            var c = showClosed ? (counts.closed || 0) : 0;
+            document.getElementById('map-summary').textContent =
+                'Last ' + d + ' days · ' + (o + c) + ' total · ' + o + ' open · ' + c + ' closed';
+        }}
 
         function initLayers() {{
             layerMap = {layer_map_js};
@@ -683,8 +692,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         function toggleStatus(status) {{
             if (status === 'open') showOpen = !showOpen;
             else showClosed = !showClosed;
-            var btn = document.getElementById('btn-' + status);
-            if (btn) btn.classList.toggle('active');
+            document.getElementById('btn-' + status).classList.toggle('active');
             updateLayers();
             updateSummary();
         }}
@@ -694,31 +702,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         }});
     </script>
     """
-    m.get_root().html.add_child(folium.Element(filter_html))
-
-    # Title (centered top)
-    title_html = f"""
-    <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-                background: white; padding: 10px 20px; border-radius: 5px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 9999;
-                font-family: sans-serif; text-align: center; white-space: nowrap;">
-        <b style="font-size: 16px;">🏕️ Austin Homeless Encampment 311 Reports</b><br/>
-        <span id="map-summary" style="font-size: 13px; color: #555;"></span>
-    </div>
-    <script>
-        var bucketCounts = {counts_js};
-        function updateSummary() {{
-            var d = String(currentDays);
-            var counts = bucketCounts[d] || {{}};
-            var o = showOpen ? (counts.open || 0) : 0;
-            var c = showClosed ? (counts.closed || 0) : 0;
-            var t = o + c;
-            document.getElementById('map-summary').textContent =
-                'Last ' + d + ' days · ' + t + ' total · ' + o + ' open · ' + c + ' closed';
-        }}
-    </script>
-    """
-    m.get_root().html.add_child(folium.Element(title_html))
+    m.get_root().html.add_child(folium.Element(panel_html))
     
     # Save to buffer
     import tempfile

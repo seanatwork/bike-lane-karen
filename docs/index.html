@@ -57,24 +57,24 @@
 <body>
     
     
-    <div id="map-filter" style="position: absolute; top: 10px; right: 10px; z-index: 9999;
-                background: white; padding: 10px 14px; border-radius: 6px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3); font-family: sans-serif; font-size: 13px;">
-        <div style="margin-bottom: 6px; font-weight: bold; color: #333;">Time window</div>
-        <div style="display: flex; gap: 4px; margin-bottom: 10px;">
+    <div id="map-panel" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+                background: white; padding: 10px 16px; border-radius: 6px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 9999;
+                font-family: sans-serif; text-align: center;">
+        <b style="font-size: 15px;">🏕️ Austin Homeless Encampment 311 Reports</b><br/>
+        <span id="map-summary" style="font-size: 12px; color: #555;"></span>
+        <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
             <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
             <button id="btn-90" onclick="setDayFilter(90)" class="fbtn">90d</button>
-        </div>
-        <div style="margin-bottom: 6px; font-weight: bold; color: #333;">Status</div>
-        <div style="display: flex; gap: 4px;">
+            <span style="margin: 0 4px; color: #ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
         </div>
     </div>
     <style>
         .fbtn {
-            padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px;
+            padding: 3px 9px; border: 1px solid #ccc; border-radius: 4px;
             background: #f5f5f5; cursor: pointer; font-size: 12px; color: #444;
         }
         .fbtn.active { background: #2563eb; color: white; border-color: #2563eb; }
@@ -86,6 +86,16 @@
         var showClosed = true;
         var layerMap = null;
         var leafletMap = null;
+        var bucketCounts = {"30": {"open": 11, "closed": 167}, "60": {"open": 13, "closed": 396}, "90": {"open": 20, "closed": 494}};
+
+        function updateSummary() {
+            var d = String(currentDays);
+            var counts = bucketCounts[d] || {};
+            var o = showOpen ? (counts.open || 0) : 0;
+            var c = showClosed ? (counts.closed || 0) : 0;
+            document.getElementById('map-summary').textContent =
+                'Last ' + d + ' days · ' + (o + c) + ' total · ' + o + ' open · ' + c + ' closed';
+        }
 
         function initLayers() {
             layerMap = {"open_30": feature_group_b664da7c1881497a0a2af0e45f30076f, "open_60": feature_group_0c836f7ab4b3d49fd9d7b36125c4b48d, "open_90": feature_group_e5dbd7d0a70fdb29c94b41c8060f6f62, "closed_30": feature_group_abd521633a8bda419fdff93c8dae40db, "closed_60": feature_group_7c1daab69020271f0fa4dec191af7fff, "closed_90": feature_group_313001de4ac5bd6d730ee8876be3c6d6};
@@ -124,8 +134,7 @@
         function toggleStatus(status) {
             if (status === 'open') showOpen = !showOpen;
             else showClosed = !showClosed;
-            var btn = document.getElementById('btn-' + status);
-            if (btn) btn.classList.toggle('active');
+            document.getElementById('btn-' + status).classList.toggle('active');
             updateLayers();
             updateSummary();
         }
@@ -133,27 +142,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(initLayers, 1000);
         });
-    </script>
-    
-    
-    <div style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
-                background: white; padding: 10px 20px; border-radius: 5px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 9999;
-                font-family: sans-serif; text-align: center; white-space: nowrap;">
-        <b style="font-size: 16px;">🏕️ Austin Homeless Encampment 311 Reports</b><br/>
-        <span id="map-summary" style="font-size: 13px; color: #555;"></span>
-    </div>
-    <script>
-        var bucketCounts = {"30": {"open": 11, "closed": 167}, "60": {"open": 13, "closed": 396}, "90": {"open": 20, "closed": 494}};
-        function updateSummary() {
-            var d = String(currentDays);
-            var counts = bucketCounts[d] || {};
-            var o = showOpen ? (counts.open || 0) : 0;
-            var c = showClosed ? (counts.closed || 0) : 0;
-            var t = o + c;
-            document.getElementById('map-summary').textContent =
-                'Last ' + d + ' days · ' + t + ' total · ' + o + ' open · ' + c + ' closed';
-        }
     </script>
     
     
@@ -1581,7 +1569,7 @@
 
         
             
-                var html_d54e0cbabf639cfbaa6f52b3d3bba7a7 = $(`<div id="html_d54e0cbabf639cfbaa6f52b3d3bba7a7" style="width: 100.0%; height: 100.0%;">         <div style="font-family: sans-serif; max-width: 300px;">             <b><a href="https://311.austintexas.gov/tickets?filter%5Bsearch%5D=26-00101910" target="_blank" style="color: #0066cc;">Report #26-00101910</a></b><br/>             <span style="color: #666;">Filed: 2026-04-03</span><br/>             <span style='color: #666;'>Updated: 2026-04-07</span><br/>             <b>Address:</b> 7296 Onion Crossing Dr, Austin<br/>             <br/>             <b>Status:</b> 🟢 Closed<br/>             <b>Category:</b> Parks — Grounds Maintenance<br/><br/>             <b>Description:</b><br/>             <i>I want to address a pressing issue that has persisted for far too long. Over 3 years ago, we the ocpna wrote about the unacceptable conditions in Onio...</i>         </div>         </div>`)[0];
+                var html_d54e0cbabf639cfbaa6f52b3d3bba7a7 = $(`<div id="html_d54e0cbabf639cfbaa6f52b3d3bba7a7" style="width: 100.0%; height: 100.0%;">         <div style="font-family: sans-serif; max-width: 300px;">             <b><a href="https://311.austintexas.gov/tickets?filter%5Bsearch%5D=26-00101910" target="_blank" style="color: #0066cc;">Report #26-00101910</a></b><br/>             <span style="color: #666;">Filed: 2026-04-03</span><br/>             <span style='color: #666;'>Updated: 2026-04-07</span><br/>             <b>Address:</b> 7296 Onion Crossing Dr, Austin<br/>             <br/>             <b>Status:</b> 🟢 Closed<br/>             <b>Category:</b> Parks — Grounds Maintenance<br/><br/>             <b>Description:</b><br/>             <i>I want to address a pressing issue that has persisted for far too long. Over 3 years ago, we the ocpna wrote about the unacceptable conditions in Onion Crossing — specifically, the accumulation of human waste, trash, and discarded items like beer cans. This situation is not only unsightly but poses health risks and undermines the quality of life for our community. Please prioritize a comprehensive clean-up plan and provide me with a timeline for when we can expect these areas to be restored.</i>         </div>         </div>`)[0];
                 popup_9416c654fef32ee4fd86d3f80ed95ff2.setContent(html_d54e0cbabf639cfbaa6f52b3d3bba7a7);
             
         
