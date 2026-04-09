@@ -22,6 +22,7 @@ Keywords (per Austin 311 research guide):
 """
 
 import os
+import re
 import time
 import logging
 import requests
@@ -92,6 +93,11 @@ def _isoformat_z(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _word_in(keyword: str, text: str) -> bool:
+    """Return True if keyword appears as a whole word (or phrase) in text."""
+    return bool(re.search(r"\b" + re.escape(keyword) + r"\b", text))
+
+
 def _is_encampment_report(record: dict) -> bool:
     """Return True if the record is encampment / homeless-related.
 
@@ -101,6 +107,9 @@ def _is_encampment_report(record: dict) -> bool:
       - status_notes: city closure/routing note — often says "referred to
         Homeless Strategy Office (HSO)", which is the strongest signal that
         a report was administratively handled as an encampment issue
+
+    All keyword matches use whole-word boundaries to avoid false positives
+    (e.g. "tent" inside "intention", "camp" inside "campaign").
     """
     citizen_text = " ".join(filter(None, [
         record.get("description") or "",
@@ -113,19 +122,19 @@ def _is_encampment_report(record: dict) -> bool:
     if not full_text.strip():
         return False
 
-    # Direct encampment / homeless keywords in any field
+    # Direct encampment / homeless keywords — whole-word match only
     for kw in ENCAMPMENT_KEYWORDS:
-        if kw in full_text:
+        if _word_in(kw, full_text):
             return True
 
     # HSO routing keywords — primarily appear in status_notes
     for kw in HSO_KEYWORDS:
-        if kw in status_text:
+        if _word_in(kw, status_text):
             return True
 
-    # Trash/debris only counts when "homeless" also appears nearby
-    has_trash = any(kw in full_text for kw in TRASH_KEYWORDS)
-    has_homeless = "homeless" in full_text
+    # Trash/debris only counts when "homeless" also appears as a whole word
+    has_trash = any(_word_in(kw, full_text) for kw in TRASH_KEYWORDS)
+    has_homeless = _word_in("homeless", full_text)
     if has_trash and has_homeless:
         return True
 
