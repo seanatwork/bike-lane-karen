@@ -10,6 +10,7 @@ dependencies = [
     "typer[all]",
     "python-telegram-bot==21.0",
     "python-dotenv",
+    "folium",
 ]
 
 [project.scripts]
@@ -24,6 +25,9 @@ py-modules = [
     "open311_ingest",
     "austin311_bot",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
 
 [build-system]
 requires = ["setuptools>=61.0"]
