@@ -516,22 +516,35 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         lon = r["_lon"]
         status = (r.get("status") or "").lower()
         service_label = r.get("_service_label", "Unknown")
-        description = (r.get("description") or "")[:150]
+        description = (r.get("description") or "").strip()
+        status_notes = (r.get("status_notes") or "").strip()
         date_str = (r.get("requested_datetime") or "").split("T")[0]
+        updated_str = (r.get("updated_datetime") or "").split("T")[0]
+        address = (r.get("address") or "").strip()
         req_id = r.get("service_request_id", "N/A")
-        
-        # Truncate description for popup
-        desc_short = description[:100] + "..." if len(description) > 100 else description
-        
-        ticket_url = f"https://311.austintexas.gov/issues/{req_id}"
+
+        # Use description if available, fall back to status_notes
+        detail_text = description or status_notes
+        detail_label = "Description" if description else "Resolution Notes"
+        truncate_at = 300 if not description else 150
+        detail_short = (detail_text[:truncate_at] + "...") if len(detail_text) > truncate_at else detail_text
+        detail_short = detail_short.replace("\n", "<br/>")
+
+        address_line = f"<b>Address:</b> {address}<br/>" if address else ""
+        updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
+
+        ticket_url = f"https://311.austintexas.gov/tickets/{req_id}"
         popup_html = f"""
         <div style="font-family: sans-serif; max-width: 300px;">
             <b><a href="{ticket_url}" target="_blank" style="color: #0066cc;">Report #{req_id}</a></b><br/>
-            <span style="color: #666;">{date_str}</span><br/><br/>
+            <span style="color: #666;">Filed: {date_str}</span><br/>
+            {updated_line}
+            {address_line}
+            <br/>
             <b>Status:</b> {'🔴 Open' if status == 'open' else '🟢 Closed'}<br/>
             <b>Category:</b> {service_label}<br/><br/>
-            <b>Description:</b><br/>
-            <i>{desc_short}</i>
+            <b>{detail_label}:</b><br/>
+            <i>{detail_short if detail_short else '(no details)'}</i>
         </div>
         """
         
