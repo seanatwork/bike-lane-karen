@@ -10,6 +10,7 @@ dependencies = [
     "typer[all]",
     "python-telegram-bot==21.0",
     "python-dotenv",
+    "folium",
 ]
 
 [project.scripts]

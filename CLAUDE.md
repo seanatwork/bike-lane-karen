@@ -32,7 +32,7 @@ Auto-deploys to Fly.io on push to `main` via `.github/workflows/deploy.yml`. The
 
 ## Architecture
 
-`austin311_bot.py` (the main file, ~1,700 lines) owns all Telegram routing. It imports data-fetching/formatting functions from service packages and wires them to handlers.
+`austin311_bot.py` (the main file, ~3,700 lines) owns all Telegram routing. It imports data-fetching/formatting functions from service packages and wires them to handlers.
 
 **Adding a new 311 service** requires three things:
 1. A new package directory with a `*_bot.py` module that queries the API and returns formatted Markdown
@@ -43,10 +43,14 @@ Auto-deploys to Fly.io on push to `main` via `.github/workflows/deploy.yml`. The
 - `graffiti/` — Open311 service code `HHSGRAFF`
 - `bicycle/` — Open311 service code `PWBICYCL`; also has a local SQLite cache (`bicycle_complaints.db`)
 - `restaurants/` — Socrata dataset `ecmv-9xxi` (health inspections)
-- `animalsvc/` — Open311 across 7 service codes (loose dogs, bites, etc.)
+- `animalsvc/` — Open311 across 7+ service codes (loose dogs, bites, coyotes, etc.)
 - `infrastructureandtransportation/` — Open311 (potholes, signals, sidewalks)
 - `noisecomplaints/` — Open311 service code `NOISECMP`
 - `parking/` — Open311 service code `PARKINGV`
+- `parks/` — Open311 park maintenance reports with drill-down by park name
+- `waterconservation/` — Socrata water conservation violations (`/waterviolations`)
+- `childcare/` — Socrata childcare facility inspections (`/childcare`)
+- `homeless/` — Open311 encampment/unhoused 311 reports across 6 service codes (PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP); supports stats, open locations, and a Folium-generated map (`/homeless`)
 - Crime/safety — Socrata datasets `fdj4-gpfu` (APD crime) and `i7fg-wrk5` (NIBRS homicides), handled directly in `austin311_bot.py`
 
 ## Data Sources
