@@ -2,7 +2,7 @@ name: Refresh parking map
 
 on:
   schedule:
-    - cron: "0 12 * * *"  # daily at noon UTC
+    - cron: "0 12 * * 1"  # weekly on Monday at noon UTC
   workflow_dispatch:        # allow manual trigger from Actions tab
 
 permissions:

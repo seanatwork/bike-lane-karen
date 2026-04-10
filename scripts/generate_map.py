@@ -67,7 +67,7 @@ def main():
         sys.exit(1)
 
     generator_func, output_path = CATEGORY_MAPS[category]
-    days_back = 90
+    days_back = 30 if category == "traffic" else 90
 
     print(f"Generating {category} map (last {days_back} days)...")
     buf, summary = generator_func(days_back)

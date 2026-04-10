@@ -185,7 +185,7 @@ def _fetch_detail(service_request_id: str) -> dict:
     session = _get_session()
     url = f"{OPEN311_BASE_URL}/requests/{service_request_id}.json"
     try:
-        resp = session.get(url, timeout=TIMEOUT)
+        resp = session.get(url, params={"extensions": "true"}, timeout=TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
         if isinstance(data, list) and data:
@@ -217,6 +217,7 @@ def _fetch_code(service_code: str, days_back: int) -> list:
             "end_date": _isoformat_z(end),
             "per_page": 100,
             "page": page,
+            "extensions": "true",
         }
         records = _make_request(params)
         if not records:
@@ -248,6 +249,8 @@ def _fetch_code(service_code: str, days_back: int) -> list:
                 for field in ("description", "status_notes"):
                     if detail.get(field):
                         r[field] = detail[field]
+                if detail.get("attributes"):
+                    r["attributes"] = detail["attributes"]
             time.sleep(0.25 if API_KEY else 0.5)
 
     return all_records
@@ -573,17 +576,22 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             cluster_key = f"closed_{bucket}"
         target_cluster = fg_clusters[cluster_key]
 
-        # Use description if available, fall back to status_notes
-        detail_text = description or status_notes
-        detail_label = "Description" if description else "Resolution Notes"
-        truncate_at = 500
-        detail_short = (detail_text[:truncate_at] + "...") if len(detail_text) > truncate_at else detail_text
-        detail_short = detail_short.replace("\n", "<br/>")
-
         address_line = f"<b>Address:</b> {address}<br/>" if address else ""
         updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
 
-        ticket_url = f"https://311.austintexas.gov/tickets?filter%5Bsearch%5D={req_id}"
+        attrs = r.get("attributes") or []
+        attrs_html = "".join(f"<b>{a['label']}:</b> {a['value']}<br/>" for a in attrs if a.get("label") and a.get("value"))
+        attrs_block = f"<b>Additional Details:</b><br/>{attrs_html}" if attrs_html else ""
+
+        desc_short = (description[:500] + "...") if len(description) > 500 else description
+        desc_short = desc_short.replace("\n", "<br/>")
+        desc_block = f"<b>Description:</b><br/><i>{desc_short}</i><br/>" if desc_short else ""
+
+        notes_short = (status_notes[:500] + "...") if len(status_notes) > 500 else status_notes
+        notes_short = notes_short.replace("\n", "<br/>")
+        notes_block = f"<b>Resolution Notes:</b><br/><i>{notes_short}</i><br/>" if notes_short else ""
+
+        ticket_url = f"https://311.austintexas.gov/tickets/{req_id}"
         popup_html = f"""
         <div style="font-family: sans-serif; max-width: 300px;">
             <b><a href="{ticket_url}" target="_blank" style="color: #0066cc;">Report #{req_id}</a></b><br/>
@@ -593,8 +601,9 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             <br/>
             <b>Status:</b> {'🔴 Open' if status == 'open' else '🟢 Closed'}<br/>
             <b>Category:</b> {service_label}<br/><br/>
-            <b>{detail_label}:</b><br/>
-            <i>{detail_short if detail_short else '(no details)'}</i>
+            {attrs_block}
+            {desc_block}
+            {notes_block}
         </div>
         """
 

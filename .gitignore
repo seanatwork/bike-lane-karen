@@ -50,5 +50,5 @@ htmlcov/
 .mypy_cache/
 venv/
 
-# Traffic map (too large, disabled workflow)
-docs/traffic/
+# Large maps — committed weekly via GitHub Actions
+# docs/traffic/

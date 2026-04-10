@@ -563,32 +563,23 @@ def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             cluster_key = f"closed_{bucket}"
         target_cluster = fg_clusters[cluster_key]
 
-        # Extract violation type from structured attributes (WHTYVAYR = "What type of violation?")
-        violation_type = ""
-        for attr in r.get("attributes", []):
-            if attr.get("name") == "WHTYVAYR":
-                violation_type = attr.get("value", "")
-                break
-        # Fall back to description-based inference if attributes weren't returned
-        if not violation_type:
-            violation_type = _extract_violation_type(description)
-
-        # Build popup HTML with violation type
         address_line = f"<b>Address:</b> {address}<br/>" if address else ""
         updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
-        
-        violation_type_line = ""
-        if violation_type:
-            violation_type_line = f"<b>Violation Type:</b> {violation_type}<br/>"
-        
-        # Use description if available, fall back to status_notes
-        detail_text = description or status_notes
-        detail_label = "Description" if description else "Resolution Notes"
-        truncate_at = 500
-        detail_short = (detail_text[:truncate_at] + "...") if len(detail_text) > truncate_at else detail_text
-        detail_short = detail_short.replace("\n", "<br/>")
 
-        ticket_url = f"https://311.austintexas.gov/tickets?filter%5Bsearch%5D={req_id}"
+        # Build structured attributes block (includes violation type + any other attrs)
+        attrs = r.get("attributes") or []
+        attrs_html = "".join(f"<b>{a['label']}:</b> {a['value']}<br/>" for a in attrs if a.get("label") and a.get("value"))
+        attrs_block = f"<b>Additional Details:</b><br/>{attrs_html}" if attrs_html else ""
+
+        desc_short = (description[:500] + "...") if len(description) > 500 else description
+        desc_short = desc_short.replace("\n", "<br/>")
+        desc_block = f"<b>Description:</b><br/><i>{desc_short}</i><br/>" if desc_short else ""
+
+        notes_short = (status_notes[:500] + "...") if len(status_notes) > 500 else status_notes
+        notes_short = notes_short.replace("\n", "<br/>")
+        notes_block = f"<b>Resolution Notes:</b><br/><i>{notes_short}</i><br/>" if notes_short else ""
+
+        ticket_url = f"https://311.austintexas.gov/tickets/{req_id}"
         popup_html = f"""
         <div style="font-family: sans-serif; max-width: 300px;">
             <b><a href="{ticket_url}" target="_blank" style="color: #0066cc;">Report #{req_id}</a></b><br/>
@@ -597,11 +588,10 @@ def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             {address_line}
             <br/>
             <b>Status:</b> {'🔴 Open' if status == 'open' else '🟢 Closed'}<br/>
-            <b>Category:</b> {service_label}<br/>
-            {violation_type_line}
-            <br/>
-            <b>{detail_label}:</b><br/>
-            <i>{detail_short if detail_short else '(no details)'}</i>
+            <b>Category:</b> {service_label}<br/><br/>
+            {attrs_block}
+            {desc_block}
+            {notes_block}
         </div>
         """
 

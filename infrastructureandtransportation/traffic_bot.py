@@ -89,7 +89,7 @@ def _fetch_detail(service_request_id: str) -> dict:
     session = _get_session()
     url = f"{OPEN311_BASE_URL}/requests/{service_request_id}.json"
     try:
-        resp = session.get(url, timeout=TIMEOUT)
+        resp = session.get(url, params={"extensions": "true"}, timeout=TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
         if isinstance(data, list) and data:
@@ -144,6 +144,7 @@ def _fetch_code(service_code: str, days_back: int) -> list:
             "end_date": _isoformat_z(end),
             "per_page": 100,
             "page": page,
+            "extensions": "true",
         }
         records = _make_request(params)
         if not records:
@@ -174,6 +175,8 @@ def _fetch_code(service_code: str, days_back: int) -> list:
                 for field in ("description", "status_notes"):
                     if detail.get(field):
                         r[field] = detail[field]
+                if detail.get("attributes"):
+                    r["attributes"] = detail["attributes"]
             time.sleep(0.25 if API_KEY else 0.5)
 
     return all_records
@@ -382,6 +385,42 @@ def format_signal_maintenance(data: dict) -> str:
 # INTERACTIVE MAP GENERATION
 # =============================================================================
 
+# Groups the 18 service codes into 5 user-facing categories for the map filter
+CATEGORY_GROUPS = {
+    "roads": {
+        "label": "Roads & Pavement",
+        "codes": {"SBPOTREP", "SBSTRES", "SBGENRL", "ZZARSTSW"},
+    },
+    "signals": {
+        "label": "Traffic Signals & Signs",
+        "codes": {"TRASIGMA", "ATTRSIMO", "TRASIGNE", "SIGNSTRE", "SIGNNEWT"},
+    },
+    "pedestrians": {
+        "label": "Pedestrians & Bikes",
+        "codes": {"SBSIDERE", "TPPECRNE", "OBSINTTR"},
+    },
+    "obstructions": {
+        "label": "Obstructions & Debris",
+        "codes": {"SBDEBROW", "OBSTMIDB", "ATCOCIRW"},
+    },
+    "utilities": {
+        "label": "Utilities & Environment",
+        "codes": {"STREETL2", "DRCHANEL", "PWTRISRW"},
+    },
+}
+
+# Reverse map: service_code → category key
+_CODE_TO_CATEGORY = {
+    code: cat_key
+    for cat_key, cat in CATEGORY_GROUPS.items()
+    for code in cat["codes"]
+}
+
+
+def _get_category(service_code: str) -> str:
+    return _CODE_TO_CATEGORY.get(service_code, "roads")  # default to roads for unknowns
+
+
 def fetch_traffic_with_coords(days_back: int = 30) -> dict:
     """Fetch all traffic/infrastructure reports and filter to those with valid coordinates.
 
@@ -447,37 +486,42 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
         except Exception:
             return days_back
 
-    # Pre-compute counts per bucket for dynamic title updates
-    bucket_counts = {"30": {"open": 0, "closed": 0}, "60": {"open": 0, "closed": 0}, "90": {"open": 0, "closed": 0}}
+    # Pre-compute counts per category × bucket for summary updates
+    cat_keys = list(CATEGORY_GROUPS.keys())
+    cat_bucket_counts = {
+        cat: {"30": {"open": 0, "closed": 0}, "60": {"open": 0, "closed": 0}, "90": {"open": 0, "closed": 0}}
+        for cat in cat_keys + ["all"]
+    }
     for r in records:
         age = _age_days(r)
         status = (r.get("status") or "").lower()
         s = status if status in ("open", "closed") else "closed"
-        if age <= 30:
-            bucket_counts["30"][s] += 1
-        if age <= 60:
-            bucket_counts["60"][s] += 1
-        if age <= 90:
-            bucket_counts["90"][s] += 1
-    counts_js = str(bucket_counts).replace("'", '"')
+        cat = _get_category(r.get("_service_code", ""))
+        for bucket_days in (30, 60, 90):
+            if age <= bucket_days:
+                b = str(bucket_days)
+                cat_bucket_counts["all"][b][s] += 1
+                cat_bucket_counts[cat][b][s] += 1
+    counts_js = str(cat_bucket_counts).replace("'", '"')
 
     # Create map centered on Austin
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
 
-    # Six FeatureGroups: open/closed × 30/60/90-day buckets
+    # 30 FeatureGroups: open/closed × 30/60/90-day buckets × 5 categories
     fg_clusters = {}
     fg_objects = {}
     for status_key in ("open", "closed"):
         for bucket in ("30", "60", "90"):
-            name = f"{status_key}_{bucket}"
-            show = (bucket == "30")
-            fg = folium.FeatureGroup(name=name, show=show, overlay=True)
-            cluster = MarkerCluster().add_to(fg)
-            fg.add_to(m)
-            fg_clusters[name] = cluster
-            fg_objects[name] = fg
+            for cat_key in cat_keys:
+                name = f"{status_key}_{bucket}_{cat_key}"
+                show = (bucket == "30")
+                fg = folium.FeatureGroup(name=name, show=show, overlay=True)
+                cluster = MarkerCluster().add_to(fg)
+                fg.add_to(m)
+                fg_clusters[name] = cluster
+                fg_objects[name] = fg
 
-    # Add markers to the appropriate bucket
+    # Add markers to the appropriate group
     for r in records:
         lat = r["_lat"]
         lon = r["_lon"]
@@ -490,31 +534,31 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
         address = (r.get("address") or "").strip()
         req_id = r.get("service_request_id", "N/A")
 
-        # Determine time bucket
         age = _age_days(r)
-        if age <= 30:
-            bucket = "30"
-        elif age <= 60:
-            bucket = "60"
-        else:
-            bucket = "90"
+        bucket = "30" if age <= 30 else "60" if age <= 60 else "90"
+        cat = _get_category(r.get("_service_code", ""))
 
-        cluster_key = f"{status}_{bucket}"
+        cluster_key = f"{status}_{bucket}_{cat}"
         if cluster_key not in fg_clusters:
-            cluster_key = f"closed_{bucket}"
+            cluster_key = f"closed_{bucket}_{cat}"
         target_cluster = fg_clusters[cluster_key]
-
-        # Use description if available, fall back to status_notes
-        detail_text = description or status_notes
-        detail_label = "Description" if description else "Resolution Notes"
-        truncate_at = 500
-        detail_short = (detail_text[:truncate_at] + "...") if len(detail_text) > truncate_at else detail_text
-        detail_short = detail_short.replace("\n", "<br/>")
 
         address_line = f"<b>Address:</b> {address}<br/>" if address else ""
         updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
 
-        ticket_url = f"https://311.austintexas.gov/tickets?filter%5Bsearch%5D={req_id}"
+        attrs = r.get("attributes") or []
+        attrs_html = "".join(f"<b>{a['label']}:</b> {a['value']}<br/>" for a in attrs if a.get("label") and a.get("value"))
+        attrs_block = f"<b>Additional Details:</b><br/>{attrs_html}" if attrs_html else ""
+
+        desc_short = (description[:500] + "...") if len(description) > 500 else description
+        desc_short = desc_short.replace("\n", "<br/>")
+        desc_block = f"<b>Description:</b><br/><i>{desc_short}</i><br/>" if desc_short else ""
+
+        notes_short = (status_notes[:500] + "...") if len(status_notes) > 500 else status_notes
+        notes_short = notes_short.replace("\n", "<br/>")
+        notes_block = f"<b>Resolution Notes:</b><br/><i>{notes_short}</i><br/>" if notes_short else ""
+
+        ticket_url = f"https://311.austintexas.gov/tickets/{req_id}"
         popup_html = f"""
         <div style="font-family: sans-serif; max-width: 300px;">
             <b><a href="{ticket_url}" target="_blank" style="color: #0066cc;">Report #{req_id}</a></b><br/>
@@ -524,8 +568,9 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             <br/>
             <b>Status:</b> {'🔴 Open' if status == 'open' else '🟢 Closed'}<br/>
             <b>Category:</b> {service_label}<br/><br/>
-            <b>{detail_label}:</b><br/>
-            <i>{detail_short if detail_short else '(no details)'}</i>
+            {attrs_block}
+            {desc_block}
+            {notes_block}
         </div>
         """
 
@@ -540,7 +585,11 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
 
         folium.Marker(location=[lat, lon], popup=popup, icon=icon, tooltip=tooltip).add_to(target_cluster)
 
-    # Single centered control panel: title + summary + filters
+    # Build category options HTML for the dropdown
+    cat_options_html = '<option value="all">All Categories</option>\n'
+    for cat_key, cat in CATEGORY_GROUPS.items():
+        cat_options_html += f'<option value="{cat_key}">{cat["label"]}</option>\n'
+
     map_var = m.get_name()
     layer_map_js = "{" + ", ".join(
         f'"{k}": {fg_objects[k].get_name()}' for k in fg_objects
@@ -561,6 +610,16 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
         </div>
     </div>
+    <div id="cat-panel" style="position: absolute; top: 10px; right: 10px;
+                background: white; padding: 8px 12px; border-radius: 6px;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 9999;
+                font-family: sans-serif;">
+        <label for="cat-select" style="font-size: 11px; font-weight: bold; color: #444; display: block; margin-bottom: 4px;">Filter by Category</label>
+        <select id="cat-select" onchange="setCategoryFilter(this.value)"
+                style="font-size: 12px; padding: 3px 6px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer;">
+            {cat_options_html}
+        </select>
+    </div>
     <style>
         .fbtn {{
             padding: 3px 9px; border: 1px solid #ccc; border-radius: 4px;
@@ -573,13 +632,15 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
         var currentDays = 30;
         var showOpen = true;
         var showClosed = true;
+        var currentCategory = 'all';
         var layerMap = null;
         var leafletMap = null;
-        var bucketCounts = {counts_js};
+        var catBucketCounts = {counts_js};
 
         function updateSummary() {{
             var d = String(currentDays);
-            var counts = bucketCounts[d] || {{}};
+            var catData = catBucketCounts[currentCategory] || catBucketCounts['all'];
+            var counts = catData[d] || {{}};
             var o = showOpen ? (counts.open || 0) : 0;
             var c = showClosed ? (counts.closed || 0) : 0;
             document.getElementById('map-summary').textContent =
@@ -599,10 +660,12 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
                 var parts = key.split('_');
                 var status = parts[0];
                 var bucket = parseInt(parts[1]);
+                var category = parts[2];
                 var timeOk = bucket <= currentDays;
                 var statusOk = (status === 'open' && showOpen) || (status === 'closed' && showClosed);
+                var categoryOk = (currentCategory === 'all') || (category === currentCategory);
                 var layer = layerMap[key];
-                if (timeOk && statusOk) {{
+                if (timeOk && statusOk && categoryOk) {{
                     if (!leafletMap.hasLayer(layer)) leafletMap.addLayer(layer);
                 }} else {{
                     if (leafletMap.hasLayer(layer)) leafletMap.removeLayer(layer);
@@ -624,6 +687,12 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             if (status === 'open') showOpen = !showOpen;
             else showClosed = !showClosed;
             document.getElementById('btn-' + status).classList.toggle('active');
+            updateLayers();
+            updateSummary();
+        }}
+
+        function setCategoryFilter(cat) {{
+            currentCategory = cat;
             updateLayers();
             updateSummary();
         }}
