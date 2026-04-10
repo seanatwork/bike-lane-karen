@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 OPEN311_BASE_URL = "https://311.austintexas.gov/open311/v2"
 SERVICE_CODE = "PARKINGV"
-TIMEOUT = 10
+TIMEOUT = 15
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0
-MAX_PAGES = 20  # cap at 2,000 records — enough for all stats/hotspot analysis
+MAX_PAGES = 100  # 90 days can exceed 2,000 records; cap at 10,000
 
 # API key from environment
 API_KEY = os.getenv("AUSTIN_APP_TOKEN")
@@ -28,7 +28,7 @@ API_KEY = os.getenv("AUSTIN_APP_TOKEN")
 # Austin local time approximation (CDT = UTC-5, CST = UTC-6; use -6 as conservative default)
 _AUSTIN_OFFSET = timedelta(hours=-6)
 
-RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
+RETRYABLE_HTTP_CODES = {423, 429, 500, 502, 503, 504}
 
 RETRYABLE_ERRORS = (
     requests.exceptions.Timeout,
@@ -90,11 +90,11 @@ def _looks_truncated(text: str | None) -> bool:
 
 
 def _fetch_detail(service_request_id: str) -> dict:
-    """Fetch a single ticket by ID to get untruncated field values."""
+    """Fetch a single ticket by ID to get untruncated field values and attributes."""
     session = _get_session()
     url = f"{OPEN311_BASE_URL}/requests/{service_request_id}.json"
     try:
-        resp = session.get(url, timeout=TIMEOUT)
+        resp = session.get(url, params={"extensions": "true"}, timeout=TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
         if isinstance(data, list) and data:
@@ -116,7 +116,7 @@ def _make_request(params: dict, retries: int = 0) -> list:
         return data if isinstance(data, list) else []
     except requests.exceptions.HTTPError as e:
         if e.response.status_code in RETRYABLE_HTTP_CODES and retries < MAX_RETRIES:
-            delay = RETRY_DELAY * (2 ** retries)
+            delay = (10.0 * (2 ** retries)) if e.response.status_code in {423, 429} else RETRY_DELAY * (2 ** retries)
             logger.warning(f"HTTP {e.response.status_code}, retrying in {delay:.1f}s ({retries+1}/{MAX_RETRIES})")
             time.sleep(delay)
             return _make_request(params, retries + 1)
@@ -146,6 +146,7 @@ def get_all_citations(days_back: int = 90) -> list:
             "end_date": _isoformat_z(end),
             "per_page": 100,
             "page": page,
+            "extensions": "true",
         }
 
         records = _make_request(params)
@@ -172,7 +173,7 @@ def get_all_citations(days_back: int = 90) -> list:
             break
 
         # Rate-limit regardless of API key; shorter delay when authenticated
-        time.sleep(0.5 if API_KEY else 1.0)
+        time.sleep(1.0 if API_KEY else 2.0)
 
     # Re-fetch individual records whose text fields look truncated
     for i, r in enumerate(all_records):
@@ -420,6 +421,58 @@ def fetch_parking_with_coords(days_back: int = 30) -> dict:
     }
 
 
+def _extract_violation_type(description: str) -> str:
+    """Extract the violation type from description text.
+    
+    Examples:
+        "Parked in bike lane" → "Bike Lane"
+        "Car blocking sidewalk" → "Blocking Sidewalk"
+        "Black SUV parked blocking driveway" → "Blocking Driveway"
+    """
+    if not description:
+        return ""
+    
+    desc_lower = description.lower()
+    
+    # Define patterns to match common violation types
+    violation_patterns = [
+        ("bike lane", "Bike Lane"),
+        ("bicycle lane", "Bike Lane"),
+        ("blocking sidewalk", "Blocking Sidewalk"),
+        ("on sidewalk", "On Sidewalk"),
+        ("parked on sidewalk", "On Sidewalk"),
+        ("blocking driveway", "Blocking Driveway"),
+        ("no parking zone", "No Parking Zone"),
+        ("commercial parking", "Commercial Zone"),
+        ("parked in commercial", "Commercial Zone"),
+        ("abandoned vehicle", "Abandoned Vehicle"),
+        ("lift abandoned", "Abandoned Vehicle"),
+        ("illegal parking", "Illegal Parking"),
+        ("living in van", "Overnight Camping"),
+        ("overnight parking", "Overnight Parking"),
+        ("fire hydrant", "Fire Hydrant"),
+        ("handicap space", "Handicap Space"),
+        ("ada space", "Handicap Space"),
+        ("accessible space", "Handicap Space"),
+        ("bus stop", "Bus Stop"),
+        ("crosswalk", "Crosswalk"),
+        ("sidewalk ramp", "Sidewalk Ramp"),
+        ("construction zone", "Construction Zone"),
+        ("loading zone", "Loading Zone"),
+        ("tow zone", "Tow Zone"),
+        ("street sweeping", "Street Sweeping"),
+    ]
+    
+    for pattern, violation_type in violation_patterns:
+        if pattern in desc_lower:
+            return violation_type
+    
+    # If no pattern matches, return a shortened version of the description
+    if len(description) <= 50:
+        return description
+    return description[:47] + "..."
+
+
 def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str]:
     """Generate an interactive HTML map of parking reports.
 
@@ -510,15 +563,30 @@ def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             cluster_key = f"closed_{bucket}"
         target_cluster = fg_clusters[cluster_key]
 
+        # Extract violation type from structured attributes (WHTYVAYR = "What type of violation?")
+        violation_type = ""
+        for attr in r.get("attributes", []):
+            if attr.get("name") == "WHTYVAYR":
+                violation_type = attr.get("value", "")
+                break
+        # Fall back to description-based inference if attributes weren't returned
+        if not violation_type:
+            violation_type = _extract_violation_type(description)
+
+        # Build popup HTML with violation type
+        address_line = f"<b>Address:</b> {address}<br/>" if address else ""
+        updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
+        
+        violation_type_line = ""
+        if violation_type:
+            violation_type_line = f"<b>Violation Type:</b> {violation_type}<br/>"
+        
         # Use description if available, fall back to status_notes
         detail_text = description or status_notes
         detail_label = "Description" if description else "Resolution Notes"
         truncate_at = 500
         detail_short = (detail_text[:truncate_at] + "...") if len(detail_text) > truncate_at else detail_text
         detail_short = detail_short.replace("\n", "<br/>")
-
-        address_line = f"<b>Address:</b> {address}<br/>" if address else ""
-        updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
 
         ticket_url = f"https://311.austintexas.gov/tickets?filter%5Bsearch%5D={req_id}"
         popup_html = f"""
@@ -529,7 +597,9 @@ def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
             {address_line}
             <br/>
             <b>Status:</b> {'🔴 Open' if status == 'open' else '🟢 Closed'}<br/>
-            <b>Category:</b> {service_label}<br/><br/>
+            <b>Category:</b> {service_label}<br/>
+            {violation_type_line}
+            <br/>
             <b>{detail_label}:</b><br/>
             <i>{detail_short if detail_short else '(no details)'}</i>
         </div>
