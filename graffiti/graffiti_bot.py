@@ -9,6 +9,7 @@ import requests
 import os
 import io
 from datetime import datetime, timezone, timedelta
+from open311_client import open311_get
 from collections import Counter
 from typing import Optional
 
@@ -100,26 +101,7 @@ def _fetch_graffiti(days_back: int = 90) -> list:
     session = _get_session()
 
     while page <= MAX_PAGES:
-        retries = 0
-        while True:
-            try:
-                resp = session.get(url, params=params, timeout=TIMEOUT)
-                resp.raise_for_status()
-                data = resp.json()
-                break
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code in {429, 500, 502, 503, 504} and retries < MAX_RETRIES:
-                    delay = (10.0 * (2 ** retries)) if e.response.status_code == 429 else 2.0 * (2 ** retries)
-                    logger.warning(f"HTTP {e.response.status_code}, retrying in {delay:.1f}s ({retries+1}/{MAX_RETRIES})")
-                    time.sleep(delay)
-                    retries += 1
-                else:
-                    raise
-            except RETRYABLE_ERRORS as e:
-                retries += 1
-                if retries >= MAX_RETRIES:
-                    raise
-                time.sleep(2.0 * (2 ** retries))
+        data = open311_get(session, url, params)
 
         if not isinstance(data, list) or not data:
             break

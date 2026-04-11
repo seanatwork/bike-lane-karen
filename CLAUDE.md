@@ -41,7 +41,7 @@ Auto-deploys to Fly.io on push to `main` via `.github/workflows/deploy.yml`. The
 
 **Service packages** (each is independent):
 - `graffiti/` — Open311 service code `HHSGRAFF`; supports analysis and a Folium-generated map (`/graffiti` → redirects to web map)
-- `bicycle/` — Open311 across 7 service codes (PWBICYCL, OBSTMIDB, SBDEBROW, ATCOCIRW, SBSIDERE, TPPECRNE, PWSIDEWL); includes keyword filtering for bicycle relevance; supports stats and a Folium-generated map (`/bicycle` → redirects to web map)
+- `bicycle/` — Open311 across 8 service codes (PWBICYCL, OBSTMIDB, SBDEBROW, ATCOCIRW, SBSIDERE, TPPECRNE, PWSIDEWL, ZZARSTSW); includes keyword filtering for bicycle relevance; supports stats and a Folium-generated map (`/bicycle` → redirects to web map)
 - `restaurants/` — Socrata dataset `ecmv-9xxi` (health inspections)
 - `animalsvc/` — Open311 across 7+ service codes (loose dogs, bites, coyotes, etc.)
 - `infrastructureandtransportation/` — Open311 (potholes, signals, sidewalks)
@@ -88,8 +88,8 @@ Public maps are deployed at Netlify, generated from the same data as Telegram co
 - `.github/workflows/deploy-map.yml` — GitHub Actions cron for homeless map (daily noon UTC)
 - `.github/workflows/generate-bicycle-map.yml` — GitHub Actions cron for bicycle map (daily noon UTC)
 - `.github/workflows/generate-graffiti-map.yml` — GitHub Actions cron for graffiti map (daily noon UTC)
-- `.github/workflows/generate-traffic-map.yml` — GitHub Actions cron for traffic map (weekly Tuesday noon UTC)
-- `.github/workflows/generate-parking-map.yml` — GitHub Actions cron for parking map (weekly Monday noon UTC)
+- `.github/workflows/generate-traffic-map.yml` — GitHub Actions cron for traffic map (daily noon UTC)
+- `.github/workflows/generate-parking-map.yml` — GitHub Actions cron for parking map (daily noon UTC)
 - `netlify.toml` — tells Netlify to serve from `docs/`, no build command
 - `docs/*/index.html` — pre-generated Folium HTML maps (committed to repo)
 

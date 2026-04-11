@@ -10,6 +10,7 @@ import os
 import io
 import requests
 from datetime import datetime, timezone, timedelta
+from open311_client import open311_get
 from typing import Optional
 from collections import defaultdict
 
@@ -106,28 +107,8 @@ def _fetch_detail(service_request_id: str) -> dict:
     return {}
 
 
-def _make_request(params: dict, retries: int = 0) -> list:
-    session = _get_session()
-    url = f"{OPEN311_BASE_URL}/requests.json"
-    try:
-        resp = session.get(url, params=params, timeout=TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
-        return data if isinstance(data, list) else []
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code in RETRYABLE_HTTP_CODES and retries < MAX_RETRIES:
-            delay = (10.0 * (2 ** retries)) if e.response.status_code in {423, 429} else RETRY_DELAY * (2 ** retries)
-            logger.warning(f"HTTP {e.response.status_code}, retrying in {delay:.1f}s ({retries+1}/{MAX_RETRIES})")
-            time.sleep(delay)
-            return _make_request(params, retries + 1)
-        raise
-    except RETRYABLE_ERRORS as e:
-        if retries < MAX_RETRIES:
-            delay = RETRY_DELAY * (2 ** retries)
-            logger.warning(f"Request failed ({e}), retrying in {delay:.1f}s ({retries+1}/{MAX_RETRIES})")
-            time.sleep(delay)
-            return _make_request(params, retries + 1)
-        raise
+def _make_request(params: dict) -> list:
+    return open311_get(_get_session(), f"{OPEN311_BASE_URL}/requests.json", params)
 
 
 def get_all_citations(days_back: int = 90) -> list:

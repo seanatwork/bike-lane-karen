@@ -11,6 +11,7 @@ import requests
 import os
 import io
 from datetime import datetime, timezone, timedelta
+from open311_client import open311_get
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -101,28 +102,8 @@ def _fetch_detail(service_request_id: str) -> dict:
     return {}
 
 
-def _make_request(params: dict, retries: int = 0) -> list:
-    session = _get_session()
-    url = f"{OPEN311_BASE_URL}/requests.json"
-    try:
-        resp = session.get(url, params=params, timeout=TIMEOUT)
-        resp.raise_for_status()
-        data = resp.json()
-        return data if isinstance(data, list) else []
-    except requests.exceptions.HTTPError as e:
-        if e.response.status_code in {429, 500, 502, 503, 504} and retries < MAX_RETRIES:
-            delay = (10.0 * (2 ** retries)) if e.response.status_code == 429 else RETRY_DELAY * (2 ** retries)
-            logger.warning(f"HTTP {e.response.status_code}, retrying in {delay:.1f}s ({retries+1}/{MAX_RETRIES})")
-            time.sleep(delay)
-            return _make_request(params, retries + 1)
-        raise
-    except RETRYABLE_ERRORS as e:
-        if retries < MAX_RETRIES:
-            delay = RETRY_DELAY * (2 ** retries)
-            logger.warning(f"Request failed ({e}), retrying in {delay:.1f}s ({retries+1}/{MAX_RETRIES})")
-            time.sleep(delay)
-            return _make_request(params, retries + 1)
-        raise
+def _make_request(params: dict) -> list:
+    return open311_get(_get_session(), f"{OPEN311_BASE_URL}/requests.json", params)
 
 
 def _fetch_code(service_code: str, days_back: int) -> list:
@@ -602,9 +583,6 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
         <b style="font-size: 15px;">🚦 Austin Traffic & Infrastructure 311 Reports</b><br/>
         <span id="map-summary" style="font-size: 12px; color: #555;"></span>
         <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
-            <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
-            <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
-            <button id="btn-90" onclick="setDayFilter(90)" class="fbtn">90d</button>
             <span style="margin: 0 4px; color: #ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
@@ -671,16 +649,6 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
                     if (leafletMap.hasLayer(layer)) leafletMap.removeLayer(layer);
                 }}
             }});
-        }}
-
-        function setDayFilter(days) {{
-            currentDays = days;
-            [30, 60, 90].forEach(function(d) {{
-                var btn = document.getElementById('btn-' + d);
-                if (btn) btn.classList.toggle('active', d === days);
-            }});
-            updateLayers();
-            updateSummary();
         }}
 
         function toggleStatus(status) {{
