@@ -2597,6 +2597,22 @@ def _format_homeless_budget(data: dict) -> str:
     msg = f"🏠 *Austin Citywide Budget Impact*\n"
     msg += f"_FY{first_yr}–FY{last_yr} · actual spend where available_\n\n"
 
+    # Calculate total for the most recent fiscal year
+    total_last_year = 0.0
+    for dept in _HOMELESS_DIRECT_DEPTS:
+        if dept in data:
+            total_last_year += _dept_spend(data[dept], last_yr)
+    if grants:
+        total_last_year += _dept_spend(grants, last_yr)
+    for dept_name, _ in _HOMELESS_DOWNSTREAM_DEPTS:
+        if dept_name in data:
+            total_last_year += _dept_spend(data[dept_name], last_yr)
+    if pension and last_yr in pension:
+        total_last_year += pension[last_yr].get("pension", 0.0)
+        total_last_year += pension[last_yr].get("health", 0.0)
+
+    msg += f"💰 *TOTAL:* {_fmt_millions(total_last_year)}\n\n"
+
     msg += "*Direct Homeless Services:*\n"
     for dept in _HOMELESS_DIRECT_DEPTS:
         dept_data = data.get(dept)
