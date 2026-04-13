@@ -24,6 +24,7 @@ open311-aggregate = "tools.open311_aggregate_heatmap:main"
 py-modules = [
     "open311_ingest",
     "austin311_bot",
+    "open311_client",
 ]
 
 [tool.setuptools.packages.find]
