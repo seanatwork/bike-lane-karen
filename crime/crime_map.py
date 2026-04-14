@@ -79,6 +79,50 @@ def _fetch_crime_counts(days_back: int) -> dict:
     return {}
 
 
+def _fetch_crime_breakdown(days_back: int) -> dict:
+    """Fetch APD crime counts grouped by council district AND crime type."""
+    session = _get_session()
+    cutoff = (_utc_now() - timedelta(days=days_back)).strftime("%Y-%m-%dT00:00:00")
+    params = {
+        "$select": "council_district, crime_type, count(*) as cnt",
+        "$where": (
+            f"occ_date >= '{cutoff}' "
+            "AND council_district IS NOT NULL "
+            "AND crime_type IS NOT NULL"
+        ),
+        "$group": "council_district, crime_type",
+        "$order": "cnt DESC",
+        "$limit": 500,
+    }
+    app_token = os.getenv("AUSTIN_APP_TOKEN", "")
+    if app_token:
+        params["$$app_token"] = app_token
+
+    url = f"{SOCRATA_BASE}/{CRIME_DATASET}.json"
+    for attempt in range(3):
+        try:
+            resp = session.get(url, params=params, timeout=30)
+            resp.raise_for_status()
+            data = resp.json()
+            breakdown: dict = {}
+            for row in data:
+                if not row.get("council_district") or not row.get("crime_type") or not row.get("cnt"):
+                    continue
+                dist = str(int(float(row["council_district"])))
+                label = row["crime_type"].title()
+                count = int(row["cnt"])
+                breakdown.setdefault(dist, []).append([label, count])
+            for dist in breakdown:
+                breakdown[dist].sort(key=lambda x: -x[1])
+            return breakdown
+        except Exception as e:
+            if attempt < 2:
+                time.sleep(2 ** attempt * 2)
+            else:
+                logger.error(f"crime breakdown ({days_back}d): {e}")
+    return {}
+
+
 def _fetch_districts_geojson() -> dict:
     """Fetch Austin council district boundary GeoJSON from ArcGIS."""
     session = _get_session()
@@ -113,6 +157,13 @@ def generate_crime_map(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
     print("Fetching 90-day crime counts by district...")
     counts_90 = _fetch_crime_counts(days_back)
 
+    print("Fetching 30-day crime type breakdown...")
+    breakdown_30 = _fetch_crime_breakdown(30)
+    print("Fetching 60-day crime type breakdown...")
+    breakdown_60 = _fetch_crime_breakdown(60)
+    print("Fetching 90-day crime type breakdown...")
+    breakdown_90 = _fetch_crime_breakdown(days_back)
+
     if not counts_90:
         return None, "❌ No crime data returned from APD API"
 
@@ -131,6 +182,11 @@ def generate_crime_map(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
         "30": counts_30,
         "60": counts_60,
         "90": counts_90,
+    })
+    breakdown_js = json.dumps({
+        "30": breakdown_30,
+        "60": breakdown_60,
+        "90": breakdown_90,
     })
     geojson_js = json.dumps(geojson)
 
@@ -183,6 +239,7 @@ def generate_crime_map(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
 
     <script>
         var districtCounts = {counts_js};
+        var districtBreakdown = {breakdown_js};
         var districtGeojson = {geojson_js};
         var currentDays = 90;
         var geoLayer = null;
@@ -222,15 +279,37 @@ def generate_crime_map(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
             var count = counts[dist] || 0;
             var total = Object.values(counts).reduce(function(a, b) {{ return a + b; }}, 0);
             var pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
-            return '<div style="font-family:sans-serif;min-width:180px;padding:4px;">' +
+
+            var types = ((districtBreakdown[String(currentDays)] || {{}})[dist] || []).slice(0, 6);
+            var typesHtml = '';
+            if (types.length > 0) {{
+                typesHtml += '<div style="margin-top:9px;border-top:1px solid #eee;padding-top:7px;">';
+                typesHtml += '<div style="font-size:11px;font-weight:600;color:#444;margin-bottom:4px;">Incident Types</div>';
+                types.forEach(function(item) {{
+                    var label = item[0];
+                    var n = item[1];
+                    var typePct = count > 0 ? Math.round((n / count) * 100) : 0;
+                    var barW = Math.max(2, Math.round(typePct * 0.9));
+                    typesHtml +=
+                        '<div style="margin-bottom:4px;">' +
+                        '<div style="display:flex;justify-content:space-between;font-size:11px;">' +
+                        '<span style="color:#333;">' + label + '</span>' +
+                        '<span style="color:#666;">' + n.toLocaleString() + ' (' + typePct + '%)</span>' +
+                        '</div>' +
+                        '<div style="background:#e5e7eb;border-radius:2px;height:4px;margin-top:2px;">' +
+                        '<div style="background:#ef4444;border-radius:2px;height:4px;width:' + barW + '%;"></div>' +
+                        '</div></div>';
+                }});
+                typesHtml += '</div>';
+            }}
+
+            return '<div style="font-family:sans-serif;min-width:220px;padding:4px;">' +
                 '<b style="font-size:14px;">District ' + dist + '</b><br/>' +
                 '<span style="color:#555;font-size:12px;">Last ' + currentDays + ' days</span>' +
                 '<br/><br/>' +
                 '<b style="font-size:16px;">' + count.toLocaleString() + '</b> incidents<br/>' +
                 '<span style="color:#777;font-size:11px;">' + pct + '% of citywide total</span>' +
-                '<br/><br/>' +
-                '<a href="https://t.me/austin311bot" target="_blank" ' +
-                'style="font-size:11px;color:#0066cc;">📲 More stats: @austin311bot</a>' +
+                typesHtml +
                 '</div>';
         }}
 
