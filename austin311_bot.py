@@ -3401,6 +3401,37 @@ async def bars_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 # =============================================================================
+# COURT CASELOADS
+# =============================================================================
+
+
+@rate_limited
+async def court_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyboard = [
+        [
+            InlineKeyboardButton("⚖️ Court Caseloads", url="https://seanatwork.github.io/austin311bot-unofficial/court/"),
+            InlineKeyboardButton("📈 Travis County Trends", url="https://seanatwork.github.io/austin311bot-unofficial/court/trends/"),
+        ]
+    ]
+    await update.message.reply_text(
+        "⚖️ *Austin Court Caseloads*\n\n"
+        "https://seanatwork.github.io/austin311bot-unofficial/court/\n\n"
+        "Live data from Austin's open data portal:\n"
+        "• 📋 *Municipal Court FY2026* — 100k+ cases by charge type\n"
+        "• 🏛️ *Downtown Community Court* — FY2025 & FY2026\n"
+        "• ⛺ *Prop B outcomes* — conviction/dismissal breakdown\n"
+        "• 📊 *Multi-year trends* — FY2022–FY2026 volume comparison\n"
+        "• 👥 *Demographics* — race & gender breakdown by court\n"
+        "• 📈 *Travis County Trends* — filed/disposed/backlog 2018–2025\n\n"
+        "_General caseloads show pipeline status (open/closed/inactive), not verdicts. "
+        "Prop B is the only dataset where actual case outcomes are published._",
+        parse_mode="Markdown",
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+# =============================================================================
 # CHILD CARE LICENSING
 # =============================================================================
 
@@ -3438,9 +3469,9 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
 
 def create_application() -> Application:
-    token = os.getenv("TELEGRAM_BOT_TOKEN") or GraffitiConfig.TELEGRAM_BOT_TOKEN
+    token = os.getenv("AUSTIN311_BOT_TOKEN") or GraffitiConfig.TELEGRAM_BOT_TOKEN
     if not token:
-        raise ValueError("TELEGRAM_BOT_TOKEN environment variable is not set.")
+        raise ValueError("AUSTIN311_BOT_TOKEN environment variable is not set.")
 
     app = Application.builder().token(token).build()
 
@@ -3553,6 +3584,7 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("permits", permits_command))
     app.add_handler(CommandHandler("bars", bars_command))
     app.add_handler(CommandHandler("childcare", childcare_command))
+    app.add_handler(CommandHandler("court", court_command))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     app.add_error_handler(error_handler)
@@ -3579,6 +3611,7 @@ def create_application() -> Application:
             BotCommand("permits",          "Building permits — last 30 days by type · district"),
             BotCommand("bars",      "Bar of the month — top TABC mixed beverage sales"),
             BotCommand("childcare", "Child care licensing — Austin facilities · compliance flags"),
+            BotCommand("court",     "Court caseloads — Municipal · DACC · Prop B outcomes · demographics"),
             BotCommand("homeless",  "Encampment & trash 311 reports — dept burden · trends · locations"),
             BotCommand("help",      "All commands"),
         ])
