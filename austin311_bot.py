@@ -151,8 +151,6 @@ logger = logging.getLogger(__name__)
 # No user data is stored or tracked.
 # =============================================================================
 
-from time import time
-
 _RATE_LIMIT_MAX = 30      # Max requests per window (global)
 _RATE_LIMIT_WINDOW = 60   # Window in seconds
 _request_times: list[float] = []
@@ -160,7 +158,7 @@ _request_times: list[float] = []
 
 def _is_rate_limited() -> tuple[bool, int]:
     """Check if global rate limit is hit. Returns (is_limited, retry_after_seconds)."""
-    now = time()
+    now = time.time()
     window_start = now - _RATE_LIMIT_WINDOW
     global _request_times
     
@@ -3359,6 +3357,8 @@ async def permits_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 # =============================================================================
 
 _TABC_SESSION = None
+_TABC_RETRY_CODES = {429, 500, 502, 503, 504}
+_TABC_RETRYABLE_ERRORS = (requests.exceptions.Timeout, requests.exceptions.ConnectionError)
 
 
 def _get_tabc_session():
@@ -3368,22 +3368,41 @@ def _get_tabc_session():
     return _TABC_SESSION
 
 
+def _tabc_get(url: str, params: dict, timeout: int) -> list:
+    """GET against data.texas.gov with retry/backoff (3 retries, 2s/4s/8s)."""
+    session = _get_tabc_session()
+    for attempt in range(4):
+        try:
+            resp = session.get(url, params=params, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code not in _TABC_RETRY_CODES or attempt == 3:
+                raise
+            delay = 2 * (2 ** attempt)
+            logger.warning(f"TABC HTTP {e.response.status_code}, retrying in {delay}s ({attempt + 1}/3)")
+            time.sleep(delay)
+        except _TABC_RETRYABLE_ERRORS as e:
+            if attempt == 3:
+                raise
+            delay = 2 * (2 ** attempt)
+            logger.warning(f"TABC request failed ({type(e).__name__}), retrying in {delay}s ({attempt + 1}/3)")
+            time.sleep(delay)
+
+
 def _get_bar_stats() -> dict:
     """Fetch top grossing and biggest movers for Austin bars/restaurants."""
-    session = _get_tabc_session()
     url = "https://data.texas.gov/resource/g5bj-yb6k.json"
 
     # Get the 4 most recent months by date, skip the newest if still incomplete
     # (incomplete = fewer than 50% of the next month's row count)
-    months_resp = session.get(url, params={
+    months = sorted(_tabc_get(url, params={
         "$select": "obligation_end_date, count(*) as cnt",
         "$where":  "upper(location_city)='AUSTIN'",
         "$group":  "obligation_end_date",
         "$order":  "obligation_end_date DESC",
         "$limit":  4,
-    }, timeout=20)
-    months_resp.raise_for_status()
-    months = sorted(months_resp.json(), key=lambda r: r["obligation_end_date"], reverse=True)
+    }, timeout=30), key=lambda r: r["obligation_end_date"], reverse=True)
     if len(months) < 2:
         raise ValueError("Not enough monthly data available")
 
@@ -3403,17 +3422,16 @@ def _get_bar_stats() -> dict:
         twice. Where the same address reports different amounts (genuinely
         separate outlets), keep each as its own entry keyed by permit number.
         """
-        resp = session.get(url, params={
+        rows = _tabc_get(url, params={
             "$select": "tabc_permit_number, location_name, location_address, total_sales_receipts",
             "$where":  f"upper(location_city)='AUSTIN' AND obligation_end_date='{month}T00:00:00.000'",
             "$order":  "total_sales_receipts DESC",
             "$limit":  5000,
-        }, timeout=30)
-        resp.raise_for_status()
+        }, timeout=45)
 
         seen_addr_sales: set[tuple] = set()
         result: dict[str, dict] = {}
-        for r in resp.json():
+        for r in rows:
             permit  = r.get("tabc_permit_number", "")
             address = (r.get("location_address") or "").strip().upper()
             try:
@@ -3510,15 +3528,19 @@ def _format_bar_stats(data: dict) -> str:
     return msg
 
 
+@rate_limited
 async def bars_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("⏳ Fetching TABC sales data...")
     try:
         data = await asyncio.to_thread(_get_bar_stats)
         msg = _format_bar_stats(data)
         await _send_chunked(update.message, msg)
+    except _TABC_RETRYABLE_ERRORS:
+        logger.error("bars command: TABC endpoint timed out after retries")
+        await update.message.reply_text("❌ TABC data source is slow right now. Try again in a minute.")
     except Exception as e:
         logger.error(f"bars command: {e}")
-        await update.message.reply_text(f"❌ Error fetching bar data: {e}")
+        await update.message.reply_text("❌ Could not fetch bar data. Try again shortly.")
 
 
 # =============================================================================

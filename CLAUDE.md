@@ -74,6 +74,8 @@ Query patterns: ISO8601 dates with `Z` suffix, `per_page`/`page` pagination, `$w
 
 Public maps are deployed via GitHub Pages (`docs/` folder), generated from the same data as Telegram commands.
 
+**⚠️ Two-repo split (as of 2026-04-18 consolidation):** this `austin311bot/` folder inside `All-Telegram-Bots` is now the authoritative source for code, but GitHub Pages + the map-refresh workflows still live in the original `seanatwork/austin311bot-unofficial` repo. The `docs/` folder and `.github/workflows/generate-*-map.yml` files listed below exist in both repos; the ones that actually run are the copies on `austin311bot-unofficial`. After any edit here that affects map output (generator, `*_bot.py` modules, `scripts/generate_map.py`), run `bash sync-to-unofficial.sh` to push the code to the old repo and kick off its workflows. Pure-Telegram edits don't need this.
+
 **Maps:**
 - `docs/index.html` — Landing page hub (https://seanatwork.github.io/austin311bot-unofficial/) — branded "ATX Pulse"
 - `docs/homeless/index.html` — Homeless encampment map (https://seanatwork.github.io/austin311bot-unofficial/homeless/)
