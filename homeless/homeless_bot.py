@@ -557,7 +557,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             cluster_key = f"closed_{bucket}"
         target_cluster = fg_clusters[cluster_key]
 
-        address_line = f"<b>Address:</b> {address}<br/>" if address else ""
+        address_line = f'<b>Address:</b> <a href="https://www.google.com/maps/search/?api=1&query={lat},{lon}" target="_blank">{address}</a><br/>' if address else ""
         updated_line = f"<span style='color: #666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
 
         attrs = r.get("attributes") or []

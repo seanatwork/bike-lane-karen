@@ -993,6 +993,114 @@ async def traffic_live_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 # =============================================================================
+# CRASH ALERT JOB — pings ALERT_CHAT_ID when new crash-type incidents appear
+# =============================================================================
+
+_CRASH_ALERT_TYPES = {
+    "crash urgent",
+    "collision",
+    "collision with injury",
+    "collisn/ lvng scn",
+    "collision/private property",
+    "traffic fatality",
+    "crash service",
+}
+
+_seen_crash_ids: set[str] = set()
+
+# Toggle file: persists across restarts but not across redeploys (no volume on Fly).
+_ALERTS_STATE_FILE = "/tmp/crash_alerts_disabled"
+
+
+def _alerts_disabled() -> bool:
+    return os.path.exists(_ALERTS_STATE_FILE)
+
+
+def _set_alerts_disabled(disabled: bool) -> None:
+    if disabled:
+        open(_ALERTS_STATE_FILE, "w").close()
+    else:
+        try:
+            os.remove(_ALERTS_STATE_FILE)
+        except FileNotFoundError:
+            pass
+
+
+async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Toggle crash alerts. Usage: /alerts [on|off|status]"""
+    alert_chat = os.getenv("ALERT_CHAT_ID")
+    if not alert_chat:
+        await update.message.reply_text("ℹ️ Crash alerts are not configured (ALERT_CHAT_ID unset).")
+        return
+
+    # Only the configured alert chat can toggle
+    if str(update.effective_chat.id) != str(alert_chat):
+        await update.message.reply_text("⛔ This command is only available in the alert chat.")
+        return
+
+    arg = (context.args[0].lower() if context.args else "status")
+    if arg in ("off", "mute", "stop"):
+        _set_alerts_disabled(True)
+        await update.message.reply_text("🔕 Crash alerts *paused*. Use `/alerts on` to resume.", parse_mode="Markdown")
+    elif arg in ("on", "unmute", "resume", "start"):
+        _set_alerts_disabled(False)
+        await update.message.reply_text("🔔 Crash alerts *resumed*.", parse_mode="Markdown")
+    else:
+        state = "🔕 paused" if _alerts_disabled() else "🔔 active"
+        await update.message.reply_text(
+            f"Crash alerts: *{state}*\n\n`/alerts on` — resume\n`/alerts off` — pause",
+            parse_mode="Markdown",
+        )
+
+
+async def crash_alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
+    chat_id = os.getenv("ALERT_CHAT_ID")
+    if not chat_id:
+        return
+    if _alerts_disabled():
+        return
+    try:
+        rows = await asyncio.to_thread(_get_live_incidents)
+    except Exception as e:
+        logger.error(f"crash_alert_job fetch: {e}")
+        return
+
+    crashes = [r for r in rows
+               if r.get("issue_reported", "").lower().strip() in _CRASH_ALERT_TYPES]
+
+    first_run = not _seen_crash_ids
+    new_crashes = []
+    for r in crashes:
+        rid = r.get("traffic_report_id") or f"{r.get('published_date','')}|{r.get('address','')}"
+        if rid in _seen_crash_ids:
+            continue
+        _seen_crash_ids.add(rid)
+        if not first_run:
+            new_crashes.append(r)
+
+    for r in new_crashes:
+        label = _normalise_incident(r.get("issue_reported", "Unknown"))
+        addr = r.get("address", "Unknown location")
+        agency = r.get("agency", "")
+        lat = r.get("latitude")
+        lon = r.get("longitude")
+        msg = f"🚨 *{label}*\n📍 {addr}"
+        if agency:
+            msg += f"\n🏛️ {agency}"
+        if lat and lon:
+            msg += f"\n[Open in Maps](https://www.google.com/maps?q={lat},{lon})"
+        try:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=msg,
+                parse_mode="Markdown",
+                disable_web_page_preview=True,
+            )
+        except Exception as e:
+            logger.error(f"crash_alert_job send: {e}")
+
+
+# =============================================================================
 # CRASH STATS (Austin Crash Report Data y2wy-tgr5)
 # =============================================================================
 
@@ -1431,6 +1539,11 @@ async def parking_top_payments_cb(update: Update, context: ContextTypes.DEFAULT_
                 bar = "█" * min(10, round(count / max_loc * 10))
                 msg += f"  {bar} {name} — {count}\n"
 
+        msg += (
+            "\n⚠️ _Due to a vendor integration issue, no ParkATX app transactions "
+            "have been added to this dataset since October 2025. "
+            "Physical kiosk transactions are still being added daily._\n"
+        )
         msg += "\n_Source: [Austin Parking Meter Transactions](https://data.austintexas.gov/d/5bb2-gtef)_"
         await query.edit_message_text(msg, parse_mode="Markdown", disable_web_page_preview=True)
     except Exception as e:
@@ -2477,12 +2590,14 @@ def _fmt_millions(amount: float) -> str:
     return f"${amount:.0f}"
 
 
-def _budget_trend(first: float, last: float) -> str:
+def _budget_trend(first: float, last: float, first_yr: str = "", last_yr: str = "") -> str:
     if not first:
         return ""
     pct = round((last - first) / first * 100)
     arrow = "📈" if pct > 5 else "📉" if pct < -5 else "➡️"
-    return f"_{arrow} {'+' if pct > 0 else ''}{pct}%_"
+    sign = "+" if pct > 0 else ""
+    span = f"FY{first_yr} → FY{last_yr}: " if first_yr and last_yr else ""
+    return f"_{arrow} {span}{sign}{pct}%_"
 
 
 def _dept_spend(dept_data: dict, fy: str) -> float:
@@ -2601,6 +2716,9 @@ def _format_homeless_budget(data: dict) -> str:
     msg = f"🏠 *Austin Citywide Budget Impact*\n"
     msg += f"_FY{first_yr}–FY{last_yr} · actual spend where available_\n\n"
 
+    grants = data.get("_grants_to_subrecipients", {})
+    pension = data.get("_pension_benefits", {})
+
     # Calculate total for the most recent fiscal year
     total_last_year = 0.0
     for dept in _HOMELESS_DIRECT_DEPTS:
@@ -2626,15 +2744,14 @@ def _format_homeless_budget(data: dict) -> str:
         year_strs = "  ".join(
             f"{fy_label(fy)}: {_fmt_millions(_dept_spend(dept_data, fy))}" for fy in recent
         )
-        trend = _budget_trend(_dept_spend(dept_data, first_yr), _dept_spend(dept_data, trend_yr))
+        trend = _budget_trend(_dept_spend(dept_data, first_yr), _dept_spend(dept_data, trend_yr), first_yr, trend_yr)
         msg += f"*{label}*\n{year_strs}" + (f"\n{trend}" if trend else "") + "\n\n"
 
-    grants = data.get("_grants_to_subrecipients", {})
     if grants:
         year_strs = "  ".join(
             f"{fy_label(fy)}: {_fmt_millions(_dept_spend(grants, fy))}" for fy in recent
         )
-        trend = _budget_trend(_dept_spend(grants, first_yr), _dept_spend(grants, trend_yr))
+        trend = _budget_trend(_dept_spend(grants, first_yr), _dept_spend(grants, trend_yr), first_yr, trend_yr)
         msg += f"*Grants to NGOs/Nonprofits*\n{year_strs}" + (f"\n{trend}" if trend else "") + "\n\n"
 
     msg += "*Downstream Departments:*\n"
@@ -2645,15 +2762,17 @@ def _format_homeless_budget(data: dict) -> str:
         first_spend = _dept_spend(dept_data, first_yr)
         trend_spend = _dept_spend(dept_data, trend_yr)
         last_spend = _dept_spend(dept_data, last_yr)
-        trend = _budget_trend(first_spend, trend_spend)
-        last_label = fy_label(last_yr)
+        trend = _budget_trend(first_spend, trend_spend, first_yr, trend_yr)
+        partial_suffix = (
+            f"  ·  {fy_label(last_yr)}: {_fmt_millions(last_spend)}"
+            if last_yr != trend_yr else ""
+        )
         msg += (
             f"{emoji} *{dept_name}*\n"
             f"  FY{first_yr}: {_fmt_millions(first_spend)} → "
-            f"{last_label}: {_fmt_millions(last_spend)}  {trend}\n\n"
+            f"FY{trend_yr}: {_fmt_millions(trend_spend)}{partial_suffix}  {trend}\n\n"
         )
 
-    pension = data.get("_pension_benefits", {})
     if pension:
         pension_years = sorted(pension.keys())
         p_recent = pension_years[-5:]
@@ -2667,6 +2786,7 @@ def _format_homeless_budget(data: dict) -> str:
         p_trend = _budget_trend(
             pension.get(p_first, {}).get("pension", 0.0),
             pension.get(p_trend_yr, {}).get("pension", 0.0),
+            p_first, p_trend_yr,
         )
         msg += f"*Pension contributions*\n{p_strs}" + (f"\n{p_trend}" if p_trend else "") + "\n\n"
         h_strs = "  ".join(
@@ -2675,6 +2795,7 @@ def _format_homeless_budget(data: dict) -> str:
         h_trend = _budget_trend(
             pension.get(p_first, {}).get("health", 0.0),
             pension.get(p_trend_yr, {}).get("health", 0.0),
+            p_first, p_trend_yr,
         )
         msg += f"*Health/dental insurance*\n{h_strs}" + (f"\n{h_trend}" if h_trend else "") + "\n\n"
 
@@ -3454,6 +3575,7 @@ async def childcare_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 
 async def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.info(f"echo_handler chat_id={update.message.chat_id} from={update.message.from_user.username}")
     await update.message.reply_text(
         "❓ Unknown command. Type /help for available commands or /start for the menu."
     )
@@ -3585,9 +3707,14 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("bars", bars_command))
     app.add_handler(CommandHandler("childcare", childcare_command))
     app.add_handler(CommandHandler("court", court_command))
+    app.add_handler(CommandHandler("alerts", alerts_command))
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     app.add_error_handler(error_handler)
+
+    # Crash alerts → ALERT_CHAT_ID (only if env var is set)
+    if os.getenv("ALERT_CHAT_ID"):
+        app.job_queue.run_repeating(crash_alert_job, interval=120, first=10)
 
     # Register commands with Telegram so they appear in autocomplete
     async def post_init(application) -> None:
@@ -3606,6 +3733,7 @@ def create_application() -> Application:
             BotCommand("animal",   "Animal complaints — hotspots · stats · response times"),
             BotCommand("coyote",   "Coyote complaints — seasonal patterns · hotspots"),
             BotCommand("ticket",   "Look up any 311 ticket by ID"),
+            BotCommand("alerts",   "Toggle crash alerts on/off (alert chat only)"),
             BotCommand("water",            "Surface water quality — fecal coliform · DO · nutrients"),
             BotCommand("waterviolations",  "Water conservation violations — sprinklers · leaks · waste"),
             BotCommand("permits",          "Building permits — last 30 days by type · district"),

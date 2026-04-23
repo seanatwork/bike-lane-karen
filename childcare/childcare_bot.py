@@ -388,7 +388,7 @@ def generate_childcare_map(days_back: int = 90) -> tuple:
         <div style="font-family:sans-serif;max-width:300px;">
             <b style="font-size:13px;">{name}</b><br/>
             <span style="color:#666;font-size:11px;">{op_type}</span><br/>
-            <span style="color:#888;font-size:11px;">{address}</span><br/><br/>
+            <span style="color:#888;font-size:11px;"><a href="https://www.google.com/maps/search/?api=1&query={lat},{lon}" target="_blank" style="color:#888;">{address}</a></span><br/><br/>
             {flags_block}
             {deficiency_line}
             {capacity_line}

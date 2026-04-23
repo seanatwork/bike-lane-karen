@@ -10,6 +10,7 @@ Run locally:
 Run in CI (GitHub Actions) with AUSTIN_APP_TOKEN set for higher rate limits.
 """
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
@@ -43,6 +44,12 @@ def generate_parking_map(days_back: int = 90) -> tuple:
     """Generate parking enforcement map."""
     from parking.parking_bot import generate_parking_map
     return generate_parking_map(days_back)
+
+
+def generate_parking_trends_page(days_back: int = 180) -> tuple:
+    """Generate parking complaints trends page."""
+    from parking.trends import generate_parking_trends
+    return generate_parking_trends(days_back)
 
 
 def generate_crime_map(days_back: int = 90) -> tuple:
@@ -87,6 +94,7 @@ CATEGORY_MAPS = {
     "homeless": (generate_homeless_map, "homeless/index.html"),
     "traffic": (generate_traffic_map, "traffic/index.html"),
     "parking": (generate_parking_map, "parking/index.html"),
+    "parking-trends": (generate_parking_trends_page, "parking/trends/index.html"),
     "crime": (generate_crime_map, "crime/index.html"),
     "noise": (generate_noise_map, "noise/index.html"),
     "parks": (generate_parks_map, "parks/index.html"),
@@ -109,7 +117,12 @@ def main():
         sys.exit(1)
 
     generator_func, output_path = CATEGORY_MAPS[category]
-    days_back = 30 if category == "traffic" else 90
+    if category == "traffic":
+        days_back = 30
+    elif category == "parking-trends":
+        days_back = 180
+    else:
+        days_back = 90
 
     print(f"Generating {category} map (last {days_back} days)...")
     buf, summary = generator_func(days_back)
@@ -118,9 +131,19 @@ def main():
         print(f"Map generation failed: {summary}")
         sys.exit(1)
 
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    last_ran_span = (
+        f'<span style="font-size: 11px; color: #888;">Last ran: {now_str}</span><br/>\n        '
+    )
+    html = buf.getvalue().decode("utf-8").replace(
+        '<span id="map-summary"',
+        last_ran_span + '<span id="map-summary"',
+        1,
+    )
+
     out = Path("docs") / output_path
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(buf.getvalue())
+    out.write_text(html, encoding="utf-8")
     print(f"Written {out.stat().st_size:,} bytes to {out}")
     print(summary)
 

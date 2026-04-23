@@ -17,7 +17,7 @@ class Config:
     DB_PATH: str = os.getenv("DB_PATH", "311_categories.db")
 
     # Telegram
-    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("AUSTIN311_BOT_TOKEN")
 
     # Service code for graffiti
     SERVICE_CODE: str = "HHSGRAFF"
@@ -48,8 +48,8 @@ class Config:
         """Validate required configuration"""
         if not cls.TELEGRAM_BOT_TOKEN:
             raise ValueError(
-                "TELEGRAM_BOT_TOKEN environment variable is required. "
-                "Set it in Railway dashboard or .env file."
+                "AUSTIN311_BOT_TOKEN environment variable is required. "
+                "Set it in Fly.io secrets or .env file."
             )
         return True
 

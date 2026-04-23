@@ -326,7 +326,7 @@ def generate_water_map(days_back: int = 90) -> tuple:
         if cluster_key not in fg_clusters:
             cluster_key = f"closed_{bucket}"
 
-        address_line = f"<b>Address:</b> {address}<br/>" if address else ""
+        address_line = f'<b>Address:</b> <a href="https://www.google.com/maps/search/?api=1&query={lat},{lon}" target="_blank">{address}</a><br/>' if address else ""
         updated_line = f"<span style='color:#666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
         desc_short = (description[:500] + "...") if len(description) > 500 else description
         desc_block = f"<b>Description:</b><br/><i>{desc_short.replace(chr(10), '<br/>')}</i><br/>" if desc_short else ""
