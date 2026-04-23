@@ -91,17 +91,35 @@
       margin-top: 2.5rem;
       max-width: 600px;
       text-align: center;
-      font-size: 0.78rem;
-      color: #475569;
-      line-height: 1.5;
+      font-size: 0.88rem;
+      color: #94a3b8;
+      line-height: 1.7;
     }
 
-    .disclaimer a { color: #64748b; text-decoration: none; }
-    .disclaimer a:hover { color: #94a3b8; }
+    .disclaimer a { color: #cbd5e1; text-decoration: none; border-bottom: 1px solid #334155; }
+    .disclaimer a:hover { color: #f1f5f9; border-bottom-color: #64748b; }
+
+    .telegram-cta {
+      margin-top: 2rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1e2230;
+      border: 1px solid #3d4868;
+      border-radius: 8px;
+      padding: 10px 18px;
+      color: #e2e8f0;
+      font-size: 0.88rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .telegram-cta:hover { background: #252b3b; border-color: #60a5fa; color: #fff; }
+    .telegram-cta svg { flex-shrink: 0; }
 
     footer {
-      margin-top: 3rem;
-      font-size: 0.78rem;
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
       color: #475569;
       text-align: center;
     }
@@ -113,8 +131,8 @@
 <body>
 
   <header>
-    <h1>ATX Pulse</h1>
-    <p>Austin 311 &amp; APD data maps</p>
+    <h1>Austin 311</h1>
+    <p>Real data on what your city is doing — and what it isn't.</p>
   </header>
 
   <div class="grid">
@@ -186,25 +204,26 @@
   </div>
 
   <div class="disclaimer">
-    This is not a government website. I'm a private resident. All this data is openly available to everyone — you can request an API key at
-    <a href="https://data.texas.gov" target="_blank" rel="noopener">data.texas.gov</a>
-    &amp;
-    <a href="https://data.austintexas.gov" target="_blank" rel="noopener">data.austintexas.gov</a>.
-    <br /><br />
-    <a href="https://github.com/seanatwork" target="_blank" rel="noopener">Vibecoded with ❤️</a>
+    Not a government website — I'm a private resident.<br />
+    All data is publicly available. Get your own API key at
+    <a href="https://data.austintexas.gov" target="_blank" rel="noopener">data.austintexas.gov</a>
+    and
+    <a href="https://data.texas.gov" target="_blank" rel="noopener">data.texas.gov</a>.
   </div>
 
+  <a class="telegram-cta" href="https://t.me/austin311bot" target="_blank" rel="noopener">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#60a5fa" aria-hidden="true">
+      <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 14.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
+    </svg>
+    Get alerts on Telegram — @austin311bot
+  </a>
+
   <footer>
-    Data from <a href="https://311.austintexas.gov" target="_blank" rel="noopener">Austin 311</a>
-    &amp;
+    Data: <a href="https://311.austintexas.gov" target="_blank" rel="noopener">Austin 311</a>
+    &nbsp;·&nbsp;
     <a href="https://data.austintexas.gov/d/fdj4-gpfu" target="_blank" rel="noopener">APD Crime Reports</a>
     &nbsp;·&nbsp;
-    <a href="https://t.me/austin311bot" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;">
-      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 14.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
-      </svg>
-      Telegram bot
-    </a>
+    <a href="https://github.com/seanatwork" target="_blank" rel="noopener">Vibecoded with ❤️</a>
   </footer>
 
 </body>
