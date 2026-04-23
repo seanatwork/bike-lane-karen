@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ATX Pulse — Austin General Fund FY2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117; color: #e2e8f0;
+      min-height: 100vh; display: flex; flex-direction: column;
+    }
+    #panel {
+      position: sticky; top: 0; z-index: 100;
+      background: #1e2230; border-bottom: 1px solid #2d3348;
+      padding: 10px 16px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    #panel-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+    #panel-subtitle { font-size: 12px; color: #64748b; text-align: center; }
+    .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .fbtn {
+      background: #252b3b; border: 1px solid #3d4868; color: #94a3b8;
+      padding: 5px 13px; border-radius: 4px; font-size: 12px; cursor: pointer;
+      text-decoration: none; display: inline-block; white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .fbtn:hover { background: #2d3453; color: #e2e8f0; }
+
+    #stats { border-bottom: 1px solid #2d3348; }
+    .stats-inner { display: flex; justify-content: center; flex-wrap: wrap; }
+    .stat {
+      flex: 1; min-width: 120px; max-width: 200px; text-align: center;
+      padding: 10px 8px 9px; border-right: 1px solid #2d3348;
+    }
+    .stat:last-child { border-right: none; }
+    .stat-value { font-size: 1.2rem; font-weight: 700; line-height: 1.1; }
+    .stat-label { font-size: 0.67rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+    .stat-sub   { font-size: 0.67rem; color: #475569; margin-top: 1px; }
+
+    #main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
+
+    .chart-block { background: #161a24; border: 1px solid #2d3348; border-radius: 8px; padding: 14px; }
+    .chart-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .chart-sub   { font-size: 11px; color: #475569; margin-bottom: 10px; }
+    .chart-container { position: relative; height: 480px; }
+
+    /* Legend */
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 10px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #94a3b8; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+    /* Explainer section */
+    .section-divider { border: none; border-top: 1px solid #2d3348; }
+    .section-heading { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.3rem; }
+    .section-sub { font-size: 0.82rem; color: #64748b; line-height: 1.5; margin-bottom: 1.2rem; }
+
+    .fund-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
+    .fund-card {
+      background: #1e2230; border: 1px solid #2d3348;
+      border-top: 3px solid var(--accent);
+      border-radius: 10px; padding: 1.2rem 1.2rem;
+      display: flex; flex-direction: column; gap: 0.45rem;
+    }
+    .fund-icon { font-size: 1.4rem; line-height: 1; }
+    .fund-name { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; }
+    .fund-source { font-size: 0.72rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+    .fund-card ul { margin: 0.2rem 0 0 1rem; font-size: 0.78rem; color: #94a3b8; line-height: 1.7; }
+    .fund-note {
+      margin-top: 0.5rem; font-size: 0.72rem; color: #475569;
+      border-top: 1px solid #2d3348; padding-top: 0.5rem; line-height: 1.4;
+    }
+    .fund-note strong { color: #64748b; }
+
+    #data-source {
+      font-size: 0.75rem; color: #334155; text-align: center; padding-bottom: 4px;
+    }
+    #data-source a { color: #475569; text-decoration: none; }
+    #data-source a:hover { color: #64748b; }
+
+    footer {
+      text-align: center; padding: 14px 16px;
+      font-size: 0.74rem; color: #475569; border-top: 1px solid #1e2230;
+    }
+    footer a { color: #64748b; text-decoration: none; }
+    footer a:hover { color: #94a3b8; }
+
+    @media (max-width: 520px) { .stat-value { font-size: 1rem; } .chart-container { height: 560px; } }
+  </style>
+</head>
+<body>
+
+  <div id="panel">
+    <div id="panel-title">💰 Austin General Fund — FY2026</div>
+    <div id="panel-subtitle">Adopted budget by department · actuals through Q2 (Oct 2025 – Mar 2026)</div>
+    <div class="btn-row">
+      <a class="fbtn" href="../">← ATX Pulse Home</a>
+    </div>
+  </div>
+
+  <div id="stats">
+    <div class="stats-inner">
+      <div class="stat">
+        <div class="stat-value" style="color:#60a5fa;">$1.49B</div>
+        <div class="stat-label">Total adopted</div>
+        <div class="stat-sub">FY2026 General Fund</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#f87171;">63.6%</div>
+        <div class="stat-label">Public safety</div>
+        <div class="stat-sub">Police + Fire + EMS</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#fbbf24;">49.9%</div>
+        <div class="stat-label">Spent through Q2</div>
+        <div class="stat-sub">$741M of $1.49B</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+
+    <div class="chart-block">
+      <div class="chart-title">General Fund — adopted budget by department</div>
+      <div class="chart-sub">Solid = spent through Q2 · Dim = remaining budget · Hover for details</div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Public Safety</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span>Parks & Community</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span>Health & Wellbeing</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span>Housing & Social Services</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>Courts & Justice</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#64748b;"></span>Admin & Other</span>
+      </div>
+      <div class="chart-container"><canvas id="deptChart"></canvas></div>
+    </div>
+
+    <hr class="section-divider" />
+
+    <div>
+      <div class="section-heading">How Austin's Budget Works</div>
+      <p class="section-sub">Three separate money pools fund city services — understanding which is which explains why the city can't simply "move money around."</p>
+      <div class="fund-grid">
+
+        <div class="fund-card" style="--accent:#60a5fa;">
+          <span class="fund-icon">🏛️</span>
+          <div class="fund-name">General Fund</div>
+          <div class="fund-source">Property tax &amp; sales tax</div>
+          <ul>
+            <li>Police (APD)</li>
+            <li>Fire &amp; EMS</li>
+            <li>Parks maintenance</li>
+            <li>Libraries</li>
+            <li>Code enforcement</li>
+          </ul>
+          <div class="fund-note"><strong>Where policy happens.</strong> Council allocates this fund — it reflects actual priorities. Operational gaps (staffing, response times) can only be fixed here.</div>
+        </div>
+
+        <div class="fund-card" style="--accent:#34d399;">
+          <span class="fund-icon">⚡</span>
+          <div class="fund-name">Enterprise Funds</div>
+          <div class="fund-source">User fees &amp; utility bills</div>
+          <ul>
+            <li>Austin Energy</li>
+            <li>Austin Water</li>
+            <li>Airport (AUS)</li>
+            <li>Resource Recovery</li>
+          </ul>
+          <div class="fund-note"><strong>Legally ring-fenced.</strong> Your electric and water bills fund these departments only — they cannot be redirected to police, parks, or anything else.</div>
+        </div>
+
+        <div class="fund-card" style="--accent:#fbbf24;">
+          <span class="fund-icon">🏗️</span>
+          <div class="fund-name">Bonds</div>
+          <div class="fund-source">Voter-authorized debt</div>
+          <ul>
+            <li>Roads &amp; sidewalks</li>
+            <li>Parks infrastructure</li>
+            <li>Libraries &amp; buildings</li>
+            <li>Trails &amp; bike lanes</li>
+          </ul>
+          <div class="fund-note"><strong>Capital only.</strong> Bonds build and repair physical things — they cannot hire staff, improve response times, or fund any ongoing service.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="data-source">
+      Data: <a href="https://data.austintexas.gov/resource/g5k8-8sud" target="_blank" rel="noopener">City of Austin Operating Budget (g5k8-8sud)</a> · FY2026 · updated annually
+    </div>
+
+  </div>
+
+  <footer>
+    <a href="../">← ATX Pulse Home</a>
+  </footer>
+
+  <script>
+    const DEPTS = [
+      { name: "Police (APD)",              budget: 525359250, spent: 278155946.91, color: "#ef4444" },
+      { name: "Fire",                       budget: 269064011, spent: 148088763.98, color: "#f97316" },
+      { name: "EMS",                        budget: 151080254, spent:  77309999.05, color: "#f59e0b" },
+      { name: "Parks & Recreation",         budget: 135791723, spent:  62573899.83, color: "#22c55e" },
+      { name: "Public Library",             budget:  80022495, spent:  40459797.43, color: "#10b981" },
+      { name: "Public Health",              budget:  65338454, spent:  32355237.00, color: "#06b6d4" },
+      { name: "Nondepartmental",            budget:  57207068, spent:  25358271.53, color: "#64748b" },
+      { name: "Municipal Court",            budget:  39680608, spent:  17995908.08, color: "#6366f1" },
+      { name: "Social Services (Homeless)", budget:  38705288, spent:   6344533.70, color: "#8b5cf6" },
+      { name: "Social Services (Health)",   budget:  25265420, spent:   9717923.30, color: "#a78bfa" },
+      { name: "Animal Services",            budget:  25107547, spent:  11844846.22, color: "#22c55e" },
+      { name: "Forensic Science",           budget:  15949216, spent:   6545943.53, color: "#6366f1" },
+      { name: "Planning",                   budget:  13140082, spent:   6152779.20, color: "#64748b" },
+      { name: "Housing",                    budget:  12028860, spent:   6104686.89, color: "#8b5cf6" },
+      { name: "Arts & Culture",             budget:  11392925, spent:   5099053.43, color: "#ec4899" },
+      { name: "Homeless Strategy & Ops",    budget:   9954869, spent:   2165126.92, color: "#a78bfa" },
+      { name: "Social Services (Courts)",   budget:   6166090, spent:   3317424.34, color: "#818cf8" },
+      { name: "Social Services (Econ Dev)", budget:   4066735, spent:   1004600.50, color: "#818cf8" },
+      { name: "Human Resources",            budget:    465000, spent:    272444.57, color: "#64748b" },
+    ];
+
+    const fmt = n => "$" + (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : (n / 1e3).toFixed(0) + "K");
+    const pct = (a, b) => ((a / b) * 100).toFixed(1) + "%";
+
+    // Spent bars + remaining bars (stacked)
+    const remaining = DEPTS.map(d => d.budget - d.spent);
+    const remainColors = DEPTS.map(d => d.color + "40"); // 25% opacity hex
+
+    new Chart(document.getElementById("deptChart"), {
+      type: "bar",
+      data: {
+        labels: DEPTS.map(d => d.name),
+        datasets: [
+          {
+            label: "Spent (Q2)",
+            data: DEPTS.map(d => d.spent),
+            backgroundColor: DEPTS.map(d => d.color),
+            borderRadius: 0,
+            stack: "budget",
+          },
+          {
+            label: "Remaining budget",
+            data: remaining,
+            backgroundColor: remainColors,
+            borderRadius: 4,
+            stack: "budget",
+          },
+        ],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#1e2230",
+            borderColor: "#3d4868",
+            borderWidth: 1,
+            titleColor: "#f1f5f9",
+            bodyColor: "#e2e8f0",
+            callbacks: {
+              title: ctx => ctx[0].label,
+              afterTitle: ctx => {
+                const d = DEPTS[ctx[0].dataIndex];
+                return `Adopted: ${fmt(d.budget)}`;
+              },
+              label: ctx => {
+                const d = DEPTS[ctx.dataIndex];
+                if (ctx.datasetIndex === 0) {
+                  return ` Spent through Q2: ${fmt(d.spent)} (${pct(d.spent, d.budget)})`;
+                }
+                return ` Remaining: ${fmt(d.budget - d.spent)}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              color: "#64748b", font: { size: 11 },
+              callback: v => "$" + (v / 1e6).toFixed(0) + "M",
+            },
+            grid: { color: "#252b3b" },
+            beginAtZero: true,
+          },
+          y: {
+            stacked: true,
+            ticks: { color: "#94a3b8", font: { size: 11 } },
+            grid: { color: "#252b3b" },
+          },
+        },
+      },
+    });
+  </script>
+</body>
+</html>
