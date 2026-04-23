@@ -3,20 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ATX Pulse Maps</title>
+  <title>Austin 311</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── color tokens ── */
+    :root {
+      --bg:           #f8fafc;
+      --bg-card:      #ffffff;
+      --bg-card-hover:#f1f5f9;
+      --bg-cta:       #ffffff;
+      --border:       #e2e8f0;
+      --border-hover: #94a3b8;
+      --border-cta:   #cbd5e1;
+      --border-cta-hover: #3b82f6;
+      --text:         #1e293b;
+      --text-head:    #0f172a;
+      --text-tag:     #475569;
+      --text-label:   #0f172a;
+      --text-desc:    #64748b;
+      --text-disc:    #475569;
+      --text-disc-a:  #0f172a;
+      --text-cta:     #1e293b;
+      --text-footer:  #94a3b8;
+      --text-footer-a:#64748b;
+      --text-footer-hover: #475569;
+      --disc-border:  #e2e8f0;
+    }
+
+    html.dark {
+      --bg:           #0f1117;
+      --bg-card:      #1e2230;
+      --bg-card-hover:#252b3b;
+      --bg-cta:       #1e2230;
+      --border:       #2d3348;
+      --border-hover: #4a5568;
+      --border-cta:   #3d4868;
+      --border-cta-hover: #60a5fa;
+      --text:         #e2e8f0;
+      --text-head:    #f8fafc;
+      --text-tag:     #94a3b8;
+      --text-label:   #f1f5f9;
+      --text-desc:    #64748b;
+      --text-disc:    #94a3b8;
+      --text-disc-a:  #cbd5e1;
+      --text-cta:     #e2e8f0;
+      --text-footer:  #475569;
+      --text-footer-a:#64748b;
+      --text-footer-hover: #94a3b8;
+      --disc-border:  #334155;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       padding: 2.5rem 1rem 3rem;
+      transition: background 0.2s, color 0.2s;
     }
+
+    /* ── theme toggle ── */
+    #theme-toggle {
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      z-index: 200;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      color: var(--text-desc);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      user-select: none;
+    }
+    #theme-toggle:hover { color: var(--text); border-color: var(--border-hover); }
 
     header {
       text-align: center;
@@ -27,12 +93,12 @@
       font-size: 2.2rem;
       font-weight: 700;
       letter-spacing: -0.5px;
-      color: #f8fafc;
+      color: var(--text-head);
     }
 
     header p {
       margin-top: 0.5rem;
-      color: #94a3b8;
+      color: var(--text-tag);
       font-size: 1rem;
     }
 
@@ -45,8 +111,8 @@
     }
 
     .card {
-      background: #1e2230;
-      border: 1px solid #2d3348;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.75rem 1.5rem;
       text-decoration: none;
@@ -59,76 +125,63 @@
     }
 
     .card:hover {
-      background: #252b3b;
-      border-color: #4a5568;
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
       transform: translateY(-2px);
     }
 
-    .card-soon {
-      opacity: 0.45;
-      cursor: default;
-      pointer-events: none;
-    }
-
-    .card .icon {
-      font-size: 2rem;
-      line-height: 1;
-    }
-
-    .card .label {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #f1f5f9;
-    }
-
-    .card .desc {
-      font-size: 0.82rem;
-      color: #64748b;
-      line-height: 1.4;
-    }
+    .card .icon  { font-size: 2rem; line-height: 1; }
+    .card .label { font-size: 1.1rem; font-weight: 600; color: var(--text-label); }
+    .card .desc  { font-size: 0.82rem; color: var(--text-desc); line-height: 1.4; }
 
     .disclaimer {
       margin-top: 2.5rem;
       max-width: 600px;
       text-align: center;
       font-size: 0.88rem;
-      color: #94a3b8;
+      color: var(--text-disc);
       line-height: 1.7;
     }
 
-    .disclaimer a { color: #cbd5e1; text-decoration: none; border-bottom: 1px solid #334155; }
-    .disclaimer a:hover { color: #f1f5f9; border-bottom-color: #64748b; }
+    .disclaimer a {
+      color: var(--text-disc-a);
+      text-decoration: none;
+      border-bottom: 1px solid var(--disc-border);
+    }
+    .disclaimer a:hover { opacity: 0.75; }
 
     .telegram-cta {
       margin-top: 2rem;
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: #1e2230;
-      border: 1px solid #3d4868;
+      background: var(--bg-cta);
+      border: 1px solid var(--border-cta);
       border-radius: 8px;
       padding: 10px 18px;
-      color: #e2e8f0;
+      color: var(--text-cta);
       font-size: 0.88rem;
       font-weight: 500;
       text-decoration: none;
       transition: background 0.15s, border-color 0.15s;
     }
-    .telegram-cta:hover { background: #252b3b; border-color: #60a5fa; color: #fff; }
+    .telegram-cta:hover { background: var(--bg-card-hover); border-color: var(--border-cta-hover); }
     .telegram-cta svg { flex-shrink: 0; }
 
     footer {
       margin-top: 2.5rem;
       font-size: 0.75rem;
-      color: #475569;
+      color: var(--text-footer);
       text-align: center;
     }
 
-    footer a { color: #64748b; text-decoration: none; }
-    footer a:hover { color: #94a3b8; }
+    footer a { color: var(--text-footer-a); text-decoration: none; }
+    footer a:hover { color: var(--text-footer-hover); }
   </style>
 </head>
 <body>
+
+  <button id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
 
   <header>
     <h1>Austin 311</h1>
@@ -212,7 +265,7 @@
   </div>
 
   <a class="telegram-cta" href="https://t.me/austin311bot" target="_blank" rel="noopener">
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#60a5fa" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6" aria-hidden="true">
       <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12L8.32 14.617l-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.828.942z"/>
     </svg>
     Get alerts on Telegram — @austin311bot
@@ -226,5 +279,18 @@
     <a href="https://github.com/seanatwork" target="_blank" rel="noopener">Vibecoded with ❤️</a>
   </footer>
 
+  <script>
+    const btn = document.getElementById("theme-toggle");
+    const html = document.documentElement;
+    const dark = localStorage.getItem("theme") === "dark";
+
+    if (dark) { html.classList.add("dark"); btn.textContent = "☀️ Light"; }
+
+    btn.addEventListener("click", () => {
+      const isDark = html.classList.toggle("dark");
+      btn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+  </script>
 </body>
 </html>
