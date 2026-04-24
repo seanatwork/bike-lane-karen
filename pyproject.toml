@@ -29,7 +29,6 @@ py-modules = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["alerts*"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
