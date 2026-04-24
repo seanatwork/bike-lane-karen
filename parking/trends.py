@@ -18,7 +18,7 @@ from parking.parking_bot import get_all_citations, _extract_violation_type, _ext
 
 logger = logging.getLogger(__name__)
 
-LOOKBACK_DAYS = 180
+LOOKBACK_DAYS = 365
 TOP_STREETS = 15
 TOP_VIOLATIONS = 10
 
@@ -56,20 +56,30 @@ def _aggregate(records: list) -> dict:
         total += 1
 
     months_sorted = sorted(monthly.keys())
+    counts = [monthly[m] for m in months_sorted]
     top_streets = sorted(streets.items(), key=lambda x: -x[1])[:TOP_STREETS]
     top_violations = sorted(violations.items(), key=lambda x: -x[1])[:TOP_VIOLATIONS]
+
+    rolling: list = []
+    window = 3
+    for i in range(len(counts)):
+        if i < window - 1:
+            rolling.append(None)
+        else:
+            rolling.append(round(sum(counts[i - window + 1 : i + 1]) / window, 1))
 
     return {
         "total": total,
         "months": months_sorted,
-        "monthly_counts": [monthly[m] for m in months_sorted],
+        "monthly_counts": counts,
         "monthly_open_counts": [monthly_open[m] for m in months_sorted],
+        "rolling_avg": rolling,
         "top_streets": top_streets,
         "top_violations": top_violations,
     }
 
 
-def _render_html(data: dict, days_back: int, fetched_at: str) -> str:
+def _render_html(data: dict, fetched_at: str) -> str:
     total = data["total"]
     months = data["months"]
     monthly_counts = data["monthly_counts"]
@@ -84,10 +94,12 @@ def _render_html(data: dict, days_back: int, fetched_at: str) -> str:
 
     month_labels = [datetime.strptime(m, "%Y-%m").strftime("%b %Y") for m in months]
 
+    rolling_avg = data["rolling_avg"]
     payload = {
         "months": month_labels,
         "monthlyCounts": monthly_counts,
         "monthlyOpenCounts": monthly_open_counts,
+        "rollingAvg": rolling_avg,
         "streets": [{"name": s, "count": c} for s, c in top_streets],
         "violations": [{"name": v, "count": c} for v, c in top_violations],
     }
@@ -162,7 +174,7 @@ def _render_html(data: dict, days_back: int, fetched_at: str) -> str:
 
   <div id="panel">
     <div id="panel-title">🅿️ Austin Parking Complaints Trends</div>
-    <div id="panel-subtitle">Resident-reported parking violations — last {days_back} days</div>
+    <div id="panel-subtitle">Resident-reported parking violations — last 12 months</div>
     <div id="last-ran">Last ran: {fetched_at}</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Parking Map</a>
@@ -175,7 +187,7 @@ def _render_html(data: dict, days_back: int, fetched_at: str) -> str:
       <div class="stat">
         <div class="stat-value" style="color:#3b82f6;">{total:,}</div>
         <div class="stat-label">Total complaints</div>
-        <div class="stat-sub">last {days_back} days</div>
+        <div class="stat-sub">last 12 months</div>
       </div>
       <div class="stat">
         <div class="stat-value" style="color:#22c55e;">{int(avg_per_month):,}</div>
@@ -251,21 +263,39 @@ def _render_html(data: dict, days_back: int, fetched_at: str) -> str:
 
     // Monthly trend
     new Chart(document.getElementById("monthlyChart"), {{
-      type: "bar",
+      type: "line",
       data: {{
         labels: DATA.months,
         datasets: [
           {{
-            label: "Total complaints",
+            label: "Monthly complaints",
             data: DATA.monthlyCounts,
-            backgroundColor: "#3b82f6",
-            borderRadius: 4,
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59,130,246,0.08)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          }},
+          {{
+            label: "3-month avg",
+            data: DATA.rollingAvg,
+            borderColor: "#8b5cf6",
+            borderWidth: 2,
+            borderDash: [5, 3],
+            pointRadius: 0,
+            tension: 0.4,
+            fill: false,
+            spanGaps: true,
           }},
           {{
             label: "Still open",
             data: DATA.monthlyOpenCounts,
-            backgroundColor: "#ef4444",
-            borderRadius: 4,
+            borderColor: "#ef4444",
+            backgroundColor: "rgba(239,68,68,0.05)",
+            fill: true,
+            tension: 0.3,
+            pointRadius: 2,
           }},
         ],
       }},
@@ -319,7 +349,7 @@ def generate_parking_trends(days_back: int = LOOKBACK_DAYS) -> tuple[Optional[io
 
     data = _aggregate(records)
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    html = _render_html(data, days_back, fetched_at)
+    html = _render_html(data, fetched_at)
 
     buf = io.BytesIO(html.encode("utf-8"))
     buf.seek(0)

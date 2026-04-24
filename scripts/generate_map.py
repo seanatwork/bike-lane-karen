@@ -46,10 +46,28 @@ def generate_parking_map(days_back: int = 90) -> tuple:
     return generate_parking_map(days_back)
 
 
-def generate_parking_trends_page(days_back: int = 180) -> tuple:
+def generate_parking_trends_page(days_back: int = 365) -> tuple:
     """Generate parking complaints trends page."""
     from parking.trends import generate_parking_trends
     return generate_parking_trends(days_back)
+
+
+def generate_graffiti_trends_page(days_back: int = 365) -> tuple:
+    """Generate graffiti abatement trends page."""
+    from graffiti.trends import generate_graffiti_trends
+    return generate_graffiti_trends(days_back)
+
+
+def generate_crime_trends_page(days_back: int = 365) -> tuple:
+    """Generate APD crime trends page."""
+    from crime.trends import generate_crime_trends
+    return generate_crime_trends(days_back)
+
+
+def generate_noise_trends_page(days_back: int = 365) -> tuple:
+    """Generate noise complaint trends page."""
+    from noisecomplaints.trends import generate_noise_trends
+    return generate_noise_trends(days_back)
 
 
 def generate_crime_map(days_back: int = 90) -> tuple:
@@ -96,7 +114,10 @@ CATEGORY_MAPS = {
     "parking": (generate_parking_map, "parking/index.html"),
     "parking-trends": (generate_parking_trends_page, "parking/trends/index.html"),
     "crime": (generate_crime_map, "crime/index.html"),
+    "crime-trends": (generate_crime_trends_page, "crime/trends/index.html"),
     "noise": (generate_noise_map, "noise/index.html"),
+    "noise-trends": (generate_noise_trends_page, "noise/trends/index.html"),
+    "graffiti-trends": (generate_graffiti_trends_page, "graffiti/trends/index.html"),
     "parks": (generate_parks_map, "parks/index.html"),
     "water": (generate_water_map, "water/index.html"),
     "childcare": (generate_childcare_map, "childcare/index.html"),
@@ -119,8 +140,8 @@ def main():
     generator_func, output_path = CATEGORY_MAPS[category]
     if category == "traffic":
         days_back = 30
-    elif category == "parking-trends":
-        days_back = 180
+    elif category.endswith("-trends"):
+        days_back = 365
     else:
         days_back = 90
 

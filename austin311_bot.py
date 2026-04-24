@@ -20,6 +20,11 @@ from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 
 load_dotenv()
+
+from alerts import db as alerts_db
+from alerts.handlers import register_alert_handlers
+from alerts.jobs import crime_daily_job, district_digest_job, nearby_311_job, animal_nearby_job, crash_nearby_job
+
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -262,70 +267,82 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
-        "📡 *Welcome to ATX Pulse!*\n\nSelect a service:",
+        "📡 *Welcome to Austin 311!*\n\nSelect a service:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
 
 
-_HELP_TEXT = """📡 *ATX PULSE*
+_HELP_TEXT = """📡 *Austin 311 Bot*
+
+🔔 *Alerts:*
+/subscribe — Push alerts for your area:
+  · Daily crime report (by district)
+  · Weekly district crime digest
+  · Nearby 311 reports
+  · Animal incidents (loose dogs, bites, coyotes)
+  · Crashes near you
+/myalerts — View and manage your active alerts
+/unsubscribe — Cancel all alerts
+/deletedata — Remove all your stored data
 
 🚔 *Police & Crime:*
-/crime — Recent APD incident stats (citywide)
-/safety — Crime by district with city comparison
+/crime — APD incident stats (citywide)
+/safety — Crime by district · comparison to city average
 
-💰🏦 *City Budget:*
-/budget — Homelessness services, NGO grants, pension & benefits
+💰 *City Budget:*
+/budget — Homelessness services · NGO grants · pension & benefits
+
+🏕️ *Homelessness:*
+/homeless — Encampment 311 reports · dept burden · trends · locations
 
 🚦 *Traffic & Infrastructure:*
 /traffic — Potholes · signals · live incidents · crash stats
 
 🚴 *Bicycle:*
-/bicycle — Recent complaints · stats
+/bicycle — Infrastructure complaints · recent · stats
 
-💧 *Water Quality:*
+💧 *Water:*
 /water — Surface water quality by watershed
-/waterviolations — Water conservation violations · sprinklers · leaks
+/waterviolations — Conservation violations · sprinklers · leaks
 
 🎨 *Graffiti:*
 /graffiti — Analysis · hotspots · remediation · trends
 
 🍽️ *Restaurants:*
 /rest — Worst scores · grade report
-/rest <name or address> — Search directly
+/rest <name or address> — Search by name or address
 
 🐾 *Animal Services:*
 /animal — Hotspots · stats · response times
-
-🐺 *Coyote Complaints:*
 /coyote — Seasonal patterns · hotspots · overview
 
-🔊 *Noise Complaints:*
+🔊 *Noise:*
 /noise — Hotspots · stats · response times
 
 🅿️ *Parking:*
 /parking — Citations · hot zones · stats
 
 🏞️ *Parks:*
-/parks — Hotspots · stats · resolution times
+/parks — Maintenance hotspots · stats · resolution times
 
-🎫 *Ticket Lookup:*
-/ticket <id> — Look up any 311 ticket by ID
+🏗️ *Permits & Development:*
+/permits — Building permit activity · last 30 days by type & district
 
-🏗️ *Building Permits:*
-/permits — Permit activity last 30 days
-
-🍺 *Bar of the Month:*
+🍺 *Nightlife:*
 /bars — Top TABC mixed beverage sales · biggest movers
 
 🧒 *Child Care:*
-/childcare — Austin licensed facilities · compliance flags · top deficiencies
+/childcare — Licensed facilities · compliance flags · top deficiencies
 
-🏊 *Pool Hours:* https://www.austintexas.gov/parks/locations/pools-and-splash-pads
+⚖️ *Courts:*
+/court — Municipal & community court caseloads · Prop B outcomes
 
-_This bot does not collect, store, or transmit any user data. All requests are processed anonymously._
+_If you subscribe to alerts, we store your Telegram user ID, chat ID, and council district or approximate location only. No messages or addresses are saved. /deletedata removes everything._
 
-ℹ️ /start — Main menu  |  /help — This message"""
+[austin311.com](https://austin311.com) · /start — Menu · /help — This message
+
+_Bug reports & suggestions: @seansullivan_"""
 
 
 @rate_limited
@@ -504,7 +521,7 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
-        "📡 *Welcome to ATX Pulse!*\n\nSelect a service:",
+        "📡 *Welcome to Austin 311!*\n\nSelect a service:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -528,15 +545,12 @@ async def about_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 @rate_limited
 async def graffiti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [[InlineKeyboardButton("🗺️ Open Map", url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/")]]
+    keyboard = [
+        [InlineKeyboardButton("🗺️ Open Map", url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/"),
+         InlineKeyboardButton("📈 Trends", url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/trends/")],
+    ]
     await update.message.reply_text(
-        "🎨 *Graffiti Abatement Reports*\n\n"
-        "https://seanatwork.github.io/austin311bot-unofficial/graffiti/\n\n"
-        "The map shows:\n"
-        "• All graffiti abatement requests\n"
-        "• Open and resolved reports\n"
-        "• Location-based clustering\n\n"
-        "Filter by status (open/closed) and time window (30d/60d/90d).",
+        "🎨 *Graffiti Abatement Reports*\n\nMap and monthly trends for graffiti abatement requests citywide. Filter by status (open/closed) and time window (30d/60d/90d).",
         parse_mode="Markdown",
         disable_web_page_preview=True,
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -990,112 +1004,6 @@ async def traffic_live_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         await query.edit_message_text(f"❌ Error fetching live incidents: {e}")
 
 
-# =============================================================================
-# CRASH ALERT JOB — pings ALERT_CHAT_ID when new crash-type incidents appear
-# =============================================================================
-
-_CRASH_ALERT_TYPES = {
-    "crash urgent",
-    "collision",
-    "collision with injury",
-    "collisn/ lvng scn",
-    "collision/private property",
-    "traffic fatality",
-    "crash service",
-}
-
-_seen_crash_ids: set[str] = set()
-
-# Toggle file: persists across restarts but not across redeploys (no volume on Fly).
-_ALERTS_STATE_FILE = "/tmp/crash_alerts_disabled"
-
-
-def _alerts_disabled() -> bool:
-    return os.path.exists(_ALERTS_STATE_FILE)
-
-
-def _set_alerts_disabled(disabled: bool) -> None:
-    if disabled:
-        open(_ALERTS_STATE_FILE, "w").close()
-    else:
-        try:
-            os.remove(_ALERTS_STATE_FILE)
-        except FileNotFoundError:
-            pass
-
-
-async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Toggle crash alerts. Usage: /alerts [on|off|status]"""
-    alert_chat = os.getenv("ALERT_CHAT_ID")
-    if not alert_chat:
-        await update.message.reply_text("ℹ️ Crash alerts are not configured (ALERT_CHAT_ID unset).")
-        return
-
-    # Only the configured alert chat can toggle
-    if str(update.effective_chat.id) != str(alert_chat):
-        await update.message.reply_text("⛔ This command is only available in the alert chat.")
-        return
-
-    arg = (context.args[0].lower() if context.args else "status")
-    if arg in ("off", "mute", "stop"):
-        _set_alerts_disabled(True)
-        await update.message.reply_text("🔕 Crash alerts *paused*. Use `/alerts on` to resume.", parse_mode="Markdown")
-    elif arg in ("on", "unmute", "resume", "start"):
-        _set_alerts_disabled(False)
-        await update.message.reply_text("🔔 Crash alerts *resumed*.", parse_mode="Markdown")
-    else:
-        state = "🔕 paused" if _alerts_disabled() else "🔔 active"
-        await update.message.reply_text(
-            f"Crash alerts: *{state}*\n\n`/alerts on` — resume\n`/alerts off` — pause",
-            parse_mode="Markdown",
-        )
-
-
-async def crash_alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = os.getenv("ALERT_CHAT_ID")
-    if not chat_id:
-        return
-    if _alerts_disabled():
-        return
-    try:
-        rows = await asyncio.to_thread(_get_live_incidents)
-    except Exception as e:
-        logger.error(f"crash_alert_job fetch: {e}")
-        return
-
-    crashes = [r for r in rows
-               if r.get("issue_reported", "").lower().strip() in _CRASH_ALERT_TYPES]
-
-    first_run = not _seen_crash_ids
-    new_crashes = []
-    for r in crashes:
-        rid = r.get("traffic_report_id") or f"{r.get('published_date','')}|{r.get('address','')}"
-        if rid in _seen_crash_ids:
-            continue
-        _seen_crash_ids.add(rid)
-        if not first_run:
-            new_crashes.append(r)
-
-    for r in new_crashes:
-        label = _normalise_incident(r.get("issue_reported", "Unknown"))
-        addr = r.get("address", "Unknown location")
-        agency = r.get("agency", "")
-        lat = r.get("latitude")
-        lon = r.get("longitude")
-        msg = f"🚨 *{label}*\n📍 {addr}"
-        if agency:
-            msg += f"\n🏛️ {agency}"
-        if lat and lon:
-            msg += f"\n[Open in Maps](https://www.google.com/maps?q={lat},{lon})"
-        try:
-            await context.bot.send_message(
-                chat_id=chat_id,
-                text=msg,
-                parse_mode="Markdown",
-                disable_web_page_preview=True,
-            )
-        except Exception as e:
-            logger.error(f"crash_alert_job send: {e}")
 
 
 # =============================================================================
@@ -1354,6 +1262,8 @@ async def noise_night_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 @rate_limited
 async def noisecomplaints_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
+        [InlineKeyboardButton("🗺️ Open Map", url="https://seanatwork.github.io/austin311bot-unofficial/noise/"),
+         InlineKeyboardButton("📈 Trends", url="https://seanatwork.github.io/austin311bot-unofficial/noise/trends/")],
         [InlineKeyboardButton("🗺️ Hotspots", callback_data="noise_hotspots"),
          InlineKeyboardButton("🕐 Peak Times", callback_data="noise_peak")],
         [InlineKeyboardButton("📋 Resolution by Type", callback_data="noise_resolution"),
@@ -2232,22 +2142,11 @@ async def crime_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         msg = _format_crime_stats(stats, label)
 
         keyboard = [
-            [InlineKeyboardButton(
-                "🗺️ View Map",
-                url="https://seanatwork.github.io/austin311bot-unofficial/crime/"
-            )],
-            [InlineKeyboardButton(
-                "📅 Compare to 10 years ago",
-                callback_data=f"crime_compare_{start_str}_{end_str}"
-            )],
-            [InlineKeyboardButton(
-                "⚰️ Homicides (2019–present)",
-                callback_data="crime_homicides"
-            )],
-            [InlineKeyboardButton(
-                "Hate Crimes",
-                callback_data="police_hate"
-            )],
+            [InlineKeyboardButton("🗺️ View Map", url="https://seanatwork.github.io/austin311bot-unofficial/crime/"),
+             InlineKeyboardButton("📈 Trends", url="https://seanatwork.github.io/austin311bot-unofficial/crime/trends/")],
+            [InlineKeyboardButton("📅 Compare to 10 years ago", callback_data=f"crime_compare_{start_str}_{end_str}")],
+            [InlineKeyboardButton("⚰️ Homicides (2019–present)", callback_data="crime_homicides")],
+            [InlineKeyboardButton("🔔 Subscribe to crime alerts", callback_data="subscribe_start")],
         ]
         await update.message.reply_text(
             msg,
@@ -3706,7 +3605,6 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("animal", animal_command))
     app.add_handler(CommandHandler("coyote", coyote_command))
     app.add_handler(CommandHandler("bicycle", bicycle_command))
-    app.add_handler(CommandHandler("ticket", ticket_command))
 
     # Restaurant slash command
     app.add_handler(CommandHandler("rest", restaurant_command))
@@ -3729,41 +3627,43 @@ def create_application() -> Application:
     app.add_handler(CommandHandler("bars", bars_command))
     app.add_handler(CommandHandler("childcare", childcare_command))
     app.add_handler(CommandHandler("court", court_command))
-    app.add_handler(CommandHandler("alerts", alerts_command))
+
+    # Alert subscription handlers
+    alerts_db.init_db()
+    register_alert_handlers(app)
 
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     app.add_error_handler(error_handler)
 
-    # Crash alerts → ALERT_CHAT_ID (only if env var is set)
-    if os.getenv("ALERT_CHAT_ID"):
-        app.job_queue.run_repeating(crash_alert_job, interval=120, first=10)
+    # Alert jobs: daily at 08:00 UTC, digest every Monday at 08:00 UTC
+    app.job_queue.run_daily(crime_daily_job,     time=__import__("datetime").time(8, 0), name="crime_daily")
+    app.job_queue.run_daily(district_digest_job, time=__import__("datetime").time(8, 0),
+                            days=(0,), name="district_digest")  # Monday only
+    app.job_queue.run_daily(nearby_311_job,      time=__import__("datetime").time(8, 0), name="nearby_311")
+    app.job_queue.run_daily(animal_nearby_job,   time=__import__("datetime").time(8, 0), name="animal_nearby")
+    app.job_queue.run_daily(crash_nearby_job,    time=__import__("datetime").time(8, 0), name="crash_nearby")
 
     # Register commands with Telegram so they appear in autocomplete
     async def post_init(application) -> None:
         await application.bot.set_my_commands([
-            BotCommand("start",    "Main menu"),
-            BotCommand("crime",    "Recent APD crime stats"),
-            BotCommand("budget", "City budget — homelessness services, NGO grants, pension & benefits"),
-            BotCommand("safety",   "Crime by district — stats + city comparison"),
-            BotCommand("traffic",  "Traffic & infrastructure — signals · lights · sidewalks"),
-            BotCommand("parking",  "Parking enforcement — citations · hot zones · stats"),
-            BotCommand("parks",    "Park maintenance — hotspots · stats · resolution times"),
-            BotCommand("bicycle",  "Bicycle complaints — recent · stats"),
-            BotCommand("rest",     "Restaurant inspections — worst scores · grades · search"),
-            BotCommand("noise",    "Noise complaints — hotspots · stats · response times"),
-            BotCommand("graffiti", "Graffiti — analysis · hotspots · remediation"),
-            BotCommand("animal",   "Animal complaints — hotspots · stats · response times"),
-            BotCommand("coyote",   "Coyote complaints — seasonal patterns · hotspots"),
-            BotCommand("ticket",   "Look up any 311 ticket by ID"),
-            BotCommand("alerts",   "Toggle crash alerts on/off (alert chat only)"),
-            BotCommand("water",            "Surface water quality — fecal coliform · DO · nutrients"),
-            BotCommand("waterviolations",  "Water conservation violations — sprinklers · leaks · waste"),
-            BotCommand("permits",          "Building permits — last 30 days by type · district"),
-            BotCommand("bars",      "Bar of the month — top TABC mixed beverage sales"),
-            BotCommand("childcare", "Child care licensing — Austin facilities · compliance flags"),
-            BotCommand("court",     "Court caseloads — Municipal · DACC · Prop B outcomes · demographics"),
-            BotCommand("homeless",  "Encampment & trash 311 reports — dept burden · trends · locations"),
-            BotCommand("help",      "All commands"),
+            BotCommand("subscribe",   "Push alerts — crime, 311, animals, crashes near you"),
+            BotCommand("myalerts",    "View and manage your active alerts"),
+            BotCommand("unsubscribe", "Cancel all alerts"),
+            BotCommand("deletedata",  "Remove all your stored alert data"),
+            BotCommand("crime",       "APD incident stats — map · trends · homicides"),
+            BotCommand("homeless",    "Encampment 311 reports — trends · locations"),
+            BotCommand("graffiti",    "Graffiti abatement — map · trends"),
+            BotCommand("noise",       "Noise complaints — map · trends · hotspots"),
+            BotCommand("parking",     "Parking complaints — map · hot zones · stats"),
+            BotCommand("traffic",     "Traffic & infrastructure — potholes · signals · crashes"),
+            BotCommand("animal",      "Animal complaints — hotspots · stats · coyotes"),
+            BotCommand("bicycle",     "Bicycle infrastructure complaints"),
+            BotCommand("parks",       "Park maintenance — hotspots · resolution times"),
+            BotCommand("water",       "Surface water quality — by watershed"),
+            BotCommand("rest",        "Restaurant inspections — worst scores · search"),
+            BotCommand("childcare",   "Child care licensing — compliance · deficiencies"),
+            BotCommand("help",        "All commands"),
+            BotCommand("start",       "Main menu"),
         ])
 
     app.post_init = post_init
