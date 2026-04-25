@@ -100,7 +100,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Graffiti Trends</title>
+  <title>Austin 311 — Graffiti Trends</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -136,7 +136,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
     <div id="last-ran">Last ran: {fetched_at}</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Graffiti Map</a>
-      <a class="fbtn" href="../../">ATX Pulse Home</a>
+      <a class="fbtn" href="../../">Austin 311 Home</a>
     </div>
   </div>
 
@@ -173,7 +173,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
   <footer>
     Data: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 (HHSGRAFF)</a>
     &nbsp;·&nbsp; <a href="../">← Graffiti Map</a>
-    &nbsp;·&nbsp; <a href="../../">← ATX Pulse</a>
+    &nbsp;·&nbsp; <a href="../../">← Austin 311</a>
   </footer>
 
   <script>

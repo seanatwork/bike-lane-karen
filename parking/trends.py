@@ -110,7 +110,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Parking Complaints Trends</title>
+  <title>Austin 311 — Parking Complaints Trends</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
@@ -178,7 +178,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
     <div id="last-ran">Last ran: {fetched_at}</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Parking Map</a>
-      <a class="fbtn" href="../../">ATX Pulse Home</a>
+      <a class="fbtn" href="../../">Austin 311 Home</a>
     </div>
   </div>
 
@@ -236,26 +236,42 @@ def _render_html(data: dict, fetched_at: str) -> str:
     &nbsp;·&nbsp;
     <a href="../">← Parking Map</a>
     &nbsp;·&nbsp;
-    <a href="../../">← ATX Pulse</a>
+    <a href="../../">← Austin 311</a>
   </footer>
 
   <script>
     const DATA = {payload_json};
 
-    const chartDefaults = {{
+    const TOOLTIP = {{
+      backgroundColor: "#1e2230", borderColor: "#3d4868", borderWidth: 1,
+      titleColor: "#f1f5f9", bodyColor: "#e2e8f0",
+    }};
+    const TICK_X = {{ color: "#64748b", font: {{ size: 11 }} }};
+    const TICK_Y = {{ color: "#64748b", font: {{ size: 11 }} }};
+    const GRID = {{ color: "#252b3b" }};
+
+    const lineOpts = {{
       plugins: {{
         legend: {{ labels: {{ color: "#94a3b8", font: {{ size: 11 }} }} }},
-        tooltip: {{
-          backgroundColor: "#1e2230",
-          borderColor: "#3d4868",
-          borderWidth: 1,
-          titleColor: "#f1f5f9",
-          bodyColor: "#e2e8f0",
-        }},
+        tooltip: TOOLTIP,
       }},
       scales: {{
-        x: {{ ticks: {{ color: "#64748b", font: {{ size: 11 }} }}, grid: {{ color: "#252b3b" }} }},
-        y: {{ ticks: {{ color: "#64748b", font: {{ size: 11 }} }}, grid: {{ color: "#252b3b" }}, beginAtZero: true }},
+        x: {{ ticks: TICK_X, grid: GRID }},
+        y: {{ ticks: TICK_Y, grid: GRID, beginAtZero: true }},
+      }},
+      responsive: true,
+      maintainAspectRatio: false,
+    }};
+
+    const hBarOpts = {{
+      indexAxis: "y",
+      plugins: {{
+        legend: {{ display: false }},
+        tooltip: TOOLTIP,
+      }},
+      scales: {{
+        x: {{ ticks: TICK_X, grid: GRID, beginAtZero: true }},
+        y: {{ ticks: TICK_Y, grid: GRID }},
       }},
       responsive: true,
       maintainAspectRatio: false,
@@ -299,7 +315,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
           }},
         ],
       }},
-      options: chartDefaults,
+      options: lineOpts,
     }});
 
     // Top streets
@@ -314,7 +330,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
           borderRadius: 4,
         }}],
       }},
-      options: {{ ...chartDefaults, indexAxis: "y", plugins: {{ ...chartDefaults.plugins, legend: {{ display: false }} }} }},
+      options: hBarOpts,
     }});
 
     // Top violation types
@@ -329,7 +345,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
           borderRadius: 4,
         }}],
       }},
-      options: {{ ...chartDefaults, indexAxis: "y", plugins: {{ ...chartDefaults.plugins, legend: {{ display: false }} }} }},
+      options: hBarOpts,
     }});
   </script>
 </body>

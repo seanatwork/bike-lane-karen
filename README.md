@@ -1,4 +1,4 @@
-# ATX Pulse
+# Austin 311
 
 A Telegram bot for exploring Austin 311 service data — graffiti, bicycle complaints, restaurant inspections, and animal services.
 
