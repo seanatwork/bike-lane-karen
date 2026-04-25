@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Noise Complaint Trends</title>
+  <title>Austin 311 — Noise Complaint Trends</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -36,22 +36,22 @@
   <div id="panel">
     <div id="panel-title">🔊 Austin Noise Complaint Trends</div>
     <div id="panel-subtitle">Monthly complaints by type — last 12 months</div>
-    <div id="last-ran">Last ran: 2026-04-25 18:57 UTC</div>
+    <div id="last-ran">Last ran: 2026-04-25 19:10 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Noise Map</a>
-      <a class="fbtn" href="../../">ATX Pulse Home</a>
+      <a class="fbtn" href="../../">Austin 311 Home</a>
     </div>
   </div>
 
   <div id="stats">
     <div class="stats-inner">
       <div class="stat">
-        <div class="stat-value" style="color:#3b82f6;">3,779</div>
+        <div class="stat-value" style="color:#3b82f6;">3,479</div>
         <div class="stat-label">Total complaints</div>
         <div class="stat-sub">last 12 months</div>
       </div>
       <div class="stat">
-        <div class="stat-value" style="color:#22c55e;">1890</div>
+        <div class="stat-value" style="color:#22c55e;">1740</div>
         <div class="stat-label">Avg / month</div>
       </div>
       <div class="stat">
@@ -72,11 +72,11 @@
   <footer>
     Data: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 (APDNONNO · DSOUCVMC · AFDFIREW)</a>
     &nbsp;·&nbsp; <a href="../">← Noise Map</a>
-    &nbsp;·&nbsp; <a href="../../">← ATX Pulse</a>
+    &nbsp;·&nbsp; <a href="../../">← Austin 311</a>
   </footer>
 
   <script>
-    const DATA = {"months": ["Jun 2025", "Jul 2025"], "datasets": [{"label": "Non-Emergency Noise", "data": [1602, 1298], "borderColor": "#3b82f6", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Outdoor Venue / Music", "data": [2, 98], "borderColor": "#22c55e", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Fireworks", "data": [0, 779], "borderColor": "#f59e0b", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}]};
+    const DATA = {"months": ["Jun 2025", "Jul 2025"], "datasets": [{"label": "Non-Emergency Noise", "data": [1302, 1298], "borderColor": "#3b82f6", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Outdoor Venue / Music", "data": [2, 98], "borderColor": "#22c55e", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Fireworks", "data": [0, 779], "borderColor": "#f59e0b", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}]};
 
     new Chart(document.getElementById("monthlyChart"), {
       type: "line",
