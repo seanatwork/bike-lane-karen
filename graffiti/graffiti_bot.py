@@ -400,6 +400,7 @@ def generate_graffiti_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], st
             <span style="margin: 0 4px; color: #ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
+            <a href="trends/" class="fbtn" style="text-decoration: none; display: inline-block;">📈 Trends</a>
         </div>
     </div>
     <style>

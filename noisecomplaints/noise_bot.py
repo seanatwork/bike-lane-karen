@@ -585,6 +585,7 @@ def generate_noise_map(days_back: int = 90) -> tuple:
             <span style="margin:0 4px;color:#ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
+            <a href="trends/" class="fbtn" style="text-decoration:none;display:inline-block;">📈 Trends</a>
         </div>
     </div>
     <style>

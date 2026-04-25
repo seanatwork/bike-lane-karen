@@ -202,6 +202,8 @@ def generate_crime_map(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn">30d</button>
             <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
             <button id="btn-90" onclick="setDayFilter(90)" class="fbtn active">90d</button>
+            <span style="margin: 0 4px; color: #ccc;">|</span>
+            <a href="trends/" class="fbtn" style="text-decoration: none; display: inline-block;">📈 Trends</a>
         </div>
     </div>
 

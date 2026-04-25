@@ -134,6 +134,34 @@
     .card .label { font-size: 1.1rem; font-weight: 600; color: var(--text-label); }
     .card .desc  { font-size: 0.82rem; color: var(--text-desc); line-height: 1.4; }
 
+    .card-group { display: flex; flex-direction: column; }
+    .card-group .card {
+      flex: 1;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      border-bottom: none;
+    }
+    .card-group .card:hover { transform: none; }
+    .trends-pill {
+      display: block;
+      text-align: center;
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      color: var(--text-tag);
+      text-decoration: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .trends-pill:hover {
+      background: var(--bg-card-hover);
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+
     .disclaimer {
       margin-top: 2.5rem;
       max-width: 600px;
@@ -199,31 +227,43 @@
       <span class="label">Budget</span>
       <span class="desc">General Fund breakdown by department — FY2026</span>
     </a>
-    <a class="card" href="graffiti/">
-      <span class="icon">🎨</span>
-      <span class="label">Graffiti</span>
-      <span class="desc">Graffiti abatement reports — updated daily</span>
-    </a>
+    <div class="card-group">
+      <a class="card" href="graffiti/">
+        <span class="icon">🎨</span>
+        <span class="label">Graffiti</span>
+        <span class="desc">Graffiti abatement reports — updated daily</span>
+      </a>
+      <a class="trends-pill" href="graffiti/trends/">📈 Trends</a>
+    </div>
     <a class="card" href="traffic/">
       <span class="icon">🚦</span>
       <span class="label">Traffic</span>
       <span class="desc">Traffic &amp; infrastructure issues — updated daily</span>
     </a>
-    <a class="card" href="parking/">
-      <span class="icon">🅿️</span>
-      <span class="label">Parking</span>
-      <span class="desc">Parking enforcement reports — updated daily</span>
-    </a>
-    <a class="card" href="crime/">
-      <span class="icon">🚔</span>
-      <span class="label">Crime</span>
-      <span class="desc">APD incidents by council district — updated daily</span>
-    </a>
-    <a class="card" href="noise/">
-      <span class="icon">🔊</span>
-      <span class="label">Noise</span>
-      <span class="desc">Noise complaint reports — updated daily</span>
-    </a>
+    <div class="card-group">
+      <a class="card" href="parking/">
+        <span class="icon">🅿️</span>
+        <span class="label">Parking</span>
+        <span class="desc">Parking enforcement reports — updated daily</span>
+      </a>
+      <a class="trends-pill" href="parking/trends/">📈 Trends</a>
+    </div>
+    <div class="card-group">
+      <a class="card" href="crime/">
+        <span class="icon">🚔</span>
+        <span class="label">Crime</span>
+        <span class="desc">APD incidents by council district — updated daily</span>
+      </a>
+      <a class="trends-pill" href="crime/trends/">📈 Trends</a>
+    </div>
+    <div class="card-group">
+      <a class="card" href="noise/">
+        <span class="icon">🔊</span>
+        <span class="label">Noise</span>
+        <span class="desc">Noise complaint reports — updated daily</span>
+      </a>
+      <a class="trends-pill" href="noise/trends/">📈 Trends</a>
+    </div>
     <a class="card" href="parks/">
       <span class="icon">🏞️</span>
       <span class="label">Parks</span>
