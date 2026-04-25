@@ -16,6 +16,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+GA_SNIPPET = """<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TS158R7XSN');
+</script>
+"""
+
+
 def generate_bicycle_map(days_back: int = 90) -> tuple:
     """Generate bicycle infrastructure map."""
     from bicycle.bicycle_bot import generate_bicycle_map
@@ -161,6 +172,7 @@ def main():
         last_ran_span + '<span id="map-summary"',
         1,
     )
+    html = html.replace("</head>", GA_SNIPPET + "</head>", 1)
 
     out = Path("docs") / output_path
     out.parent.mkdir(parents=True, exist_ok=True)
