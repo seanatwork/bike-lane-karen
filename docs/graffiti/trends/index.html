@@ -31,12 +31,20 @@
     footer a:hover { color: #94a3b8; }
     @media (max-width: 520px) { .stat-value { font-size: 1rem; } .chart-container { height: 240px; } }
   </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TS158R7XSN');
+</script>
 </head>
 <body>
   <div id="panel">
     <div id="panel-title">🎨 Austin Graffiti Abatement Trends</div>
     <div id="panel-subtitle">New reports per month — last 12 months</div>
-    <div id="last-ran">Last ran: 2026-04-25 19:08 UTC</div>
+    <div id="last-ran">Last ran: 2026-04-25 21:06 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Graffiti Map</a>
       <a class="fbtn" href="../../">Austin 311 Home</a>
@@ -46,7 +54,7 @@
   <div id="stats">
     <div class="stats-inner">
       <div class="stat">
-        <div class="stat-value" style="color:#3b82f6;">346</div>
+        <div class="stat-value" style="color:#3b82f6;">344</div>
         <div class="stat-label">Total reports</div>
         <div class="stat-sub">last 12 months</div>
       </div>
@@ -80,7 +88,7 @@
   </footer>
 
   <script>
-    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025"], "monthlyCounts": [18, 115, 130, 83], "rollingAvg": [null, null, 87.7, 109.3], "avgResolutionDays": [8.7, 6.3, 5.4, 7.7]};
+    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025"], "monthlyCounts": [16, 115, 130, 83], "rollingAvg": [null, null, 87.0, 109.3], "avgResolutionDays": [9.5, 6.3, 5.4, 7.7]};
 
     const BASE_OPTS = {
       plugins: {
