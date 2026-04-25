@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Parking Complaints Trends</title>
+  <title>Austin 311 — Parking Complaints Trends</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -68,10 +68,10 @@
   <div id="panel">
     <div id="panel-title">🅿️ Austin Parking Complaints Trends</div>
     <div id="panel-subtitle">Resident-reported parking violations — last 12 months</div>
-    <div id="last-ran">Last ran: 2026-04-25 18:58 UTC</div>
+    <div id="last-ran">Last ran: 2026-04-25 19:11 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Parking Map</a>
-      <a class="fbtn" href="../../">ATX Pulse Home</a>
+      <a class="fbtn" href="../../">Austin 311 Home</a>
     </div>
   </div>
 
@@ -129,26 +129,42 @@
     &nbsp;·&nbsp;
     <a href="../">← Parking Map</a>
     &nbsp;·&nbsp;
-    <a href="../../">← ATX Pulse</a>
+    <a href="../../">← Austin 311</a>
   </footer>
 
   <script>
-    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025"], "monthlyCounts": [249, 1607, 1511, 1074], "monthlyOpenCounts": [0, 0, 0, 0], "rollingAvg": [null, null, 1122.3, 1397.3], "streets": [{"name": "W Annie St", "count": 97}, {"name": "Harvey St", "count": 85}, {"name": "E 5th St", "count": 83}, {"name": "Ceberry Dr", "count": 45}, {"name": "Newman Dr", "count": 41}, {"name": "Duval St", "count": 38}, {"name": "Lamar Square Dr", "count": 38}, {"name": "Willow St", "count": 34}, {"name": "Brazos St", "count": 34}, {"name": "Attayac St", "count": 33}, {"name": "Wood Hollow Dr", "count": 32}, {"name": "Congress Ave", "count": 32}, {"name": "Colorado St", "count": 31}, {"name": "San Marcos St", "count": 28}, {"name": "Karasu Dr", "count": 27}], "violations": [{"name": "Bike Lane", "count": 243}, {"name": "No Parking Zone", "count": 179}, {"name": "Blocking Sidewalk", "count": 150}, {"name": "Fire Hydrant", "count": 112}, {"name": "On Sidewalk", "count": 103}, {"name": "Parking violation ", "count": 75}, {"name": "Parking violation", "count": 74}, {"name": "Car parked with left wheels to curb.", "count": 71}, {"name": "Illegal Parking", "count": 69}, {"name": "Parking", "count": 65}]};
+    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025"], "monthlyCounts": [248, 1607, 1511, 1075], "monthlyOpenCounts": [0, 0, 0, 0], "rollingAvg": [null, null, 1122.0, 1397.7], "streets": [{"name": "W Annie St", "count": 97}, {"name": "Harvey St", "count": 85}, {"name": "E 5th St", "count": 83}, {"name": "Ceberry Dr", "count": 45}, {"name": "Newman Dr", "count": 42}, {"name": "Duval St", "count": 38}, {"name": "Lamar Square Dr", "count": 38}, {"name": "Willow St", "count": 34}, {"name": "Brazos St", "count": 34}, {"name": "Attayac St", "count": 33}, {"name": "Wood Hollow Dr", "count": 32}, {"name": "Congress Ave", "count": 32}, {"name": "Colorado St", "count": 31}, {"name": "San Marcos St", "count": 28}, {"name": "Karasu Dr", "count": 27}], "violations": [{"name": "Bike Lane", "count": 243}, {"name": "No Parking Zone", "count": 179}, {"name": "Blocking Sidewalk", "count": 150}, {"name": "Fire Hydrant", "count": 112}, {"name": "On Sidewalk", "count": 103}, {"name": "Parking violation ", "count": 75}, {"name": "Parking violation", "count": 73}, {"name": "Car parked with left wheels to curb.", "count": 71}, {"name": "Illegal Parking", "count": 69}, {"name": "Parking", "count": 65}]};
 
-    const chartDefaults = {
+    const TOOLTIP = {
+      backgroundColor: "#1e2230", borderColor: "#3d4868", borderWidth: 1,
+      titleColor: "#f1f5f9", bodyColor: "#e2e8f0",
+    };
+    const TICK_X = { color: "#64748b", font: { size: 11 } };
+    const TICK_Y = { color: "#64748b", font: { size: 11 } };
+    const GRID = { color: "#252b3b" };
+
+    const lineOpts = {
       plugins: {
         legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
-        tooltip: {
-          backgroundColor: "#1e2230",
-          borderColor: "#3d4868",
-          borderWidth: 1,
-          titleColor: "#f1f5f9",
-          bodyColor: "#e2e8f0",
-        },
+        tooltip: TOOLTIP,
       },
       scales: {
-        x: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#252b3b" } },
-        y: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#252b3b" }, beginAtZero: true },
+        x: { ticks: TICK_X, grid: GRID },
+        y: { ticks: TICK_Y, grid: GRID, beginAtZero: true },
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+    };
+
+    const hBarOpts = {
+      indexAxis: "y",
+      plugins: {
+        legend: { display: false },
+        tooltip: TOOLTIP,
+      },
+      scales: {
+        x: { ticks: TICK_X, grid: GRID, beginAtZero: true },
+        y: { ticks: TICK_Y, grid: GRID },
       },
       responsive: true,
       maintainAspectRatio: false,
@@ -192,7 +208,7 @@
           },
         ],
       },
-      options: chartDefaults,
+      options: lineOpts,
     });
 
     // Top streets
@@ -207,7 +223,7 @@
           borderRadius: 4,
         }],
       },
-      options: { ...chartDefaults, indexAxis: "y", plugins: { ...chartDefaults.plugins, legend: { display: false } } },
+      options: hBarOpts,
     });
 
     // Top violation types
@@ -222,7 +238,7 @@
           borderRadius: 4,
         }],
       },
-      options: { ...chartDefaults, indexAxis: "y", plugins: { ...chartDefaults.plugins, legend: { display: false } } },
+      options: hBarOpts,
     });
   </script>
 </body>
