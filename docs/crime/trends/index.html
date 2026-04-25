@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ATX Pulse — Crime Trends</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
+    #panel { position: sticky; top: 0; z-index: 100; background: #1e2230; border-bottom: 1px solid #2d3348; padding: 10px 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    #panel-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+    #panel-subtitle { font-size: 12px; color: #64748b; text-align: center; }
+    #last-ran { font-size: 11px; color: #475569; }
+    .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .fbtn { background: #252b3b; border: 1px solid #3d4868; color: #94a3b8; padding: 5px 13px; border-radius: 4px; font-size: 12px; white-space: nowrap; text-decoration: none; display: inline-block; }
+    .fbtn:hover { background: #2d3453; color: #e2e8f0; }
+    #stats { border-bottom: 1px solid #2d3348; }
+    .stats-inner { display: flex; justify-content: center; }
+    .stat { flex: 1; max-width: 170px; text-align: center; padding: 10px 8px 9px; border-right: 1px solid #2d3348; }
+    .stat:last-child { border-right: none; }
+    .stat-value { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
+    .stat-label { font-size: 0.67rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+    .stat-sub { font-size: 0.67rem; color: #475569; margin-top: 1px; }
+    #chart-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
+    .chart-block { background: #161a24; border: 1px solid #2d3348; border-radius: 8px; padding: 14px; }
+    .chart-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 10px; }
+    .chart-container { position: relative; height: 300px; }
+    footer { text-align: center; padding: 14px 16px; font-size: 0.74rem; color: #475569; border-top: 1px solid #1e2230; }
+    footer a { color: #64748b; text-decoration: none; }
+    footer a:hover { color: #94a3b8; }
+    @media (max-width: 520px) { .stat-value { font-size: 1rem; } .chart-container { height: 240px; } }
+  </style>
+</head>
+<body>
+  <div id="panel">
+    <div id="panel-title">🚔 Austin Crime Trends</div>
+    <div id="panel-subtitle">Monthly APD incidents — last 12 months</div>
+    <div id="last-ran">Last ran: 2026-04-25 04:26 UTC</div>
+    <div class="btn-row">
+      <a class="fbtn" href="../">← Crime Map</a>
+      <a class="fbtn" href="../../">ATX Pulse Home</a>
+    </div>
+  </div>
+
+  <div id="stats">
+    <div class="stats-inner">
+      <div class="stat">
+        <div class="stat-value" style="color:#3b82f6;">85,298</div>
+        <div class="stat-label">Total incidents</div>
+        <div class="stat-sub">last 12 months</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#22c55e;">6561</div>
+        <div class="stat-label">Avg / month</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#ef4444;">7,864</div>
+        <div class="stat-label">Peak month</div>
+        <div class="stat-sub">Aug 2025</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chart-wrap">
+    <div class="chart-block">
+      <div class="chart-title">Monthly incidents (all types)</div>
+      <div class="chart-container"><canvas id="totalChart"></canvas></div>
+    </div>
+    <div class="chart-block">
+      <div class="chart-title">Top 5 crime types over time</div>
+      <div class="chart-container"><canvas id="typesChart"></canvas></div>
+    </div>
+  </div>
+
+  <footer>
+    Data: <a href="https://data.austintexas.gov/d/fdj4-gpfu" target="_blank" rel="noopener">APD Crime Reports (Socrata)</a>
+    &nbsp;·&nbsp; <a href="../">← Crime Map</a>
+    &nbsp;·&nbsp; <a href="../../">← ATX Pulse</a>
+  </footer>
+
+  <script>
+    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025", "Aug 2025", "Sep 2025", "Oct 2025", "Nov 2025", "Dec 2025", "Jan 2026", "Feb 2026", "Mar 2026", "Apr 2026"], "monthlyTotals": [1482, 7589, 7329, 7606, 7864, 7565, 7848, 7189, 7076, 6839, 6317, 6961, 3633], "rollingAvg": [null, null, 5466.7, 7508.0, 7599.7, 7678.3, 7759.0, 7534.0, 7371.0, 7034.7, 6744.0, 6705.7, 5637.0], "typeDatasets": [{"label": "Family Disturbance", "data": [135, 732, 650, 673, 689, 647, 651, 683, 721, 624, 561, 635, 363], "borderColor": "#3b82f6", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Burglary Of Vehicle", "data": [114, 560, 546, 573, 562, 552, 572, 482, 517, 530, 366, 445, 197], "borderColor": "#ef4444", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Theft", "data": [93, 447, 470, 508, 554, 481, 539, 447, 418, 458, 398, 459, 226], "borderColor": "#22c55e", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Criminal Mischief", "data": [61, 424, 434, 453, 402, 376, 378, 319, 298, 306, 310, 347, 148], "borderColor": "#f59e0b", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}, {"label": "Auto Theft", "data": [70, 305, 367, 402, 386, 320, 346, 321, 314, 281, 207, 269, 114], "borderColor": "#8b5cf6", "backgroundColor": "transparent", "tension": 0.3, "pointRadius": 3, "pointHoverRadius": 5, "fill": false}]};
+
+    const BASE_OPTS = {
+      plugins: {
+        legend: { labels: { color: "#94a3b8", font: { size: 11 } } },
+        tooltip: { backgroundColor: "#1e2230", borderColor: "#3d4868", borderWidth: 1, titleColor: "#f1f5f9", bodyColor: "#e2e8f0" },
+      },
+      scales: {
+        x: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#252b3b" } },
+        y: { ticks: { color: "#64748b", font: { size: 11 } }, grid: { color: "#252b3b" }, beginAtZero: true },
+      },
+      responsive: true,
+      maintainAspectRatio: false,
+    };
+
+    new Chart(document.getElementById("totalChart"), {
+      type: "line",
+      data: {
+        labels: DATA.months,
+        datasets: [
+          { label: "Monthly incidents", data: DATA.monthlyTotals, borderColor: "#3b82f6", backgroundColor: "rgba(59,130,246,0.08)", fill: true, tension: 0.3, pointRadius: 3, pointHoverRadius: 5 },
+          { label: "3-month avg", data: DATA.rollingAvg, borderColor: "#ef4444", borderWidth: 2, borderDash: [5, 3], pointRadius: 0, tension: 0.4, fill: false, spanGaps: true },
+        ],
+      },
+      options: BASE_OPTS,
+    });
+
+    new Chart(document.getElementById("typesChart"), {
+      type: "line",
+      data: { labels: DATA.months, datasets: DATA.typeDatasets },
+      options: BASE_OPTS,
+    });
+  </script>
+</body>
+</html>
