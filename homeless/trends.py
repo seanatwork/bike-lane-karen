@@ -48,10 +48,13 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     Returns:
         tuple: (BytesIO buffer with HTML, summary string)
     """
-    from homeless.homeless_bot import fetch_encampment_reports
+    from homeless.homeless_bot import fetch_encampment_reports_monthly
 
-    result = fetch_encampment_reports(days_back)
-    records = result["records"]
+    # Fetch month by month — the Open311 API returns records oldest-first, so a
+    # single 365-day request only returns the oldest ~90 days before hitting the
+    # pagination cap. Month-by-month ensures every period is fully covered.
+    months_back = max(1, days_back // 30)
+    records = fetch_encampment_reports_monthly(months_back=months_back)
 
     if not records:
         buf = io.BytesIO(b"<p>No data found.</p>")
@@ -308,7 +311,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
 
     <footer>
       Data: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 API</a>
-      &nbsp;·&nbsp; Keyword-matched across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP
+      &nbsp;·&nbsp; Keyword-matched across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL
       &nbsp;·&nbsp; Generated {now_str}
     </footer>
 

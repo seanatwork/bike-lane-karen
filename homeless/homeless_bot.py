@@ -49,7 +49,6 @@ SERVICE_CODES = {
     "OBSTMIDB": "TPW — Obstruction in ROW",
     "SBDEBROW": "TPW — Debris in Street",
     "DRCHANEL": "Watershed — Drainage/Creek",
-    "NOISECMP": "Non-Emergency Noise",
 }
 
 # Keywords that indicate an encampment / homeless-related report.
@@ -179,7 +178,7 @@ def _fetch_detail(service_request_id: str) -> dict:
     return {}
 
 
-def _fetch_code(service_code: str, days_back: int) -> list:
+def _fetch_code(service_code: str, days_back: int, max_pages: int = MAX_PAGES) -> list:
     """Fetch all requests for one service code with pagination.
 
     After the bulk fetch, any record with a truncated description or
@@ -192,7 +191,7 @@ def _fetch_code(service_code: str, days_back: int) -> list:
     seen_ids: set = set()
     page = 1
 
-    while page <= MAX_PAGES:
+    while page <= max_pages:
         params = {
             "service_code": service_code,
             "start_date": _isoformat_z(start),
@@ -238,7 +237,70 @@ def _fetch_code(service_code: str, days_back: int) -> list:
     return all_records
 
 
-def fetch_encampment_reports(days_back: int = 90) -> dict:
+def fetch_encampment_reports_monthly(months_back: int = 12) -> list:
+    """Fetch keyword-matched encampment reports one calendar month at a time.
+
+    The Open311 API returns records in chronological order (oldest first), so a
+    single 365-day request only returns the oldest ~90 days before hitting the
+    per-page cap. Fetching month by month ensures every period is fully covered.
+
+    Returns a flat list of matched records across all months and all codes.
+    """
+    now = _utc_now()
+    all_matched: list = []
+    seen_ids: set = set()
+
+    for month_offset in range(months_back):
+        # Build [start, end) for this calendar month
+        target = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        for _ in range(month_offset):
+            target = (target - timedelta(days=1)).replace(
+                day=1, hour=0, minute=0, second=0, microsecond=0
+            )
+        month_start = target
+        if month_offset == 0:
+            month_end = now
+        else:
+            # First day of next month relative to target
+            if target.month == 12:
+                month_end = target.replace(year=target.year + 1, month=1)
+            else:
+                month_end = target.replace(month=target.month + 1)
+
+        for code in SERVICE_CODES:
+            try:
+                page = 1
+                while page <= MAX_PAGES:
+                    params = {
+                        "service_code": code,
+                        "start_date": _isoformat_z(month_start),
+                        "end_date":   _isoformat_z(month_end),
+                        "per_page":   100,
+                        "page":       page,
+                    }
+                    records = _make_request(params)
+                    if not records:
+                        break
+                    for r in records:
+                        sid = r.get("service_request_id")
+                        if sid and sid not in seen_ids:
+                            seen_ids.add(sid)
+                            r["_service_label"] = SERVICE_CODES.get(code, code)
+                            r["_service_code"]  = code
+                            if _is_encampment_report(r):
+                                all_matched.append(r)
+                    if len(records) < 100:
+                        break
+                    page += 1
+                    time.sleep(1.0 if API_KEY else 2.0)
+            except Exception as e:
+                logger.warning(f"Monthly fetch failed {code} {month_start.strftime('%Y-%m')}: {e}")
+        time.sleep(2.0 if API_KEY else 4.0)
+
+    return all_matched
+
+
+def fetch_encampment_reports(days_back: int = 90, max_pages: int = MAX_PAGES) -> dict:
     """Fetch and keyword-filter 311 reports across all target service codes.
 
     Returns a dict with:
@@ -253,7 +315,7 @@ def fetch_encampment_reports(days_back: int = 90) -> dict:
 
     for code, label in SERVICE_CODES.items():
         try:
-            records = _fetch_code(code, days_back)
+            records = _fetch_code(code, days_back, max_pages=max_pages)
             matched = [r for r in records if _is_encampment_report(r)]
             by_code[code] = {"label": label, "fetched": len(records), "matched": len(matched)}
             all_records.extend(records)
@@ -461,6 +523,7 @@ def fetch_encampment_with_coords(days_back: int = 30) -> dict:
     return {
         "records": located,
         "total": len(located),
+        "total_matched": len(records),
         "days_back": days_back,
         "fetched_at": result["fetched_at"],
     }
@@ -480,11 +543,12 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
     
     data = fetch_encampment_with_coords(days_back)
     records = data["records"]
-    total = data["total"]
-    
+    total         = data["total"]
+    total_matched = data.get("total_matched", total)
+
     if not records:
         return None, f"🏕️ No encampment reports with location data found in the last {days_back} days."
-    
+
     # Count by status
     open_count = sum(1 for r in records if (r.get("status") or "").lower() == "open")
     closed_count = sum(1 for r in records if (r.get("status") or "").lower() == "closed")
@@ -612,6 +676,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
                 font-family: sans-serif; text-align: center;">
         <b style="font-size: 15px;">🏕️ Austin Homeless Encampment 311 Reports</b><br/>
         <span id="map-summary" style="font-size: 12px; color: #555;"></span>
+        <span style="font-size: 11px; color: #888;">{total_matched - total:,} additional matched reports excluded — no coordinates provided by filer</span>
         <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
             <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
@@ -714,12 +779,14 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         except:
             pass
     
+    no_coords = total_matched - total
     summary = (
         f"🏕️ *Encampment Report Map*\n"
         f"_Last {days_back} days_\n\n"
-        f"📊 *{total:,} reports mapped*\n"
-        f"🔴 *{open_count:,} open*  ·  🟢 *{closed_count:,} closed*\n\n"
-        f"Tap markers to see details. Use layer control to toggle views."
+        f"📊 *{total:,} reports mapped* ({total_matched:,} total matched)\n"
+        f"🔴 *{open_count:,} open*  ·  🟢 *{closed_count:,} closed*\n"
+        + (f"⚠️ *{no_coords:,} matched reports excluded* — no coordinates provided\n\n" if no_coords else "\n")
+        + f"Tap markers to see details. Use layer control to toggle views."
     )
     
     return buffer, summary
