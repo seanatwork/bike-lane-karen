@@ -285,10 +285,9 @@
         sourceLink: "https://data.austintexas.gov/d/dx9v-zd7x",
         sourceName: "Austin Traffic Incidents (real-time)",
         buildQuery(cutoffISO) {
-          return "?$where=" + encodeURIComponent(
-            `published_date >= '${cutoffISO}' AND issue_reported IN('crash urgent','collision','collision with injury','collision/private property','traffic fatality','crash service')`
-          ) + "&$order=published_date%20DESC&$limit=2000" +
-          "&$select=traffic_report_id,issue_reported,address,latitude,longitude,published_date,agency";
+          return "?$where=" + encodeURIComponent(`published_date >= '${cutoffISO}'`) +
+            "&$order=published_date%20DESC&$limit=10000" +
+            "&$select=traffic_report_id,issue_reported,address,latitude,longitude,published_date,agency";
         },
         severityOf(r) {
           const t = (r.issue_reported || "").toLowerCase().trim();
@@ -535,6 +534,12 @@
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         allRecords = await res.json();
+        // Live dataset: filter to crash types client-side (field values are title-cased)
+        if (currentSource === SOURCES.live) {
+          allRecords = allRecords.filter(r =>
+            CRASH_TYPES_LIVE.has((r.issue_reported || "").toLowerCase().trim())
+          );
+        }
         renderMap(currentDays);
       } catch (err) {
         document.getElementById("panel-summary").textContent = "Error: " + err.message;
