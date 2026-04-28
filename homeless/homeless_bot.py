@@ -49,6 +49,7 @@ SERVICE_CODES = {
     "OBSTMIDB": "TPW — Obstruction in ROW",
     "SBDEBROW": "TPW — Debris in Street",
     "DRCHANEL": "Watershed — Drainage/Creek",
+    "NOISECMP": "Non-Emergency Noise",
 }
 
 # Keywords that indicate an encampment / homeless-related report.

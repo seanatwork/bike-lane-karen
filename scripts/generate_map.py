@@ -117,6 +117,12 @@ def generate_animal_map(days_back: int = 90) -> tuple:
     return generate_animal_map(days_back)
 
 
+def generate_homeless_trends_page(days_back: int = 365) -> tuple:
+    """Generate homeless 311 trends page."""
+    from homeless.trends import generate_homeless_trends
+    return generate_homeless_trends(days_back)
+
+
 CATEGORY_MAPS = {
     "bicycle": (generate_bicycle_map, "bicycle/index.html"),
     "graffiti": (generate_graffiti_map, "graffiti/index.html"),
@@ -133,6 +139,7 @@ CATEGORY_MAPS = {
     "water": (generate_water_map, "water/index.html"),
     "childcare": (generate_childcare_map, "childcare/index.html"),
     "animal": (generate_animal_map, "animal/index.html"),
+    "homeless-trends": (generate_homeless_trends_page, "homeless/trends/index.html"),
 }
 
 
