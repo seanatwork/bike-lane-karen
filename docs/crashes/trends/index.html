@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Austin 311 — Crash Trends</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TS158R7XSN');
+  </script>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #dbeafe; --btn-hover-color: #1e293b;
+      --bar-bg: #e2e8f0;
+      --stat-border: #e2e8f0;
+    }
+    html.dark {
+      --bg: #0f1117; --bg-panel: #1e2230; --bg-card: #161a24;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --bar-bg: #252b3b;
+      --stat-border: #2d3348;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      padding: 0 0 3rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    #theme-toggle {
+      position: fixed; top: 10px; right: 12px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer;
+    }
+
+    /* ── top panel ── */
+    #panel {
+      width: 100%; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      padding: 10px 16px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    #panel-title { font-size: 15px; font-weight: 700; color: var(--text-head); }
+    #panel-sub   { font-size: 12px; color: var(--text-sub); }
+    .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .fbtn {
+      background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color);
+      padding: 4px 11px; border-radius: 4px; font-size: 12px; cursor: pointer;
+      text-decoration: none; display: inline-block;
+      transition: background 0.12s, color 0.12s; white-space: nowrap;
+    }
+    .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+    .fbtn.active { background: #7c3aed; border-color: #7c3aed; color: #fff; font-weight: 600; }
+
+    /* ── main ── */
+    #main {
+      width: 100%; max-width: 900px; padding: 20px 16px;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    /* ── stats row ── */
+    .stats-row {
+      display: flex; flex-wrap: wrap; gap: 0;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden;
+    }
+    .stat {
+      flex: 1; min-width: 120px; text-align: center;
+      padding: 14px 10px 12px; border-right: 1px solid var(--stat-border);
+    }
+    .stat:last-child { border-right: none; }
+    .stat-val   { font-size: 1.4rem; font-weight: 700; line-height: 1.1; }
+    .stat-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+
+    /* ── chart card ── */
+    .chart-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px;
+    }
+    .chart-title { font-size: 13px; font-weight: 700; color: var(--text-head); margin-bottom: 3px; }
+    .chart-sub   { font-size: 11px; color: var(--text-sub); margin-bottom: 14px; }
+
+    /* ── bar rows ── */
+    .bar-rows { display: flex; flex-direction: column; gap: 5px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+    .bar-label { flex: 0 0 80px; color: var(--text-sub); text-align: right; white-space: nowrap; }
+    .bar-label.wide { flex: 0 0 160px; }
+    .bar-track { flex: 1; background: var(--bar-bg); border-radius: 3px; height: 8px; }
+    .bar-fill  { height: 8px; border-radius: 3px; }
+    .bar-val   { flex: 0 0 40px; text-align: right; color: var(--text-muted); font-size: 10px; }
+    .bar-val.wide { flex: 0 0 50px; }
+
+    /* two-column grid for smaller charts */
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .chart-grid { grid-template-columns: 1fr; } }
+
+    /* ── monthly table ── */
+    .month-rows { display: flex; flex-direction: column; gap: 6px; }
+    .month-row  { display: flex; align-items: center; gap: 10px; font-size: 11px; }
+    .month-lbl  { flex: 0 0 70px; color: var(--text-sub); }
+    .month-track { flex: 1; background: var(--bar-bg); border-radius: 3px; height: 10px; position: relative; }
+    .month-bar-crash { height: 10px; border-radius: 3px; background: #3b82f6; }
+    .month-bar-death { height: 6px; position: absolute; top: 2px; border-radius: 2px; background: #dc2626; }
+    .month-val  { flex: 0 0 38px; text-align: right; color: var(--text-muted); font-size: 10px; }
+    .month-dead { flex: 0 0 50px; text-align: right; color: #dc2626; font-size: 10px; font-weight: 600; }
+
+    .legend-inline { display: flex; gap: 14px; margin-bottom: 10px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sub); }
+    .legend-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ── road user ── */
+    .ruser-rows { display: flex; flex-direction: column; gap: 6px; }
+    .ruser-row  { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 5px 8px; background: var(--bg-panel); border-radius: 5px; }
+    .ruser-name { color: var(--text); }
+    .ruser-val  { font-weight: 700; color: #dc2626; }
+
+    .loading-msg { color: var(--text-muted); font-size: 13px; padding: 20px 0; text-align: center; }
+    .error-msg   { color: #ef4444; font-size: 12px; padding: 8px 0; }
+
+    footer { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 8px; }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+
+  <div id="panel">
+    <div id="panel-title">💥 Crash Trends — Austin</div>
+    <div id="panel-sub">APD crash records · last 90 days</div>
+    <div class="btn-row">
+      <a class="fbtn" href="../">← Back to Crash Map</a>
+      <a class="fbtn" href="../../">🏠 Home</a>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="content"><div class="loading-msg">Loading crash data…</div></div>
+  </div>
+
+  <script>
+    const isDark = document.documentElement.classList.contains("dark");
+    document.getElementById("theme-toggle").textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }
+
+    const BASE = "https://data.austintexas.gov/resource/y2wy-tgr5.json";
+    const now  = new Date();
+    const cutoff90  = new Date(now); cutoff90.setDate(cutoff90.getDate() - 90);
+    const cutoffStr = cutoff90.toISOString().split("T")[0] + "T00:00:00";
+    const ytdStart  = now.getFullYear() + "-01-01T00:00:00";
+
+    function enc(s) { return encodeURIComponent(s); }
+    function where90(extra) { return `crash_timestamp_ct > '${cutoffStr}'${extra ? " AND " + extra : ""}`; }
+
+    function titleCase(s) {
+      return (s || "Unknown").replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+
+    function fmtHour(h) {
+      h = parseInt(h);
+      if (h === 0)  return "12 am";
+      if (h < 12)   return h + " am";
+      if (h === 12) return "12 pm";
+      return (h - 12) + " pm";
+    }
+
+    const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    async function loadAll() {
+      const el = document.getElementById("content");
+      try {
+        const [hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows, ytdRows, modeRows] =
+          await Promise.all([
+            // crashes by hour of day
+            fetch(`${BASE}?$select=date_extract_hh(crash_timestamp_ct) as hr,count(*) as cnt&$where=${enc(where90())}&$group=hr&$order=hr&$limit=24`).then(r=>r.json()),
+            // crashes by day of week
+            fetch(`${BASE}?$select=date_extract_dow(crash_timestamp_ct) as dow,count(*) as cnt&$where=${enc(where90())}&$group=dow&$order=dow&$limit=7`).then(r=>r.json()),
+            // top crash streets
+            fetch(`${BASE}?$select=rpt_street_name,count(*) as cnt&$where=${enc(where90("rpt_street_name != 'NOT REPORTED'"))}&$group=rpt_street_name&$order=cnt DESC&$limit=10`).then(r=>r.json()),
+            // collision types
+            fetch(`${BASE}?$select=collsn_desc,count(*) as cnt&$where=${enc(where90("collsn_desc IS NOT NULL"))}&$group=collsn_desc&$order=cnt DESC&$limit=10`).then(r=>r.json()),
+            // monthly trend (last 14 months)
+            fetch(`${BASE}?$select=date_extract_y(crash_timestamp_ct) as yr,date_extract_m(crash_timestamp_ct) as mo,count(*) as cnt,sum(death_cnt) as deaths&$group=yr,mo&$order=yr DESC,mo DESC&$limit=14`).then(r=>r.json()),
+            // 90-day totals
+            fetch(`${BASE}?$select=count(*) as total,sum(death_cnt) as deaths,sum(tot_injry_cnt) as injuries,sum(sus_serious_injry_cnt) as serious&$where=${enc(where90())}&$limit=1`).then(r=>r.json()),
+            // YTD totals
+            fetch(`${BASE}?$select=count(*) as total,sum(death_cnt) as deaths&$where=${enc(`crash_timestamp_ct > '${ytdStart}'`)}&$limit=1`).then(r=>r.json()),
+            // road user fatalities
+            fetch(`${BASE}?$select=sum(motor_vehicle_death_count) as mv,sum(pedestrian_death_count) as ped,sum(motorcycle_death_count) as moto,sum(bicycle_death_count) as bike,sum(micromobility_death_count) as micro&$where=${enc(where90())}&$limit=1`).then(r=>r.json()),
+          ]);
+
+        render(hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows[0]||{}, ytdRows[0]||{}, modeRows[0]||{});
+      } catch(err) {
+        el.innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
+      }
+    }
+
+    function bar(fill, color, pct) {
+      return `<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>`;
+    }
+
+    function render(hourRows, dowRows, streetRows, collsnRows, monthRows, totals, ytd, modes) {
+      const el = document.getElementById("content");
+
+      // ── stats ──────────────────────────────────────────────────────────────
+      const total   = parseInt(totals.total   || 0);
+      const deaths  = parseInt(totals.deaths  || 0);
+      const serious = parseInt(totals.serious || 0);
+      const injuries= parseInt(totals.injuries|| 0);
+      const ytdTotal= parseInt(ytd.total || 0);
+      const ytdDead = parseInt(ytd.deaths|| 0);
+
+      const statsHtml = `
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-val" style="color:#3b82f6;">${total.toLocaleString()}</div>
+            <div class="stat-label">Crashes (90d)</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" style="color:#dc2626;">${deaths.toLocaleString()}</div>
+            <div class="stat-label">Fatalities (90d)</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" style="color:#f59e0b;">${serious.toLocaleString()}</div>
+            <div class="stat-label">Serious injuries (90d)</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" style="color:#dc2626;">${ytdDead.toLocaleString()}</div>
+            <div class="stat-label">Fatalities YTD ${now.getFullYear()}</div>
+          </div>
+        </div>`;
+
+      // ── hour of day ────────────────────────────────────────────────────────
+      const hourMap = {};
+      for (const r of hourRows) hourMap[parseInt(r.hr)] = parseInt(r.cnt);
+      const allHours = Array.from({length: 24}, (_, i) => i);
+      const maxHour  = Math.max(...allHours.map(h => hourMap[h] || 0), 1);
+      const hourHtml = allHours.map(h => {
+        const cnt  = hourMap[h] || 0;
+        const pct  = Math.round(cnt / maxHour * 100);
+        const isPeak = pct >= 70;
+        const color  = isPeak ? "#dc2626" : (pct >= 40 ? "#ea580c" : "#3b82f6");
+        return `<div class="bar-row">
+          <span class="bar-label" style="flex:0 0 46px;text-align:right;">${fmtHour(h)}</span>
+          ${bar(cnt, color, pct)}
+          <span class="bar-val">${cnt}</span>
+        </div>`;
+      }).join("");
+
+      // ── day of week ────────────────────────────────────────────────────────
+      const dowMap = {};
+      for (const r of dowRows) dowMap[parseInt(r.dow)] = parseInt(r.cnt);
+      const maxDow = Math.max(...DOW_LABELS.map((_, i) => dowMap[i] || 0), 1);
+      const dowHtml = DOW_LABELS.map((label, i) => {
+        const cnt = dowMap[i] || 0;
+        const pct = Math.round(cnt / maxDow * 100);
+        const isWeekend = i === 0 || i === 6;
+        const color = isWeekend ? "#7c3aed" : "#3b82f6";
+        return `<div class="bar-row">
+          <span class="bar-label" style="flex:0 0 36px;text-align:right;">${label}</span>
+          ${bar(cnt, color, pct)}
+          <span class="bar-val">${cnt}</span>
+        </div>`;
+      }).join("");
+
+      // ── top streets ────────────────────────────────────────────────────────
+      const maxStreet = parseInt(streetRows[0]?.cnt || 1);
+      const streetHtml = streetRows.map((r, i) => {
+        const cnt = parseInt(r.cnt);
+        const pct = Math.round(cnt / maxStreet * 100);
+        const name = titleCase(r.rpt_street_name || "Unknown");
+        return `<div class="bar-row">
+          <span class="bar-label wide" title="${name}" style="text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${i+1}. ${name}</span>
+          ${bar(cnt, "#3b82f6", pct)}
+          <span class="bar-val wide">${cnt} crashes</span>
+        </div>`;
+      }).join("");
+
+      // ── collision types ────────────────────────────────────────────────────
+      const maxCollsn = parseInt(collsnRows[0]?.cnt || 1);
+      const collsnHtml = collsnRows.map((r, i) => {
+        const cnt  = parseInt(r.cnt);
+        const pct  = Math.round(cnt / maxCollsn * 100);
+        const name = titleCase(r.collsn_desc || "Unknown");
+        return `<div class="bar-row">
+          <span class="bar-label wide" title="${name}" style="text-align:right;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${name}</span>
+          ${bar(cnt, "#7c3aed", pct)}
+          <span class="bar-val wide">${cnt.toLocaleString()}</span>
+        </div>`;
+      }).join("");
+
+      // ── monthly trend ──────────────────────────────────────────────────────
+      const MNAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const months = monthRows.map(r => ({
+        label: `${MNAMES[parseInt(r.mo)-1]} ${r.yr}`,
+        cnt:   parseInt(r.cnt || 0),
+        deaths:parseInt(r.deaths || 0),
+      })).reverse();
+      const maxCnt = Math.max(...months.map(m => m.cnt), 1);
+      const maxDead= Math.max(...months.map(m => m.deaths), 1);
+      const monthHtml = months.map(m => {
+        const crashPct = Math.round(m.cnt / maxCnt * 100);
+        const deadPct  = Math.round(m.deaths / maxDead * 100);
+        return `<div class="month-row">
+          <span class="month-lbl">${m.label}</span>
+          <div class="month-track">
+            <div class="month-bar-crash" style="width:${crashPct}%"></div>
+            <div class="month-bar-death" style="width:${deadPct}%"></div>
+          </div>
+          <span class="month-val">${m.cnt.toLocaleString()}</span>
+          <span class="month-dead">${m.deaths > 0 ? "⚰ " + m.deaths : "—"}</span>
+        </div>`;
+      }).join("");
+
+      // ── road user fatalities ───────────────────────────────────────────────
+      const ruserData = [
+        { label: "🚗 Motor Vehicle", val: parseInt(modes.mv    || 0) },
+        { label: "🚶 Pedestrian",    val: parseInt(modes.ped   || 0) },
+        { label: "🏍️ Motorcycle",    val: parseInt(modes.moto  || 0) },
+        { label: "🚲 Bicycle",       val: parseInt(modes.bike  || 0) },
+        { label: "🛴 Micromobility", val: parseInt(modes.micro || 0) },
+      ].filter(r => r.val > 0);
+      const ruserHtml = ruserData.length
+        ? ruserData.map(r => `<div class="ruser-row"><span class="ruser-name">${r.label}</span><span class="ruser-val">${r.val}</span></div>`).join("")
+        : `<div style="font-size:12px;color:var(--text-muted);">No fatalities recorded in this period.</div>`;
+
+      el.innerHTML = `
+        ${statsHtml}
+
+        <div class="chart-card">
+          <div class="chart-title">🕐 Crashes by Time of Day</div>
+          <div class="chart-sub">Last 90 days · red = peak hours · all 24 hours shown</div>
+          <div class="bar-rows">${hourHtml}</div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-card">
+            <div class="chart-title">📅 Day of Week</div>
+            <div class="chart-sub">Last 90 days · purple = weekend</div>
+            <div class="bar-rows">${dowHtml}</div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">⚰️ Fatalities by Road User</div>
+            <div class="chart-sub">Last 90 days · ${deaths} total fatalities</div>
+            <div class="ruser-rows">${ruserHtml}</div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">🛣️ Most Dangerous Streets</div>
+          <div class="chart-sub">Top 10 by crash count · last 90 days</div>
+          <div class="bar-rows">${streetHtml}</div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">💥 Collision Types</div>
+          <div class="chart-sub">Top 10 by frequency · last 90 days</div>
+          <div class="bar-rows">${collsnHtml}</div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">📊 Monthly Trend</div>
+          <div class="chart-sub">Last 12 months · blue bar = crashes · red overlay = fatalities</div>
+          <div class="legend-inline">
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div> Crash count</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Fatalities</div>
+          </div>
+          <div class="month-rows">${monthHtml}</div>
+        </div>
+
+        <footer>
+          Data: <a href="https://data.austintexas.gov/d/y2wy-tgr5" target="_blank" rel="noopener">APD Crash Report Data</a>
+          &nbsp;·&nbsp; Note: APD records typically lag 2–4 weeks behind the current date.
+        </footer>`;
+    }
+
+    loadAll();
+  </script>
+</body>
+</html>

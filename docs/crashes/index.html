@@ -130,8 +130,9 @@
       display: inline-block; margin-top: 10px;
       padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700;
     }
-    .tag-live  { background: #dc2626; color: #fff; }
-    .tag-apd   { background: #2563eb; color: #fff; }
+    .tag-live   { background: #dc2626; color: #fff; }
+    .tag-trends { background: #7c3aed; color: #fff; }
+    .tag-apd    { background: #2563eb; color: #fff; }
 
     /* ── sidebar ── */
     #sidebar {
@@ -223,6 +224,12 @@
             <div class="picker-card-title">Live Traffic Incidents</div>
             <div class="picker-card-desc">Real-time crash reports from Austin 911 and traffic ops. Updates within minutes of being reported.</div>
             <span class="picker-card-tag tag-live">Real-time</span>
+          </div>
+          <div class="picker-card" onclick="location.href='trends/'">
+            <div class="picker-card-icon">📈</div>
+            <div class="picker-card-title">Crash Trends</div>
+            <div class="picker-card-desc">Time of day, day of week, dangerous streets, collision types, and monthly patterns from APD records.</div>
+            <span class="picker-card-tag tag-trends">Analysis</span>
           </div>
           <div class="picker-card" onclick="pickSource('apd')">
             <div class="picker-card-icon">📋</div>
