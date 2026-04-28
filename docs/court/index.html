@@ -5,24 +5,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Austin 311 — Court Caseloads</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg: #f8fafc; --bg-panel: #f1f5f9;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #d1dae3; --btn-hover-color: #1e293b;
+      --note-bg: #f1f5f9; --note-text: #475569; --note-strong: #1e293b;
+    }
+    html.dark {
+      --bg: #0f1117; --bg-panel: #1e2230;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --note-bg: #1e2230; --note-text: #94a3b8; --note-strong: #f1f5f9;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: background 0.2s, color 0.2s;
     }
 
     #panel {
       position: sticky;
       top: 0;
       z-index: 100;
-      background: #1e2230;
-      border-bottom: 1px solid #2d3348;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
       padding: 10px 16px 12px;
       display: flex;
       flex-direction: column;
@@ -30,8 +49,8 @@
       gap: 6px;
     }
 
-    #panel-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
-    #panel-subtitle { font-size: 12px; color: #64748b; text-align: center; }
+    #panel-title { font-size: 15px; font-weight: 700; color: var(--text-head); }
+    #panel-subtitle { font-size: 12px; color: var(--text-sub); text-align: center; }
 
     .btn-row {
       display: flex;
@@ -41,9 +60,9 @@
     }
 
     .fbtn {
-      background: #252b3b;
-      border: 1px solid #3d4868;
-      color: #94a3b8;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--btn-color);
       padding: 5px 13px;
       border-radius: 4px;
       font-size: 12px;
@@ -51,17 +70,23 @@
       transition: background 0.12s, border-color 0.12s, color 0.12s;
       white-space: nowrap;
     }
-    .fbtn:hover { background: #2d3453; color: #e2e8f0; }
+    .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
     .fbtn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 600; }
     .fbtn.active-amber { background: #b45309; border-color: #b45309; color: #fff; font-weight: 600; }
     .fbtn.active-purple { background: #7c3aed; border-color: #7c3aed; color: #fff; font-weight: 600; }
     .fbtn.active-teal { background: #0d9488; border-color: #0d9488; color: #fff; font-weight: 600; }
 
+    #theme-toggle {
+      position: fixed; top: 10px; right: 12px; z-index: 200;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer;
+    }
+
     #stats {
       display: none;
       justify-content: center;
       gap: 0;
-      border-bottom: 1px solid #2d3348;
+      border-bottom: 1px solid var(--border);
     }
 
     .stat {
@@ -69,13 +94,13 @@
       max-width: 160px;
       text-align: center;
       padding: 10px 8px 9px;
-      border-right: 1px solid #2d3348;
+      border-right: 1px solid var(--border);
     }
     .stat:last-child { border-right: none; }
     .stat-value { font-size: 1.3rem; font-weight: 700; line-height: 1.1; }
     .stat-label {
       font-size: 0.67rem;
-      color: #475569;
+      color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
       margin-top: 3px;
@@ -90,7 +115,7 @@
       align-items: center;
       justify-content: center;
       padding: 60px 0;
-      color: #475569;
+      color: var(--text-muted);
       font-size: 14px;
     }
 
@@ -98,14 +123,14 @@
       display: none;
       margin-top: 20px;
       padding: 12px 14px;
-      background: #1e2230;
-      border: 1px solid #2d3348;
+      background: var(--note-bg);
+      border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.8rem;
-      color: #94a3b8;
+      color: var(--note-text);
       line-height: 1.6;
     }
-    .note-box strong { color: #f1f5f9; }
+    .note-box strong { color: var(--note-strong); }
     .note-box .note-btn {
       background: none; border: none; color: #3b82f6;
       cursor: pointer; font-size: inherit; text-decoration: underline; padding: 0;
@@ -118,11 +143,11 @@
 
     /* disposition sub-table */
     .dispo-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.78rem; }
-    .dispo-table th { color: #64748b; text-align: left; padding: 4px 6px; border-bottom: 1px solid #2d3348; }
-    .dispo-table td { padding: 4px 6px; border-bottom: 1px solid #1e2230; }
+    .dispo-table th { color: var(--text-sub); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+    .dispo-table td { padding: 4px 6px; border-bottom: 1px solid var(--bg-panel); }
     .dispo-table tr:last-child td { border-bottom: none; }
-    .dispo-table .cnt { text-align: right; color: #94a3b8; }
-    .dispo-table .pct { text-align: right; color: #475569; }
+    .dispo-table .cnt { text-align: right; color: var(--text-sub); }
+    .dispo-table .pct { text-align: right; color: var(--text-muted); }
     .dispo-badge {
       display: inline-block; padding: 1px 6px; border-radius: 3px;
       font-size: 0.72rem; font-weight: 600;
@@ -132,11 +157,11 @@
       text-align: center;
       padding: 14px 16px;
       font-size: 0.74rem;
-      color: #475569;
-      border-top: 1px solid #1e2230;
+      color: var(--text-muted);
+      border-top: 1px solid var(--bg-panel);
     }
-    footer a { color: #64748b; text-decoration: none; }
-    footer a:hover { color: #94a3b8; }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--text); }
 
     @media (max-width: 520px) {
       .stat-value { font-size: 1.05rem; }
@@ -153,6 +178,8 @@
 </script>
 </head>
 <body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
 
   <div id="panel">
     <div id="panel-title">⚖️ Austin Court Caseloads</div>
@@ -260,6 +287,19 @@
   </footer>
 
   <script>
+    const isDark    = document.documentElement.classList.contains("dark");
+    const gridColor = isDark ? "#2d3348" : "#e2e8f0";
+    const tickColor = isDark ? "#94a3b8" : "#64748b";
+    const mutedTick = isDark ? "#64748b" : "#9ca3af";
+    const legColor  = isDark ? "#94a3b8" : "#4b5563";
+    const toggleBtn = document.getElementById("theme-toggle");
+    if (toggleBtn) toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }
+
     // ── Dataset definitions ────────────────────────────────────────────────────
 
     const DATASETS = {
@@ -670,20 +710,20 @@
           maintainAspectRatio: false,
           scales: {
             x: {
-              ticks: { color: '#94a3b8', font: { size: 12 } },
-              grid: { color: '#2d3348' },
-              border: { color: '#2d3348' }
+              ticks: { color: tickColor, font: { size: 12 } },
+              grid: { color: gridColor },
+              border: { color: gridColor }
             },
             y: {
-              ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
-              grid: { color: '#2d3348' },
-              border: { color: '#2d3348' }
+              ticks: { color: mutedTick, font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: gridColor },
+              border: { color: gridColor }
             }
           },
           plugins: {
             legend: {
               position: 'top',
-              labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 16 }
+              labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 16 }
             },
             tooltip: {
               callbacks: {
@@ -749,21 +789,21 @@
           scales: {
             x: {
               stacked: true,
-              ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
-              grid: { color: '#2d3348' },
-              border: { color: '#2d3348' },
+              ticks: { color: mutedTick, font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: gridColor },
+              border: { color: gridColor },
             },
             y: {
               stacked: true,
-              ticks: { color: '#94a3b8', font: { size: 11 }, autoSkip: false },
+              ticks: { color: tickColor, font: { size: 11 }, autoSkip: false },
               grid: { display: false },
-              border: { color: '#2d3348' },
+              border: { color: gridColor },
             },
           },
           plugins: {
             legend: {
               position: 'top', align: 'start',
-              labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 16 },
+              labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 16 },
             },
             tooltip: {
               callbacks: {
@@ -828,14 +868,14 @@
           maintainAspectRatio: false,
           scales: {
             x: {
-              ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
-              grid: { color: '#2d3348' },
-              border: { color: '#2d3348' },
+              ticks: { color: mutedTick, font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: gridColor },
+              border: { color: gridColor },
             },
             y: {
-              ticks: { color: '#94a3b8', font: { size: 12 }, autoSkip: false },
+              ticks: { color: tickColor, font: { size: 12 }, autoSkip: false },
               grid: { display: false },
-              border: { color: '#2d3348' },
+              border: { color: gridColor },
             },
           },
           plugins: {
@@ -885,21 +925,21 @@
         scales: {
           x: {
             stacked: true,
-            ticks: { color: '#64748b', font: { size: 11 } },
-            grid: { color: '#2d3348' },
-            border: { color: '#2d3348' }
+            ticks: { color: mutedTick, font: { size: 11 } },
+            grid: { color: gridColor },
+            border: { color: gridColor }
           },
           y: {
             stacked: true,
-            ticks: { color: '#94a3b8', font: { size: 11 }, autoSkip: false },
+            ticks: { color: tickColor, font: { size: 11 }, autoSkip: false },
             grid: { display: false },
-            border: { color: '#2d3348' }
+            border: { color: gridColor }
           }
         },
         plugins: {
           legend: {
             position: 'top', align: 'start',
-            labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 16 }
+            labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 16 }
           },
           tooltip: {
             callbacks: {

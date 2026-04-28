@@ -88,6 +88,10 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 - `docs/parks/index.html` — Park maintenance point map (https://seanatwork.github.io/austin311bot-unofficial/parks/)
 - `docs/water/index.html` — Water conservation violations point map (https://seanatwork.github.io/austin311bot-unofficial/water/)
 - `docs/childcare/index.html` — Childcare facility compliance map (https://seanatwork.github.io/austin311bot-unofficial/childcare/)
+- `docs/animal/index.html` — Animal services map (https://seanatwork.github.io/austin311bot-unofficial/animal/)
+- `docs/crashes/index.html` — APD crash map with sidebar (https://seanatwork.github.io/austin311bot-unofficial/crashes/) — **client-side only**, fetches live from Socrata `y2wy-tgr5`; no Python generator
+- `docs/budget/index.html` — City budget spending (https://seanatwork.github.io/austin311bot-unofficial/budget/)
+- `docs/court/index.html` — Austin court caseloads (https://seanatwork.github.io/austin311bot-unofficial/court/)
 
 **Files:**
 - `scripts/generate_map.py` — generic map generator that accepts category as CLI argument
@@ -102,6 +106,12 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 - `.github/workflows/generate-parks-map.yml` — GitHub Actions cron for parks map (daily noon UTC)
 - `.github/workflows/generate-water-map.yml` — GitHub Actions cron for water map (daily noon UTC)
 - `.github/workflows/generate-childcare-map.yml` — GitHub Actions cron for childcare map (weekly, Mondays)
+- `.github/workflows/generate-animal-map.yml` — GitHub Actions cron for animal map (daily noon UTC)
+- `.github/workflows/generate-budget.yml` — GitHub Actions cron for budget page (quarterly: 15th of Jan/Apr/Jul/Oct)
+- `.github/workflows/generate-graffiti-trends.yml` — GitHub Actions cron for graffiti trends (weekly Monday 13:00 UTC)
+- `.github/workflows/generate-crime-trends.yml` — GitHub Actions cron for crime trends (weekly Monday 13:00 UTC)
+- `.github/workflows/generate-noise-trends.yml` — GitHub Actions cron for noise trends (weekly Monday 13:00 UTC)
+- `.github/workflows/generate-parking-trends.yml` — GitHub Actions cron for parking trends (weekly Monday 13:00 UTC)
 - `docs/*/index.html` — pre-generated Folium HTML maps (committed to repo)
 
 **Map features (all maps follow the same pattern):**
@@ -121,21 +131,19 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 - 429 rate limit errors during local runs are normal without the token; CI has the secret
 - `.venv/` is the working virtualenv (system Python is externally managed)
 
-## Richer Map Popups — In Progress
+## Richer Map Popups
 
 **Goal:** Show all available data in map popups so users don't need to click through to `https://311.austintexas.gov/tickets/<id>`.
 
 **Key finding:** The Open311 v2 API (`/requests.json`) does NOT return a `description` field for some service codes (notably `ACBITE2` Animal Bite, `WILDEXPO`, `ACINFORM`). But the 311 website at `https://311.austintexas.gov/tickets/<id>` shows an "Additional Details" section with form answers (e.g. "What type of animal? Cat", "What date did the bite occur? Apr 26, 2026"). These are in `<dd class="mt-1 text-sm text-gray-900">` elements following an `<dt>Additional Details</dt>` tag.
 
-**What's been done (animal map — `animalsvc/animal_bot.py`):**
+**Implemented (animal map — `animalsvc/animal_bot.py`):**
 - Added `_get_scrape_session()`, `_fetch_ticket_page_details(req_id)`, and `_fetch_all_ticket_details(req_ids)` functions that scrape the additional details section from the 311 website using BeautifulSoup (already in requirements)
 - `_SKIP_DETAILS_RE` skips the "preferred language for contact" question (not useful)
 - `_fetch_all_ticket_details` uses `ThreadPoolExecutor(max_workers=15)` for parallel fetching
 - `generate_animal_map()` now fetches additional details for all mapped records before building markers
 - Popup HTML updated: description label becomes "Resolution" for closed tickets (vs. "Notes" for open), extra_block shows "Additional Details:" with scraped form answers
 - Popup `max_width` increased from 300 to 320px
-
-**Still to test:** Run `python scripts/generate_map.py animal` locally (with `.venv` activated) to confirm scraping works and regenerate `docs/animal/index.html`, then run `bash sync-to-unofficial.sh`.
 
 **Pattern to replicate for other maps:** The same `_fetch_ticket_page_details` / `_fetch_all_ticket_details` approach should work for graffiti, bicycle, homeless, noise, parking, and parks maps. Each is in its own `*_bot.py` module — copy the three helper functions and the fetch call in `generate_*_map()`.
 
