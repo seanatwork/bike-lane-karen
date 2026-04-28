@@ -249,81 +249,121 @@ def generate_html(fy, quarter, depts, dept_cats):
     gtag('js', new Date());
     gtag('config', 'G-TS158R7XSN');
   </script>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    :root {{
+      --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff; --bg-card2: #f8fafc;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #d1dae3; --btn-hover-color: #1e293b;
+      --chart-title: #374151; --chart-sub: #6b7280;
+      --section-head: #0f172a; --section-sub: #64748b;
+      --fund-card-bg: #ffffff; --fund-name: #0f172a; --fund-list: #64748b; --fund-note: #6b7280; --fund-note-strong: #374151;
+      --footer-border: #e2e8f0; --footer-color: #94a3b8;
+      --source-color: #6b7280; --source-a: #475569;
+      --drill-bg: #f1f5f9; --drill-border: #3b82f6; --drill-title: #0f172a;
+      --drill-close-border: #cbd5e1; --drill-close-color: #64748b;
+      --drill-name: #1e293b; --drill-vals: #64748b; --drill-pct: #94a3b8;
+      --drill-hint: #94a3b8;
+      --legend-color: #64748b;
+    }}
+    html.dark {{
+      --bg: #0f1117; --bg-panel: #1e2230; --bg-card: #161a24; --bg-card2: #1a1f2e;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --chart-title: #e2e8f0; --chart-sub: #475569;
+      --section-head: #f1f5f9; --section-sub: #64748b;
+      --fund-card-bg: #1e2230; --fund-name: #f1f5f9; --fund-list: #94a3b8; --fund-note: #475569; --fund-note-strong: #64748b;
+      --footer-border: #1e2230; --footer-color: #475569;
+      --source-color: #334155; --source-a: #475569;
+      --drill-bg: #1a1f2e; --drill-border: #3d4868; --drill-title: #f1f5f9;
+      --drill-close-border: #3d4868; --drill-close-color: #64748b;
+      --drill-name: #e2e8f0; --drill-vals: #64748b; --drill-pct: #94a3b8;
+      --drill-hint: #334155;
+      --legend-color: #94a3b8;
+    }}
     body {{
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f1117; color: #e2e8f0;
-      min-height: 100vh; display: flex; flex-direction: column;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column; transition: background 0.2s, color 0.2s;
     }}
     #panel {{
       position: sticky; top: 0; z-index: 100;
-      background: #1e2230; border-bottom: 1px solid #2d3348;
+      background: var(--bg-panel); border-bottom: 1px solid var(--border);
       padding: 10px 16px 12px;
       display: flex; flex-direction: column; align-items: center; gap: 6px;
     }}
-    #panel-title {{ font-size: 15px; font-weight: 700; color: #f1f5f9; }}
-    #panel-subtitle {{ font-size: 12px; color: #64748b; text-align: center; }}
-    #last-updated {{ font-size: 11px; color: #475569; }}
+    #panel-title {{ font-size: 15px; font-weight: 700; color: var(--text-head); }}
+    #panel-subtitle {{ font-size: 12px; color: var(--text-sub); text-align: center; }}
+    #last-updated {{ font-size: 11px; color: var(--text-muted); }}
     .btn-row {{ display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }}
     .fbtn {{
-      background: #252b3b; border: 1px solid #3d4868; color: #94a3b8;
+      background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color);
       padding: 5px 13px; border-radius: 4px; font-size: 12px;
       text-decoration: none; display: inline-block; white-space: nowrap;
-      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      transition: background 0.12s, color 0.12s; cursor: pointer;
     }}
-    .fbtn:hover {{ background: #2d3453; color: #e2e8f0; }}
-    #stats {{ border-bottom: 1px solid #2d3348; }}
+    .fbtn:hover {{ background: var(--btn-hover-bg); color: var(--btn-hover-color); }}
+    #theme-toggle {{
+      position: fixed; top: 10px; right: 12px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer;
+    }}
+    #stats {{ border-bottom: 1px solid var(--border); }}
     .stats-inner {{ display: flex; justify-content: center; flex-wrap: wrap; }}
     .stat {{
       flex: 1; min-width: 120px; max-width: 200px; text-align: center;
-      padding: 10px 8px 9px; border-right: 1px solid #2d3348;
+      padding: 10px 8px 9px; border-right: 1px solid var(--border);
     }}
     .stat:last-child {{ border-right: none; }}
     .stat-value {{ font-size: 1.2rem; font-weight: 700; line-height: 1.1; }}
-    .stat-label {{ font-size: 0.67rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }}
-    .stat-sub   {{ font-size: 0.67rem; color: #475569; margin-top: 1px; }}
+    .stat-label {{ font-size: 0.67rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }}
+    .stat-sub   {{ font-size: 0.67rem; color: var(--text-muted); margin-top: 1px; }}
     #main {{ flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }}
-    .chart-block {{ background: #161a24; border: 1px solid #2d3348; border-radius: 8px; padding: 14px; }}
-    .chart-title {{ font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }}
-    .chart-sub   {{ font-size: 11px; color: #475569; margin-bottom: 10px; }}
+    .chart-block {{ background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }}
+    .chart-title {{ font-size: 13px; font-weight: 600; color: var(--chart-title); margin-bottom: 4px; }}
+    .chart-sub   {{ font-size: 11px; color: var(--chart-sub); margin-bottom: 10px; }}
     .chart-container {{ position: relative; height: 480px; }}
     .legend {{ display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 10px; }}
-    .legend-item {{ display: flex; align-items: center; gap: 5px; font-size: 11px; color: #94a3b8; }}
+    .legend-item {{ display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--legend-color); }}
     .legend-dot {{ width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }}
-    .section-divider {{ border: none; border-top: 1px solid #2d3348; }}
-    .section-heading {{ font-size: 1.1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.3rem; }}
-    .section-sub {{ font-size: 0.82rem; color: #64748b; line-height: 1.5; margin-bottom: 1.2rem; }}
+    .section-divider {{ border: none; border-top: 1px solid var(--border); }}
+    .section-heading {{ font-size: 1.1rem; font-weight: 700; color: var(--section-head); margin-bottom: 0.3rem; }}
+    .section-sub {{ font-size: 0.82rem; color: var(--section-sub); line-height: 1.5; margin-bottom: 1.2rem; }}
     .fund-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }}
     .fund-card {{
-      background: #1e2230; border: 1px solid #2d3348;
+      background: var(--fund-card-bg); border: 1px solid var(--border);
       border-top: 3px solid var(--accent);
       border-radius: 10px; padding: 1.2rem;
       display: flex; flex-direction: column; gap: 0.45rem;
     }}
     .fund-icon {{ font-size: 1.4rem; line-height: 1; }}
-    .fund-name {{ font-size: 0.95rem; font-weight: 700; color: #f1f5f9; }}
+    .fund-name {{ font-size: 0.95rem; font-weight: 700; color: var(--fund-name); }}
     .fund-source {{ font-size: 0.72rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }}
-    .fund-card ul {{ margin: 0.2rem 0 0 1rem; font-size: 0.78rem; color: #94a3b8; line-height: 1.7; }}
+    .fund-card ul {{ margin: 0.2rem 0 0 1rem; font-size: 0.78rem; color: var(--fund-list); line-height: 1.7; }}
     .fund-note {{
-      margin-top: 0.5rem; font-size: 0.72rem; color: #475569;
-      border-top: 1px solid #2d3348; padding-top: 0.5rem; line-height: 1.4;
+      margin-top: 0.5rem; font-size: 0.72rem; color: var(--fund-note);
+      border-top: 1px solid var(--border); padding-top: 0.5rem; line-height: 1.4;
     }}
-    .fund-note strong {{ color: #64748b; }}
-    #data-source {{ font-size: 0.75rem; color: #334155; text-align: center; padding-bottom: 4px; }}
-    #data-source a {{ color: #475569; text-decoration: none; }}
-    #data-source a:hover {{ color: #64748b; }}
-    footer {{ text-align: center; padding: 14px 16px; font-size: 0.74rem; color: #475569; border-top: 1px solid #1e2230; }}
-    footer a {{ color: #64748b; text-decoration: none; }}
-    footer a:hover {{ color: #94a3b8; }}
+    .fund-note strong {{ color: var(--fund-note-strong); }}
+    #data-source {{ font-size: 0.75rem; color: var(--source-color); text-align: center; padding-bottom: 4px; }}
+    #data-source a {{ color: var(--source-a); text-decoration: none; }}
+    #data-source a:hover {{ color: var(--text-sub); }}
+    footer {{ text-align: center; padding: 14px 16px; font-size: 0.74rem; color: var(--footer-color); border-top: 1px solid var(--footer-border); }}
+    footer a {{ color: var(--text-sub); text-decoration: none; }}
+    footer a:hover {{ color: var(--text); }}
     @media (max-width: 520px) {{ .stat-value {{ font-size: 1rem; }} .chart-container {{ height: 560px; }} }}
 
     /* ── drill-down panel ── */
     #drill-panel {{
       display: none;
-      background: #1a1f2e;
-      border: 1px solid #3d4868;
+      background: var(--drill-bg);
+      border: 1px solid var(--drill-border);
       border-radius: 8px;
       padding: 18px 16px 20px;
       animation: slideIn 0.18s ease;
@@ -336,52 +376,34 @@ def generate_html(fy, quarter, depts, dept_cats):
       display: flex; align-items: baseline; justify-content: space-between;
       margin-bottom: 14px; flex-wrap: wrap; gap: 6px;
     }}
-    #drill-title {{
-      font-size: 15px; font-weight: 700; color: #f1f5f9;
-    }}
-    #drill-totals {{
-      font-size: 11px; color: #64748b;
-    }}
+    #drill-title {{ font-size: 15px; font-weight: 700; color: var(--drill-title); }}
+    #drill-totals {{ font-size: 11px; color: var(--text-sub); }}
     #drill-close {{
-      background: none; border: 1px solid #3d4868; color: #64748b;
+      background: none; border: 1px solid var(--drill-close-border); color: var(--drill-close-color);
       border-radius: 4px; padding: 3px 9px; font-size: 11px; cursor: pointer;
       transition: border-color 0.12s, color 0.12s;
     }}
-    #drill-close:hover {{ border-color: #94a3b8; color: #e2e8f0; }}
+    #drill-close:hover {{ border-color: var(--text-sub); color: var(--text); }}
     #drill-body {{
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      gap: 20px;
-      align-items: start;
+      display: grid; grid-template-columns: 240px 1fr; gap: 20px; align-items: start;
     }}
     @media (max-width: 600px) {{
       #drill-body {{ grid-template-columns: 1fr; }}
       #drill-donut-wrap {{ height: 220px; }}
     }}
     #drill-donut-wrap {{ position: relative; height: 260px; }}
-    #drill-legend {{
-      display: flex; flex-direction: column; gap: 9px; padding: 4px 0;
-    }}
-    .drill-legend-row {{
-      display: flex; align-items: center; gap: 9px;
-    }}
-    .drill-swatch {{
-      width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0;
-    }}
-    .drill-legend-name {{
-      font-size: 12px; font-weight: 600; color: #e2e8f0; flex: 1;
-    }}
-    .drill-legend-vals {{
-      text-align: right; font-size: 11px; color: #64748b;
-      white-space: nowrap;
-    }}
-    .drill-legend-pct {{
-      font-size: 11px; font-weight: 700; color: #94a3b8; min-width: 36px; text-align: right;
-    }}
-    #drill-hint {{ font-size: 11px; color: #334155; margin-top: 12px; text-align: center; }}
+    #drill-legend {{ display: flex; flex-direction: column; gap: 9px; padding: 4px 0; }}
+    .drill-legend-row {{ display: flex; align-items: center; gap: 9px; }}
+    .drill-swatch {{ width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0; }}
+    .drill-legend-name {{ font-size: 12px; font-weight: 600; color: var(--drill-name); flex: 1; }}
+    .drill-legend-vals {{ text-align: right; font-size: 11px; color: var(--drill-vals); white-space: nowrap; }}
+    .drill-legend-pct {{ font-size: 11px; font-weight: 700; color: var(--drill-pct); min-width: 36px; text-align: right; }}
+    #drill-hint {{ font-size: 11px; color: var(--drill-hint); margin-top: 12px; text-align: center; }}
   </style>
 </head>
 <body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
 
   <div id="panel">
     <div id="panel-title">💰 Austin General Fund — FY{fy}</div>
@@ -506,6 +528,23 @@ def generate_html(fy, quarter, depts, dept_cats):
     const BREAKDOWN = {js_breakdown};
     const CAT_META  = {js_cat_meta};
 
+    const isDark   = document.documentElement.classList.contains("dark");
+    const gridColor = isDark ? "#252b3b" : "#e8ecf0";
+    const tickColor = isDark ? "#64748b" : "#6b7280";
+    const legColor  = isDark ? "#94a3b8" : "#4b5563";
+    const tipBg     = isDark ? "#1e2230" : "#ffffff";
+    const tipBorder = isDark ? "#3d4868" : "#e2e8f0";
+    const tipTitle  = isDark ? "#f1f5f9" : "#111827";
+    const tipBody   = isDark ? "#e2e8f0" : "#374151";
+
+    const toggleBtn = document.getElementById("theme-toggle");
+    toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {{
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }}
+
     const fmt = n => {{
       const abs = Math.abs(n);
       const s = abs >= 1e6 ? (abs / 1e6).toFixed(1) + "M" : (abs / 1e3).toFixed(0) + "K";
@@ -545,11 +584,11 @@ def generate_html(fy, quarter, depts, dept_cats):
         plugins: {{
           legend: {{ display: false }},
           tooltip: {{
-            backgroundColor: "#1e2230",
-            borderColor: "#3d4868",
+            backgroundColor: tipBg,
+            borderColor: tipBorder,
             borderWidth: 1,
-            titleColor: "#f1f5f9",
-            bodyColor: "#e2e8f0",
+            titleColor: tipTitle,
+            bodyColor: tipBody,
             callbacks: {{
               title: ctx => ctx[0].label,
               afterTitle: ctx => `Adopted: ${{fmt(DEPTS[ctx[0].dataIndex].budget)}}`,
@@ -566,14 +605,14 @@ def generate_html(fy, quarter, depts, dept_cats):
         scales: {{
           x: {{
             stacked: true,
-            ticks: {{ color: "#64748b", font: {{ size: 11 }}, callback: v => "$" + (v / 1e6).toFixed(0) + "M" }},
-            grid: {{ color: "#252b3b" }},
+            ticks: {{ color: tickColor, font: {{ size: 11 }}, callback: v => "$" + (v / 1e6).toFixed(0) + "M" }},
+            grid: {{ color: gridColor }},
             beginAtZero: true,
           }},
           y: {{
             stacked: true,
-            ticks: {{ color: "#94a3b8", font: {{ size: 11 }} }},
-            grid: {{ color: "#252b3b" }},
+            ticks: {{ color: tickColor, font: {{ size: 11 }} }},
+            grid: {{ color: gridColor }},
           }},
         }},
       }},
@@ -614,7 +653,7 @@ def generate_html(fy, quarter, depts, dept_cats):
             data: budgets,
             backgroundColor: colors,
             borderWidth: 2,
-            borderColor: "#1a1f2e",
+            borderColor: isDark ? "#1a1f2e" : "#ffffff",
             hoverOffset: 8,
           }}],
         }},

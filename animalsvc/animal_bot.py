@@ -12,6 +12,7 @@ import time
 import tempfile
 import logging
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -39,6 +40,10 @@ RETRYABLE_ERRORS = (
 )
 
 _session: Optional[requests.Session] = None
+_scrape_session: Optional[requests.Session] = None
+
+# Questions from the 311 form that are not worth displaying in the popup
+_SKIP_DETAILS_RE = re.compile(r'preferred language|language for contact', re.IGNORECASE)
 
 
 def _get_session() -> requests.Session:
@@ -50,6 +55,55 @@ def _get_session() -> requests.Session:
             "User-Agent": "austin311bot/0.1 (Open311 animal queries)",
         })
     return _session
+
+
+def _get_scrape_session() -> requests.Session:
+    global _scrape_session
+    if _scrape_session is None:
+        _scrape_session = requests.Session()
+        _scrape_session.headers.update({
+            "Accept": "text/html,application/xhtml+xml",
+            "User-Agent": "austin311bot/0.1 (public data research)",
+        })
+    return _scrape_session
+
+
+def _fetch_ticket_page_details(req_id: str) -> list:
+    """Scrape the Additional Details form answers from the 311 ticket page."""
+    try:
+        from bs4 import BeautifulSoup
+        url = f"https://311.austintexas.gov/tickets/{req_id}"
+        resp = _get_scrape_session().get(url, timeout=10)
+        if resp.status_code != 200:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        details = []
+        for dt in soup.find_all("dt"):
+            if "Additional Details" in dt.get_text():
+                sibling = dt.find_next_sibling()
+                while sibling and sibling.name == "dd":
+                    text = sibling.get_text(strip=True)
+                    if text and not _SKIP_DETAILS_RE.search(text):
+                        details.append(text)
+                    sibling = sibling.find_next_sibling()
+                break
+        return details
+    except Exception:
+        return []
+
+
+def _fetch_all_ticket_details(req_ids: list, max_workers: int = 15) -> dict:
+    """Fetch additional details for multiple tickets in parallel."""
+    results = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_id = {executor.submit(_fetch_ticket_page_details, rid): rid for rid in req_ids}
+        for future in as_completed(future_to_id):
+            rid = future_to_id[future]
+            try:
+                results[rid] = future.result()
+            except Exception:
+                results[rid] = []
+    return results
 
 
 def _utc_now() -> datetime:
@@ -389,6 +443,12 @@ def generate_animal_map(days_back: int = 90) -> tuple:
                 type_bucket_counts[slug][b][s] += 1
     counts_js = str(type_bucket_counts).replace("'", '"')
 
+    # Fetch additional form details from 311 website for all mapped records
+    req_ids = [r.get("service_request_id") for r in records if r.get("service_request_id")]
+    logger.info(f"Fetching additional details for {len(req_ids)} records from 311 website...")
+    ticket_details = _fetch_all_ticket_details(req_ids)
+    logger.info("Done fetching additional details.")
+
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
 
     # Layer key: {status}_{bucket}_{typeSlug}  — no underscores in slug so split('_') is safe
@@ -426,13 +486,27 @@ def generate_animal_map(days_back: int = 90) -> tuple:
 
         address_line = f'<b>Address:</b> <a href="https://www.google.com/maps/search/?api=1&query={lat},{lon}" target="_blank">{address}</a><br/>' if address else ""
         updated_line = f"<span style='color:#666;'>Updated: {updated_str}</span><br/>" if updated_str and updated_str != date_str else ""
-        desc_text = description or status_notes
-        desc_short = (desc_text[:500] + "...") if len(desc_text) > 500 else desc_text
-        desc_block = f"<b>Description:</b><br/><i>{desc_short.replace(chr(10), '<br/>')}</i><br/>" if desc_short else ""
+
+        # API description shown as-is; status_notes labeled "Resolution" for closed tickets
+        desc_block = ""
+        if description:
+            desc_short = (description[:400] + "...") if len(description) > 400 else description
+            desc_block = f"<b>Description:</b><br/><i>{desc_short.replace(chr(10), '<br/>')}</i><br/>"
+        elif status_notes:
+            notes_short = (status_notes[:300] + "...") if len(status_notes) > 300 else status_notes
+            label = "Resolution" if status == "closed" else "Notes"
+            desc_block = f"<b>{label}:</b><br/><i>{notes_short}</i><br/>"
+
+        # Additional form details scraped from the 311 website
+        extra_details = ticket_details.get(req_id, [])
+        extra_block = ""
+        if extra_details:
+            detail_lines = "<br/>".join(f"<span style='color:#444;'>{d}</span>" for d in extra_details)
+            extra_block = f"<b>Additional Details:</b><br/>{detail_lines}<br/>"
 
         ticket_url = f"https://311.austintexas.gov/tickets/{req_id}"
         popup_html = f"""
-        <div style="font-family:sans-serif;max-width:300px;">
+        <div style="font-family:sans-serif;max-width:320px;font-size:13px;">
             <b><a href="{ticket_url}" target="_blank" style="color:#0066cc;">Report #{req_id}</a></b><br/>
             <span style="color:#666;">Filed: {date_str}</span><br/>
             {updated_line}
@@ -441,9 +515,10 @@ def generate_animal_map(days_back: int = 90) -> tuple:
             <b>Status:</b> {'🔴 Open' if status == 'open' else '🟢 Closed'}<br/>
             <b>Type:</b> {service_label}<br/><br/>
             {desc_block}
+            {extra_block}
         </div>
         """
-        popup = folium.Popup(popup_html, max_width=300)
+        popup = folium.Popup(popup_html, max_width=320)
 
         if status == "open":
             color, icon_name = _LABEL_COLOR.get(service_label, _DEFAULT_COLOR)
