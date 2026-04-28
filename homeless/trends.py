@@ -116,7 +116,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     total_second = sum(monthly[m]["total"] for m in second_half)
     rate_first  = round(hso_first  / total_first  * 100) if total_first  else 0
     rate_second = round(hso_second / total_second * 100) if total_second else 0
-    trend_arrow = "📈 increasing" if rate_second > rate_first else ("📉 decreasing" if rate_second < rate_first else "➡️ stable")
+    trend_arrow = "📈 rising" if rate_second > rate_first else ("📉 falling" if rate_second < rate_first else "➡️ stable")
 
     # ── Build month rows ───────────────────────────────────────────────────────
     max_total = max((monthly[m]["total"] for m in sorted_months), default=1)
@@ -335,11 +335,14 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       <div class="hso-note-title">⚠️ What is an HSO Deflection?</div>
       <div class="hso-quote">{HSO_BOILERPLATE}</div>
       <p>
-        When a resident files a 311 report about an encampment, Parks or Public Works
-        automatically closes the ticket with this boilerplate and routes it to the
-        Homeless Strategy Office — a separate department with no public-facing 311 tracking.
-        The resident receives a "closed" status with no follow-up, and the ticket
-        disappears from the standard 311 system. This page tracks that pattern over time.
+        When a resident files a 311 report about an encampment, it may be closed with
+        this boilerplate and routed to the Homeless Strategy Office — a separate department
+        with no public-facing 311 tracking. The resident receives a "closed" status, and
+        the ticket exits the standard 311 system. What happened before this boilerplate
+        became common is unknown: tickets may have been kept open longer, closed with
+        different messages, or handled differently. This page tracks only how often
+        <em>this specific closure pattern</em> appears, and whether it is becoming more
+        or less frequent over time.
       </p>
       <div class="trend-badge">
         Deflection rate: {rate_first}% (first half) → {rate_second}% (second half) · {trend_arrow}
