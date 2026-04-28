@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Austin 311 — Fun Data</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TS158R7XSN');
+  </script>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #dbeafe; --btn-hover-color: #1e293b;
+      --bar-bg: #e2e8f0; --bar-fill: #3b82f6;
+      --mover-up: #16a34a; --mover-bg: #f0fdf4; --mover-border: #bbf7d0;
+      --winner-bg: #fefce8; --winner-border: #fde68a;
+    }
+    html.dark {
+      --bg: #0f1117; --bg-panel: #1e2230; --bg-card: #161a24;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --bar-bg: #252b3b; --bar-fill: #3b82f6;
+      --mover-up: #4ade80; --mover-bg: #052e16; --mover-border: #14532d;
+      --winner-bg: #1c1a06; --winner-border: #713f12;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      padding: 2rem 1rem 3rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    #theme-toggle {
+      position: fixed; top: 14px; right: 16px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px; font-size: 0.75rem;
+      color: var(--text-sub); cursor: pointer;
+    }
+
+    header { text-align: center; margin-bottom: 2rem; }
+    header h1 { font-size: 2rem; font-weight: 800; color: var(--text-head); letter-spacing: -0.5px; }
+    header p  { margin-top: 0.4rem; color: var(--text-sub); font-size: 0.95rem; }
+
+    .nav { display: flex; gap: 8px; margin-bottom: 1.8rem; flex-wrap: wrap; justify-content: center; }
+    .nav a {
+      background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color);
+      padding: 5px 13px; border-radius: 4px; font-size: 12px; text-decoration: none;
+      transition: background 0.12s, color 0.12s;
+    }
+    .nav a:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; max-width: 900px; }
+
+    .card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .card-header { display: flex; align-items: baseline; gap: 10px; }
+    .card-icon { font-size: 1.6rem; line-height: 1; }
+    .card-title { font-size: 1.05rem; font-weight: 700; color: var(--text-head); }
+    .card-sub { font-size: 0.78rem; color: var(--text-sub); margin-top: 1px; }
+
+    .loading { color: var(--text-muted); font-size: 13px; padding: 12px 0; }
+    .error   { color: #ef4444; font-size: 12px; padding: 8px 0; }
+
+    /* winner banner */
+    .winner {
+      background: var(--winner-bg); border: 1px solid var(--winner-border);
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .winner-crown { font-size: 1.1rem; }
+    .winner-name  { font-size: 1rem; font-weight: 700; color: var(--text-head); }
+    .winner-addr  { font-size: 0.78rem; color: var(--text-sub); margin-top: 2px; }
+    .winner-sales { font-size: 1.3rem; font-weight: 700; color: #d97706; margin-top: 4px; }
+    .winner-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* bar chart rows */
+    .section-title { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .bar-rows { display: flex; flex-direction: column; gap: 5px; }
+    .bar-row { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+    .bar-rank { flex: 0 0 14px; color: var(--text-muted); text-align: right; }
+    .bar-name { flex: 0 0 145px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text); }
+    .bar-track { flex: 1; background: var(--bar-bg); border-radius: 2px; height: 6px; }
+    .bar-fill  { height: 6px; border-radius: 2px; background: var(--bar-fill); }
+    .bar-val   { flex: 0 0 46px; text-align: right; color: var(--text-sub); }
+
+    /* movers */
+    .mover-rows { display: flex; flex-direction: column; gap: 5px; }
+    .mover-row {
+      background: var(--mover-bg); border: 1px solid var(--mover-border);
+      border-radius: 6px; padding: 6px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px;
+    }
+    .mover-name  { font-weight: 600; color: var(--text-head); }
+    .mover-delta { color: var(--mover-up); font-weight: 700; white-space: nowrap; }
+
+    /* coyote stats */
+    .stat-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat-box {
+      flex: 1; min-width: 90px;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; text-align: center;
+    }
+    .stat-val   { font-size: 1.3rem; font-weight: 700; color: var(--text-head); line-height: 1.1; }
+    .stat-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+
+    .pupping-badge {
+      background: #fdf4ff; border: 1px solid #e9d5ff; border-radius: 6px;
+      padding: 8px 12px; font-size: 12px; color: #6b21a8; line-height: 1.5;
+    }
+    html.dark .pupping-badge { background: #2e1065; border-color: #581c87; color: #d8b4fe; }
+
+    footer { margin-top: 2.5rem; font-size: 0.74rem; color: var(--text-muted); text-align: center; }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+
+  <header>
+    <h1>🎉 Fun Data</h1>
+    <p>The lighter side of Austin open data</p>
+  </header>
+
+  <nav class="nav">
+    <a href="../">← Austin 311 Home</a>
+  </nav>
+
+  <div class="cards">
+
+    <!-- ── Bar of the Month ── -->
+    <div class="card" id="bar-card">
+      <div class="card-header">
+        <span class="card-icon">🍺</span>
+        <div>
+          <div class="card-title">Bar of the Month</div>
+          <div class="card-sub">Top TABC mixed beverage sales — Austin</div>
+        </div>
+      </div>
+      <div id="bar-content"><div class="loading">Loading TABC data…</div></div>
+    </div>
+
+    <!-- ── Coyote Sightings ── -->
+    <div class="card" id="coyote-card">
+      <div class="card-header">
+        <span class="card-icon">🐺</span>
+        <div>
+          <div class="card-title">Coyote Sightings</div>
+          <div class="card-sub">Open311 complaints — service code ACCOYTE</div>
+        </div>
+      </div>
+      <div id="coyote-content"><div class="loading">Loading coyote data…</div></div>
+    </div>
+
+  </div>
+
+  <footer>
+    Data: <a href="https://data.texas.gov/d/g5bj-yb6k" target="_blank" rel="noopener">TABC Mixed Beverage Sales</a>
+    &nbsp;·&nbsp;
+    <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 API</a>
+  </footer>
+
+  <script>
+    const isDark = document.documentElement.classList.contains("dark");
+    document.getElementById("theme-toggle").textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }
+
+    // ── helpers ────────────────────────────────────────────────────────────────
+
+    function fmtDollars(val) {
+      val = parseFloat(val) || 0;
+      if (val >= 1e6) return "$" + (val / 1e6).toFixed(1) + "M";
+      if (val >= 1e3) return "$" + Math.round(val / 1e3) + "K";
+      return "$" + val.toLocaleString();
+    }
+
+    function monthLabel(dateStr) {
+      const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      const [year, month] = dateStr.slice(0, 7).split("-");
+      return `${MONTHS[parseInt(month) - 1]} ${year}`;
+    }
+
+    function titleCase(s) {
+      return (s || "").replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+
+    // ── Bar of the Month ──────────────────────────────────────────────────────
+
+    async function loadBars() {
+      const el = document.getElementById("bar-content");
+      try {
+        const TABC = "https://data.texas.gov/resource/g5bj-yb6k.json";
+
+        // Get the 4 most recent months
+        const mRes = await fetch(
+          `${TABC}?$select=obligation_end_date,count(*) as cnt` +
+          `&$where=${encodeURIComponent("upper(location_city)='AUSTIN'")}` +
+          `&$group=obligation_end_date&$order=obligation_end_date DESC&$limit=4`
+        );
+        if (!mRes.ok) throw new Error(`HTTP ${mRes.status}`);
+        const months = (await mRes.json()).sort((a, b) =>
+          b.obligation_end_date.localeCompare(a.obligation_end_date)
+        );
+        if (months.length < 2) throw new Error("Not enough monthly data");
+
+        // Skip most recent if incomplete (< 50% of next month's count)
+        const counts = months.map(m => parseInt(m.cnt));
+        const startIdx = (counts[0] < counts[1] * 0.5) ? 1 : 0;
+        const curDate  = months[startIdx].obligation_end_date.slice(0, 10);
+        const prevDate = months[startIdx + 1].obligation_end_date.slice(0, 10);
+
+        // Fetch current and prior month in parallel
+        const buildWhere = date =>
+          encodeURIComponent(`upper(location_city)='AUSTIN' AND obligation_end_date='${date}T00:00:00.000'`);
+
+        const [curRes, prevRes] = await Promise.all([
+          fetch(`${TABC}?$select=tabc_permit_number,location_name,location_address,total_sales_receipts&$where=${buildWhere(curDate)}&$order=total_sales_receipts DESC&$limit=5000`),
+          fetch(`${TABC}?$select=tabc_permit_number,location_name,location_address,total_sales_receipts&$where=${buildWhere(prevDate)}&$order=total_sales_receipts DESC&$limit=5000`),
+        ]);
+        if (!curRes.ok || !prevRes.ok) throw new Error("Failed fetching monthly data");
+        const [curRows, prevRows] = await Promise.all([curRes.json(), prevRes.json()]);
+
+        // Dedup by (address, sales) — same logic as the bot
+        function dedup(rows) {
+          const seen = new Set();
+          const result = new Map();
+          for (const r of rows) {
+            const addr  = (r.location_address || "").trim().toUpperCase();
+            const sales = parseFloat(r.total_sales_receipts || 0);
+            const key   = addr + "|" + sales;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            result.set(r.tabc_permit_number, {
+              name:    titleCase(r.location_name || "Unknown"),
+              address: titleCase(r.location_address || ""),
+              sales,
+            });
+          }
+          return result;
+        }
+
+        const cur  = dedup(curRows);
+        const prev = dedup(prevRows);
+
+        const top10 = [...cur.values()].sort((a, b) => b.sales - a.sales).slice(0, 10);
+
+        // Biggest movers by $ increase
+        const movers = [];
+        for (const [permit, c] of cur) {
+          if (prev.has(permit)) {
+            const delta = c.sales - prev.get(permit).sales;
+            if (delta > 0 && prev.get(permit).sales > 0) {
+              movers.push({ ...c, delta, pct: delta / prev.get(permit).sales * 100 });
+            }
+          }
+        }
+        movers.sort((a, b) => b.delta - a.delta);
+        const top5movers = movers.slice(0, 5);
+
+        renderBars(top10, top5movers, curDate, prevDate);
+      } catch (err) {
+        el.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
+      }
+    }
+
+    function renderBars(top10, movers, curDate, prevDate) {
+      const el = document.getElementById("bar-content");
+      if (!top10.length) { el.innerHTML = `<div class="error">No data available.</div>`; return; }
+
+      const winner  = top10[0];
+      const maxSales = winner.sales;
+      const curLabel = monthLabel(curDate);
+      const prevLabel = monthLabel(prevDate);
+
+      const barRows = top10.map((r, i) => {
+        const pct = Math.round(r.sales / maxSales * 100);
+        return `<div class="bar-row">
+          <span class="bar-rank">${i + 1}</span>
+          <span class="bar-name" title="${r.name}">${r.name}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <span class="bar-val">${fmtDollars(r.sales)}</span>
+        </div>`;
+      }).join("");
+
+      const moverRows = movers.length ? movers.map(r =>
+        `<div class="mover-row">
+          <div>
+            <div class="mover-name">${r.name}</div>
+            <div style="font-size:10px;color:var(--text-muted);">${r.address}</div>
+          </div>
+          <div class="mover-delta">↑ ${fmtDollars(r.delta)} <span style="font-weight:400;color:var(--text-sub)">(+${r.pct.toFixed(0)}%)</span></div>
+        </div>`
+      ).join("") : `<div style="font-size:12px;color:var(--text-muted);">No significant movers this month.</div>`;
+
+      el.innerHTML = `
+        <div class="winner">
+          <div class="winner-crown">🏆 Bar of the Month — ${curLabel}</div>
+          <div class="winner-name">${winner.name}</div>
+          <div class="winner-addr">${winner.address}</div>
+          <div class="winner-sales">${fmtDollars(winner.sales)}</div>
+          <div class="winner-label">in mixed beverage sales</div>
+        </div>
+        <div class="section-title">Top 10 by Sales</div>
+        <div class="bar-rows">${barRows}</div>
+        <div class="section-title">Biggest Movers vs ${prevLabel}</div>
+        <div class="mover-rows">${moverRows}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Source: <a href="https://data.texas.gov/d/g5bj-yb6k" target="_blank" rel="noopener" style="color:var(--text-sub);">TABC Mixed Beverage Sales</a>
+        </div>`;
+    }
+
+    // ── Coyote Sightings ──────────────────────────────────────────────────────
+
+    async function loadCoyotes() {
+      const el = document.getElementById("coyote-content");
+      try {
+        const now   = new Date();
+        const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
+        const startZ = start.toISOString().replace(".000Z", "Z").replace(/\.\d+Z/, "Z");
+
+        const res = await fetch(
+          `https://311.austintexas.gov/open311/v2/requests.json` +
+          `?service_code=ACCOYTE` +
+          `&start_date=${encodeURIComponent(startZ)}` +
+          `&per_page=500&page=1`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const records = await res.json();
+        if (!Array.isArray(records)) throw new Error("Unexpected response format");
+
+        renderCoyotes(records);
+      } catch (err) {
+        // CORS or network failure — show graceful message
+        document.getElementById("coyote-content").innerHTML =
+          `<div class="error">Couldn't load live data: ${err.message}<br/>
+          <span style="color:var(--text-muted);font-size:11px;">
+            The Open311 API may not support browser requests.
+            Try the <a href="https://austin311bot.netlify.app" target="_blank" style="color:var(--text-sub);">Telegram bot</a> for coyote data.
+          </span></div>`;
+      }
+    }
+
+    function renderCoyotes(records) {
+      const el = document.getElementById("coyote-content");
+      if (!records.length) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No coyote complaints found in the last year. 🤔</div>`;
+        return;
+      }
+
+      // Monthly counts
+      const monthly = {};
+      let pupping = 0;
+      for (const r of records) {
+        const ts = r.requested_datetime || "";
+        if (!ts) continue;
+        try {
+          const d = new Date(ts.replace("Z", "+00:00"));
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          monthly[key] = (monthly[key] || 0) + 1;
+          if ([3, 4, 5].includes(d.getMonth() + 1)) pupping++;
+        } catch {}
+      }
+
+      const sorted = Object.entries(monthly).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
+      const maxMonthly = Math.max(...sorted.map(([, c]) => c), 1);
+      const total = records.length;
+      const puppingPct = Math.round(pupping / total * 100);
+      const isPeak = sorted.slice(0, 3).some(([k]) => k.endsWith("-03") || k.endsWith("-04") || k.endsWith("-05"));
+
+      const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      function mLabel(key) {
+        const [y, m] = key.split("-");
+        return `${MONTH_NAMES[parseInt(m) - 1]} ${y}`;
+      }
+
+      const monthRows = sorted.map(([key, cnt]) => {
+        const pct = Math.round(cnt / maxMonthly * 100);
+        const isPuppingMonth = key.endsWith("-03") || key.endsWith("-04") || key.endsWith("-05");
+        const fill = isPuppingMonth ? "#a855f7" : "var(--bar-fill)";
+        return `<div class="bar-row">
+          <span class="bar-name" style="flex:0 0 70px;font-size:10px;">${mLabel(key)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fill}"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${cnt}</span>
+        </div>`;
+      }).join("");
+
+      el.innerHTML = `
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val">${total}</div>
+            <div class="stat-label">Last 12 months</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${pupping}</div>
+            <div class="stat-label">Pupping season</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${puppingPct}%</div>
+            <div class="stat-label">Mar–May share</div>
+          </div>
+        </div>
+        <div class="pupping-badge">
+          ${isPeak ? "📈 <b>Pupping season is currently peak activity.</b>" : "🌸 <b>Pupping season (Mar–May):</b>"}
+          Coyote pups are born in spring — parents become more active and visible while hunting for food and defending dens.
+          ${isPeak ? `${puppingPct}% of all complaints this year fall in Mar–May.` : ""}
+        </div>
+        <div class="section-title">Monthly complaints <span style="color:#a855f7;">■</span> = pupping season</div>
+        <div class="bar-rows">${monthRows}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code ACCOYTE
+        </div>`;
+    }
+
+    // kick off both
+    loadBars();
+    loadCoyotes();
+  </script>
+</body>
+</html>
