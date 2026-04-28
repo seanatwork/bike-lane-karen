@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Austin 311 — Crash Map</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TS158R7XSN');
+  </script>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8fafc; --bg-panel: #ffffff; --bg-card: #f1f5f9;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #dbeafe; --btn-hover-color: #1e293b;
+      --sidebar-bg: #ffffff; --sidebar-border: #e2e8f0;
+      --item-bg: #f8fafc; --item-border: #e2e8f0;
+      --fatal-bg: #fff1f2; --fatal-border: #fca5a5;
+      --injury-bg: #fff7ed; --injury-border: #fdba74;
+      --minor-bg: #eff6ff; --minor-border: #93c5fd;
+    }
+    html.dark {
+      --bg: #0f1117; --bg-panel: #1e2230; --bg-card: #161a24;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --sidebar-bg: #1e2230; --sidebar-border: #2d3348;
+      --item-bg: #161a24; --item-border: #2d3348;
+      --fatal-bg: #2d1a1a; --fatal-border: #7f1d1d;
+      --injury-bg: #2d1f0e; --injury-border: #7c2d12;
+      --minor-bg: #1a2535; --minor-border: #1e3a5f;
+    }
+
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      display: flex; flex-direction: column;
+    }
+
+    /* ── top panel ── */
+    #panel {
+      flex-shrink: 0;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px 10px;
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      z-index: 500;
+    }
+    #panel-title { font-size: 15px; font-weight: 700; color: var(--text-head); }
+    #panel-summary { font-size: 12px; color: var(--text-sub); }
+    .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .fbtn {
+      background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color);
+      padding: 4px 11px; border-radius: 4px; font-size: 12px; cursor: pointer;
+      transition: background 0.12s, color 0.12s; white-space: nowrap;
+    }
+    .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+    .fbtn.active { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
+
+    #theme-toggle {
+      position: fixed; top: 10px; right: 12px; z-index: 1000;
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer;
+    }
+
+    /* ── main area ── */
+    #content {
+      flex: 1; display: flex; overflow: hidden;
+      min-height: 0;
+    }
+
+    #map { flex: 1; min-width: 0; }
+
+    /* ── sidebar ── */
+    #sidebar {
+      width: 280px; flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-left: 1px solid var(--sidebar-border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    #sidebar-header {
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px; font-weight: 700; color: var(--text-head);
+      flex-shrink: 0;
+    }
+    #sidebar-list {
+      flex: 1; overflow-y: auto; padding: 6px 8px;
+    }
+
+    .crash-item {
+      background: var(--item-bg);
+      border: 1px solid var(--item-border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: border-color 0.12s;
+    }
+    .crash-item:hover { border-color: #3b82f6; }
+    .crash-item.fatal  { border-left: 3px solid #dc2626; background: var(--fatal-bg); border-color: var(--fatal-border); }
+    .crash-item.injury { border-left: 3px solid #ea580c; background: var(--injury-bg); border-color: var(--injury-border); }
+    .crash-item.minor  { border-left: 3px solid #2563eb; background: var(--minor-bg); border-color: var(--minor-border); }
+    .crash-item:hover  { border-color: #3b82f6 !important; }
+
+    .crash-time { color: var(--text-muted); font-size: 10px; margin-bottom: 2px; }
+    .crash-addr { font-weight: 600; color: var(--text-head); margin-bottom: 2px; line-height: 1.3; }
+    .crash-type { color: var(--text-sub); margin-bottom: 3px; }
+    .crash-badge {
+      display: inline-block; padding: 1px 6px; border-radius: 3px;
+      font-size: 10px; font-weight: 700;
+    }
+    .badge-fatal  { background: #dc2626; color: #fff; }
+    .badge-injury { background: #ea580c; color: #fff; }
+    .badge-serious { background: #f59e0b; color: #fff; }
+    .badge-minor  { background: #2563eb; color: #fff; }
+
+    /* ── legend ── */
+    #legend {
+      padding: 8px 12px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .legend-row { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-sub); margin-bottom: 3px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── mobile: stack ── */
+    @media (max-width: 640px) {
+      html, body { overflow: auto; }
+      #content { flex-direction: column; overflow: visible; }
+      #map { height: 55vh; flex: none; }
+      #sidebar { width: 100%; border-left: none; border-top: 1px solid var(--sidebar-border); max-height: none; overflow: visible; }
+      #sidebar-list { overflow: visible; max-height: none; }
+      #theme-toggle { top: 6px; right: 8px; }
+    }
+
+    /* Leaflet popup light/dark */
+    html.dark .leaflet-popup-content-wrapper,
+    html.dark .leaflet-popup-tip { background: #1e2230; color: #e2e8f0; }
+    html.dark .leaflet-popup-content-wrapper a { color: #60a5fa; }
+  </style>
+</head>
+<body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+
+  <div id="panel">
+    <div id="panel-title">💥 Austin Crash Map</div>
+    <div id="panel-summary">Loading…</div>
+    <div class="btn-row">
+      <button class="fbtn" id="btn-30" onclick="setDays(30)">30d</button>
+      <button class="fbtn" id="btn-60" onclick="setDays(60)">60d</button>
+      <button class="fbtn active" id="btn-90" onclick="setDays(90)">90d</button>
+      <span style="margin:0 4px;color:var(--border);">|</span>
+      <button class="fbtn" id="btn-back" onclick="location.href='../traffic/'">← Traffic Map</button>
+      <button class="fbtn" id="btn-home" onclick="location.href='../'">🏠 Home</button>
+    </div>
+  </div>
+
+  <div id="content">
+    <div id="map"></div>
+    <div id="sidebar">
+      <div id="sidebar-header">🕐 10 Most Recent Crashes</div>
+      <div id="sidebar-list"><p style="padding:12px;color:var(--text-muted);font-size:12px;">Loading…</p></div>
+      <div id="legend">
+        <div class="legend-row"><div class="legend-dot" style="background:#dc2626;"></div> Fatal crash</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#ea580c;"></div> Injury crash</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#2563eb;"></div> No injury</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Source: <a href="https://data.austintexas.gov/d/y2wy-tgr5" target="_blank" rel="noopener"
+            style="color:var(--text-sub);">APD Crash Report Data</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const isDark    = document.documentElement.classList.contains("dark");
+    const toggleBtn = document.getElementById("theme-toggle");
+    if (toggleBtn) toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }
+
+    const TILES_LIGHT = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+    const TILES_DARK  = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+    const TILES_ATTR  = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>';
+
+    const map = L.map("map", { center: [30.2672, -97.7431], zoom: 11 });
+    L.tileLayer(isDark ? TILES_DARK : TILES_LIGHT, { attribution: TILES_ATTR, maxZoom: 19 }).addTo(map);
+
+    let allRecords = [];
+    let currentDays = 90;
+    let clusterLayer = null;
+    let markersByRecord = new Map();
+
+    function severityOf(r) {
+      if (parseInt(r.death_cnt || "0") > 0) return "fatal";
+      if (parseInt(r.sus_serious_injry_cnt || "0") > 0 || parseInt(r.tot_injry_cnt || "0") > 0) return "injury";
+      return "minor";
+    }
+
+    function colorOf(sev) {
+      return sev === "fatal" ? "#dc2626" : sev === "injury" ? "#ea580c" : "#2563eb";
+    }
+
+    function formatTs(ts) {
+      if (!ts) return "Unknown time";
+      try {
+        const d = new Date(ts.replace(".000", ""));
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+               " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      } catch { return ts.split("T")[0]; }
+    }
+
+    function popupHtml(r) {
+      const sev = severityOf(r);
+      const addr = r.address_display || r.rpt_street_name || "Unknown location";
+      const ts = formatTs(r.crash_timestamp_ct);
+      const deaths = parseInt(r.death_cnt || "0");
+      const injuries = parseInt(r.tot_injry_cnt || "0");
+      const serious = parseInt(r.sus_serious_injry_cnt || "0");
+      const collsn = (r.collsn_desc || "").replace(/^(\w)(\S*)/g, (m, a, b) => a + b.toLowerCase());
+      const units = r.units_involved || "";
+      const speed = r.crash_speed_limit ? r.crash_speed_limit + " mph zone" : "";
+
+      let badges = "";
+      if (deaths > 0) badges += `<span style="background:#dc2626;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px;">⚰ ${deaths} Fatal</span>`;
+      if (serious > 0) badges += `<span style="background:#f59e0b;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px;">⚠ ${serious} Serious</span>`;
+      if (injuries > 0 && serious < injuries) badges += `<span style="background:#ea580c;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-right:3px;">🚑 ${injuries} Injured</span>`;
+      if (!badges) badges = `<span style="background:#2563eb;color:#fff;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;">No injuries</span>`;
+
+      return `<div style="font-family:sans-serif;font-size:12px;max-width:260px;line-height:1.5;">
+        <b style="font-size:13px;">${addr}</b><br/>
+        <span style="color:#888;font-size:11px;">${ts}</span><br/>
+        <div style="margin:5px 0;">${badges}</div>
+        ${collsn ? `<b>Type:</b> ${collsn}<br/>` : ""}
+        ${units ? `<b>Units:</b> ${units}<br/>` : ""}
+        ${speed ? `<b>Speed limit:</b> ${speed}<br/>` : ""}
+      </div>`;
+    }
+
+    function renderMap(days) {
+      if (clusterLayer) { map.removeLayer(clusterLayer); clusterLayer = null; }
+      markersByRecord.clear();
+
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const filtered = allRecords.filter(r => {
+        if (!r.crash_timestamp_ct) return false;
+        return new Date(r.crash_timestamp_ct) >= cutoff;
+      });
+
+      clusterLayer = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 15 });
+
+      for (const r of filtered) {
+        const lat = parseFloat(r.latitude);
+        const lng = parseFloat(r.longitude);
+        if (!lat || !lng) continue;
+        const sev = severityOf(r);
+        const m = L.circleMarker([lat, lng], {
+          radius: sev === "fatal" ? 9 : sev === "injury" ? 7 : 5,
+          fillColor: colorOf(sev),
+          color: isDark ? "#1e2230" : "#fff",
+          weight: 1.5,
+          fillOpacity: 0.85,
+        }).bindPopup(popupHtml(r), { maxWidth: 280 });
+        clusterLayer.addLayer(m);
+        markersByRecord.set(r, m);
+      }
+
+      map.addLayer(clusterLayer);
+
+      const fatal   = filtered.filter(r => severityOf(r) === "fatal").length;
+      const injury  = filtered.filter(r => severityOf(r) === "injury").length;
+      const total   = filtered.length;
+
+      document.getElementById("panel-summary").textContent =
+        `Last ${days} days · ${total.toLocaleString()} crashes · ${fatal} fatal · ${injury} injury`;
+
+      renderSidebar(days);
+    }
+
+    function renderSidebar(days) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - days);
+      const filtered = allRecords
+        .filter(r => r.crash_timestamp_ct && new Date(r.crash_timestamp_ct) >= cutoff)
+        .slice(0, 10);
+
+      const list = document.getElementById("sidebar-list");
+      if (!filtered.length) {
+        list.innerHTML = `<p style="padding:12px;color:var(--text-muted);font-size:12px;">No crashes found.</p>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map((r, i) => {
+        const sev = severityOf(r);
+        const addr = r.address_display || r.rpt_street_name || "Unknown";
+        const ts = formatTs(r.crash_timestamp_ct);
+        const deaths = parseInt(r.death_cnt || "0");
+        const injuries = parseInt(r.tot_injry_cnt || "0");
+        const serious = parseInt(r.sus_serious_injry_cnt || "0");
+        const collsn = (r.collsn_desc || "Unknown type")
+          .replace(/^(\w)(\S*)/g, (m, a, b) => a + b.toLowerCase());
+
+        let badge = "";
+        if (deaths > 0) badge = `<span class="crash-badge badge-fatal">⚰ Fatal</span>`;
+        else if (serious > 0) badge = `<span class="crash-badge badge-serious">⚠ Serious</span>`;
+        else if (injuries > 0) badge = `<span class="crash-badge badge-injury">🚑 Injury</span>`;
+        else badge = `<span class="crash-badge badge-minor">No injury</span>`;
+
+        return `<div class="crash-item ${sev}" data-idx="${i}" onclick="focusCrash(${i})">
+          <div class="crash-time">${ts}</div>
+          <div class="crash-addr">${addr}</div>
+          <div class="crash-type">${collsn}</div>
+          ${badge}
+        </div>`;
+      }).join("");
+    }
+
+    function focusCrash(idx) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - currentDays);
+      const filtered = allRecords
+        .filter(r => r.crash_timestamp_ct && new Date(r.crash_timestamp_ct) >= cutoff)
+        .slice(0, 10);
+      const r = filtered[idx];
+      if (!r) return;
+      const lat = parseFloat(r.latitude);
+      const lng = parseFloat(r.longitude);
+      if (!lat || !lng) return;
+      map.setView([lat, lng], 16);
+      const m = markersByRecord.get(r);
+      if (m) m.openPopup();
+    }
+
+    function setDays(days) {
+      currentDays = days;
+      [30, 60, 90].forEach(d => {
+        document.getElementById("btn-" + d).classList.toggle("active", d === days);
+      });
+      renderMap(days);
+    }
+
+    async function loadData() {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+      const where = `latitude IS NOT NULL AND crash_timestamp_ct > '${cutoff.toISOString().split("T")[0]}T00:00:00'`;
+      const url = `https://data.austintexas.gov/resource/y2wy-tgr5.json` +
+        `?$where=${encodeURIComponent(where)}` +
+        `&$order=crash_timestamp_ct DESC` +
+        `&$limit=2000`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        allRecords = await res.json();
+        renderMap(currentDays);
+      } catch (err) {
+        document.getElementById("panel-summary").textContent = "Error loading data: " + err.message;
+        document.getElementById("sidebar-list").innerHTML =
+          `<p style="padding:12px;color:#ef4444;font-size:12px;">Failed to load: ${err.message}</p>`;
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
