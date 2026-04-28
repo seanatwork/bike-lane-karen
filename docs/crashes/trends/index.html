@@ -189,7 +189,7 @@
     async function loadAll() {
       const el = document.getElementById("content");
       try {
-        const [hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows, ytdRows, modeRows] =
+        const [hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows, ytdRows, modeRows, latestRows] =
           await Promise.all([
             // crashes by hour of day
             fetch(`${BASE}?$select=date_extract_hh(crash_timestamp_ct) as hr,count(*) as cnt&$where=${enc(where90())}&$group=hr&$order=hr&$limit=24`).then(r=>r.json()),
@@ -207,9 +207,12 @@
             fetch(`${BASE}?$select=count(*) as total,sum(death_cnt) as deaths&$where=${enc(`crash_timestamp_ct > '${ytdStart}'`)}&$limit=1`).then(r=>r.json()),
             // road user fatalities
             fetch(`${BASE}?$select=sum(motor_vehicle_death_count) as mv,sum(pedestrian_death_count) as ped,sum(motorcycle_death_count) as moto,sum(bicycle_death_count) as bike,sum(micromobility_death_count) as micro&$where=${enc(where90())}&$limit=1`).then(r=>r.json()),
+            // latest record date (to show actual data lag)
+            fetch(`${BASE}?$select=max(crash_timestamp_ct) as latest&$limit=1`).then(r=>r.json()),
           ]);
 
-        render(hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows[0]||{}, ytdRows[0]||{}, modeRows[0]||{});
+        const latestDate = latestRows[0]?.latest ? new Date(latestRows[0].latest) : null;
+        render(hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows[0]||{}, ytdRows[0]||{}, modeRows[0]||{}, latestDate);
       } catch(err) {
         el.innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
       }
@@ -219,8 +222,25 @@
       return `<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>`;
     }
 
-    function render(hourRows, dowRows, streetRows, collsnRows, monthRows, totals, ytd, modes) {
+    function render(hourRows, dowRows, streetRows, collsnRows, monthRows, totals, ytd, modes, latestDate) {
       const el = document.getElementById("content");
+
+      // Build accurate coverage label from actual latest record date
+      const latestFmt = latestDate
+        ? latestDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        : null;
+      const actualDays = latestDate
+        ? Math.round((now - latestDate) < 0 ? 0 : (now - cutoff90) / 86400000 - (now - latestDate) / 86400000)
+        : 90;
+      const coverageLabel = latestFmt
+        ? `data through ${latestFmt} · querying back to ${cutoff90.toLocaleDateString("en-US",{month:"short",day:"numeric"})}`
+        : "last 90 days";
+      const daysLabel = latestFmt
+        ? `through ${latestFmt}`
+        : "last 90 days";
+
+      // Update panel subtitle
+      document.getElementById("panel-sub").textContent = `APD crash records · ${coverageLabel}`;
 
       // ── stats ──────────────────────────────────────────────────────────────
       const total   = parseInt(totals.total   || 0);
@@ -234,19 +254,19 @@
         <div class="stats-row">
           <div class="stat">
             <div class="stat-val" style="color:#3b82f6;">${total.toLocaleString()}</div>
-            <div class="stat-label">Crashes (90d)</div>
+            <div class="stat-label">Crashes</div>
           </div>
           <div class="stat">
             <div class="stat-val" style="color:#dc2626;">${deaths.toLocaleString()}</div>
-            <div class="stat-label">Fatalities (90d)</div>
+            <div class="stat-label">Fatalities</div>
           </div>
           <div class="stat">
             <div class="stat-val" style="color:#f59e0b;">${serious.toLocaleString()}</div>
-            <div class="stat-label">Serious injuries (90d)</div>
+            <div class="stat-label">Serious injuries</div>
           </div>
           <div class="stat">
             <div class="stat-val" style="color:#dc2626;">${ytdDead.toLocaleString()}</div>
-            <div class="stat-label">Fatalities YTD ${now.getFullYear()}</div>
+            <div class="stat-label">Fatalities YTD ${now.getFullYear()}${latestFmt ? " (through " + latestFmt + ")" : ""}</div>
           </div>
         </div>`;
 
@@ -349,32 +369,32 @@
 
         <div class="chart-card">
           <div class="chart-title">🕐 Crashes by Time of Day</div>
-          <div class="chart-sub">Last 90 days · red = peak hours · all 24 hours shown</div>
+          <div class="chart-sub">${daysLabel} · red = peak hours · all 24 hours shown</div>
           <div class="bar-rows">${hourHtml}</div>
         </div>
 
         <div class="chart-grid">
           <div class="chart-card">
             <div class="chart-title">📅 Day of Week</div>
-            <div class="chart-sub">Last 90 days · purple = weekend</div>
+            <div class="chart-sub">${daysLabel} · purple = weekend</div>
             <div class="bar-rows">${dowHtml}</div>
           </div>
           <div class="chart-card">
             <div class="chart-title">⚰️ Fatalities by Road User</div>
-            <div class="chart-sub">Last 90 days · ${deaths} total fatalities</div>
+            <div class="chart-sub">${daysLabel} · ${deaths} total fatalities</div>
             <div class="ruser-rows">${ruserHtml}</div>
           </div>
         </div>
 
         <div class="chart-card">
           <div class="chart-title">🛣️ Most Dangerous Streets</div>
-          <div class="chart-sub">Top 10 by crash count · last 90 days</div>
+          <div class="chart-sub">Top 10 by crash count · ${daysLabel}</div>
           <div class="bar-rows">${streetHtml}</div>
         </div>
 
         <div class="chart-card">
           <div class="chart-title">💥 Collision Types</div>
-          <div class="chart-sub">Top 10 by frequency · last 90 days</div>
+          <div class="chart-sub">Top 10 by frequency · ${daysLabel}</div>
           <div class="bar-rows">${collsnHtml}</div>
         </div>
 
@@ -390,7 +410,7 @@
 
         <footer>
           Data: <a href="https://data.austintexas.gov/d/y2wy-tgr5" target="_blank" rel="noopener">APD Crash Report Data</a>
-          &nbsp;·&nbsp; Note: APD records typically lag 2–4 weeks behind the current date.
+          &nbsp;·&nbsp; ${latestFmt ? `Most recent record: ${latestFmt} · APD records lag 2–4 weeks` : "APD records typically lag 2–4 weeks behind the current date."}
         </footer>`;
     }
 

@@ -8,7 +8,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff;
       --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
@@ -29,7 +28,6 @@
       --chart-title: #e2e8f0; --footer-border: #1e2230; --footer-color: #475569;
       --note-bg: #1e2230; --note-border: #2d3348; --note-text: #94a3b8; --note-strong: #f1f5f9;
     }
-
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg); color: var(--text);
@@ -58,7 +56,6 @@
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer;
     }
-
     #stats { border-bottom: 1px solid var(--border); }
     .stats-inner { display: flex; justify-content: center; }
     .stat {
@@ -105,8 +102,8 @@
 
   <div id="panel">
     <div id="panel-title">🅿️ Austin Parking Complaints Trends</div>
-    <div id="panel-subtitle">Resident-reported parking violations — last 12 months</div>
-    <div id="last-ran">Last ran: 2026-04-28 15:31 UTC</div>
+    <div id="panel-subtitle">Resident-reported parking violations — last 180 days</div>
+    <div id="last-ran">Last ran: 2026-04-21 20:25 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Parking Map</a>
       <a class="fbtn" href="../../">Austin 311 Home</a>
@@ -116,18 +113,18 @@
   <div id="stats">
     <div class="stats-inner">
       <div class="stat">
-        <div class="stat-value" style="color:#3b82f6;">4,565</div>
+        <div class="stat-value" style="color:#3b82f6;">4,544</div>
         <div class="stat-label">Total complaints</div>
-        <div class="stat-sub">last 12 months</div>
+        <div class="stat-sub">last 180 days</div>
       </div>
       <div class="stat">
-        <div class="stat-value" style="color:#22c55e;">1,141</div>
+        <div class="stat-value" style="color:#22c55e;">1,136</div>
         <div class="stat-label">Avg / month</div>
       </div>
       <div class="stat">
-        <div class="stat-value" style="color:#f59e0b;">1,607</div>
+        <div class="stat-value" style="color:#f59e0b;">1,625</div>
         <div class="stat-label">Peak month</div>
-        <div class="stat-sub">2025-05</div>
+        <div class="stat-sub">2025-11</div>
       </div>
     </div>
   </div>
@@ -171,51 +168,31 @@
   </footer>
 
   <script>
-    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025"], "monthlyCounts": [160, 1607, 1511, 1287], "monthlyOpenCounts": [0, 0, 0, 0], "rollingAvg": [null, null, 1092.7, 1468.3], "streets": [{"name": "W Annie St", "count": 101}, {"name": "Harvey St", "count": 91}, {"name": "E 5th St", "count": 89}, {"name": "Ceberry Dr", "count": 49}, {"name": "Newman Dr", "count": 45}, {"name": "Lamar Square Dr", "count": 42}, {"name": "Duval St", "count": 40}, {"name": "Attayac St", "count": 36}, {"name": "Congress Ave", "count": 34}, {"name": "Willow St", "count": 34}, {"name": "Brazos St", "count": 34}, {"name": "Colorado St", "count": 32}, {"name": "Wood Hollow Dr", "count": 32}, {"name": "Karasu Dr", "count": 28}, {"name": "San Marcos St", "count": 28}], "violations": [{"name": "Bike Lane", "count": 257}, {"name": "No Parking Zone", "count": 187}, {"name": "Blocking Sidewalk", "count": 154}, {"name": "Fire Hydrant", "count": 112}, {"name": "On Sidewalk", "count": 107}, {"name": "Car parked with left wheels to curb.", "count": 78}, {"name": "Parking violation ", "count": 76}, {"name": "Parking violation", "count": 74}, {"name": "Parking", "count": 67}, {"name": "Illegal Parking", "count": 67}]};
+    const DATA = {"months": ["Oct 2025", "Nov 2025", "Dec 2025", "Jan 2026"], "monthlyCounts": [481, 1625, 1348, 1090], "monthlyOpenCounts": [0, 0, 0, 0], "streets": [{"name": "Harvey St", "count": 146}, {"name": "E 5th St", "count": 89}, {"name": "Newman Dr", "count": 71}, {"name": "Wilson St", "count": 69}, {"name": "W Annie St", "count": 62}, {"name": "Oxford Ave", "count": 57}, {"name": "W 5th St", "count": 50}, {"name": "Norman Trl", "count": 39}, {"name": "Shoal Creek Blvd", "count": 38}, {"name": "S 5th St", "count": 38}, {"name": "Lamar Square Dr", "count": 35}, {"name": "Hemphill Park", "count": 32}, {"name": "Congress Ave", "count": 32}, {"name": "E 13th St", "count": 31}, {"name": "San Jacinto Blvd", "count": 30}], "violations": [{"name": "Bike Lane", "count": 196}, {"name": "No Parking Zone", "count": 182}, {"name": "Blocking Sidewalk", "count": 129}, {"name": "Fire Hydrant", "count": 109}, {"name": "On Sidewalk", "count": 108}, {"name": "Parking violation ", "count": 89}, {"name": "Tow Zone", "count": 65}, {"name": "Blocking Driveway", "count": 59}, {"name": "Illegal Parking", "count": 58}, {"name": "Parking violation", "count": 52}]};
+
+    // Merge "Parking violation " (trailing space) + "Parking violation" into one entry
+    const mergedViolations = {};
+    DATA.violations.forEach(v => {
+      const key = v.name.trim();
+      mergedViolations[key] = (mergedViolations[key] || 0) + v.count;
+    });
+    const violations = Object.entries(mergedViolations)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+    const violationTotal = violations.reduce((s, v) => s + v.count, 0);
 
     const isDark = document.documentElement.classList.contains("dark");
-    const gridColor  = isDark ? "#252b3b" : "#e8ecf0";
-    const tickColor  = isDark ? "#64748b" : "#6b7280";
-    const legColor   = isDark ? "#94a3b8" : "#4b5563";
-    const TOOLTIP = {
+    const gridColor = isDark ? "#252b3b" : "#e8ecf0";
+    const tickColor = isDark ? "#64748b" : "#6b7280";
+    const legColor  = isDark ? "#94a3b8" : "#4b5563";
+    const tooltip = {
       backgroundColor: isDark ? "#1e2230" : "#ffffff",
       borderColor:     isDark ? "#3d4868" : "#e2e8f0",
       borderWidth: 1,
       titleColor: isDark ? "#f1f5f9" : "#111827",
       bodyColor:  isDark ? "#e2e8f0"  : "#374151",
     };
-    const TICK_X = { color: tickColor, font: { size: 11 } };
-    const TICK_Y = { color: tickColor, font: { size: 11 } };
-    const GRID = { color: gridColor };
 
-    const lineOpts = {
-      plugins: {
-        legend: { labels: { color: legColor, font: { size: 11 } } },
-        tooltip: TOOLTIP,
-      },
-      scales: {
-        x: { ticks: TICK_X, grid: GRID },
-        y: { ticks: TICK_Y, grid: GRID, beginAtZero: true },
-      },
-      responsive: true,
-      maintainAspectRatio: false,
-    };
-
-    const hBarOpts = {
-      indexAxis: "y",
-      plugins: {
-        legend: { display: false },
-        tooltip: TOOLTIP,
-      },
-      scales: {
-        x: { ticks: TICK_X, grid: GRID, beginAtZero: true },
-        y: { ticks: TICK_Y, grid: GRID },
-      },
-      responsive: true,
-      maintainAspectRatio: false,
-    };
-
-    // Theme toggle — reload so chart colors re-init from correct theme
     const toggleBtn = document.getElementById("theme-toggle");
     toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
     function toggleTheme() {
@@ -224,48 +201,35 @@
       location.reload();
     }
 
-    // Monthly trend
+    // Shared scale styles
+    const xValueScale = { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor }, beginAtZero: true };
+    const xCatScale   = { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } };
+    const yCatScale   = { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } };
+    const yValueScale = { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor }, beginAtZero: true };
+
+    // Monthly trend (vertical bar)
     new Chart(document.getElementById("monthlyChart"), {
-      type: "line",
+      type: "bar",
       data: {
         labels: DATA.months,
         datasets: [
-          {
-            label: "Monthly complaints",
-            data: DATA.monthlyCounts,
-            borderColor: "#3b82f6",
-            backgroundColor: "rgba(59,130,246,0.08)",
-            fill: true,
-            tension: 0.3,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-          },
-          {
-            label: "3-month avg",
-            data: DATA.rollingAvg,
-            borderColor: "#8b5cf6",
-            borderWidth: 2,
-            borderDash: [5, 3],
-            pointRadius: 0,
-            tension: 0.4,
-            fill: false,
-            spanGaps: true,
-          },
-          {
-            label: "Still open",
-            data: DATA.monthlyOpenCounts,
-            borderColor: "#ef4444",
-            backgroundColor: "rgba(239,68,68,0.05)",
-            fill: true,
-            tension: 0.3,
-            pointRadius: 2,
-          },
+          { label: "Total complaints", data: DATA.monthlyCounts, backgroundColor: "#3b82f6", borderRadius: 4 },
+          { label: "Still open",       data: DATA.monthlyOpenCounts, backgroundColor: "#ef4444", borderRadius: 4 },
         ],
       },
-      options: lineOpts,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: legColor, font: { size: 11 } } },
+          tooltip,
+        },
+        scales: { x: xCatScale, y: yValueScale },
+      },
     });
 
-    // Top streets
+    // Top 15 streets (horizontal bar)
+    const streetTotal = DATA.streets.reduce((s, r) => s + r.count, 0);
     new Chart(document.getElementById("streetsChart"), {
       type: "bar",
       data: {
@@ -273,26 +237,63 @@
         datasets: [{
           label: "Complaints",
           data: DATA.streets.map(s => s.count),
-          backgroundColor: "#8b5cf6",
+          backgroundColor: DATA.streets.map((_, i) => i === 0 ? "#a78bfa" : "#8b5cf6"),
           borderRadius: 4,
         }],
       },
-      options: hBarOpts,
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...tooltip,
+            callbacks: {
+              label: ctx => {
+                const pct = ((ctx.parsed.x / streetTotal) * 100).toFixed(1);
+                return ` ${ctx.parsed.x} complaints (${pct}% of top-15 total)`;
+              },
+            },
+          },
+        },
+        scales: { x: xValueScale, y: yCatScale },
+      },
     });
 
-    // Top violation types
+    // Top violation types (horizontal bar, with % of total in tooltip)
     new Chart(document.getElementById("violationsChart"), {
       type: "bar",
       data: {
-        labels: DATA.violations.map(v => v.name),
+        labels: violations.map(v => v.name),
         datasets: [{
           label: "Complaints",
-          data: DATA.violations.map(v => v.count),
-          backgroundColor: "#f59e0b",
+          data: violations.map(v => v.count),
+          backgroundColor: violations.map((_, i) => {
+            const colors = ["#f59e0b","#fb923c","#f87171","#fbbf24","#fcd34d","#fde68a","#fed7aa","#fdba74","#fca5a5","#fef08a"];
+            return colors[i] || "#f59e0b";
+          }),
           borderRadius: 4,
         }],
       },
-      options: hBarOpts,
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...tooltip,
+            callbacks: {
+              label: ctx => {
+                const pct = ((ctx.parsed.x / violationTotal) * 100).toFixed(1);
+                return ` ${ctx.parsed.x} complaints — ${pct}% of total`;
+              },
+            },
+          },
+        },
+        scales: { x: xValueScale, y: yCatScale },
+      },
     });
   </script>
 </body>
