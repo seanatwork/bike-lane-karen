@@ -3,7 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Austin General Fund FY2026</title>
+  <title>Austin 311 — Austin General Fund FY2026</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TS158R7XSN');
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -20,15 +28,15 @@
     }
     #panel-title { font-size: 15px; font-weight: 700; color: #f1f5f9; }
     #panel-subtitle { font-size: 12px; color: #64748b; text-align: center; }
+    #last-updated { font-size: 11px; color: #475569; }
     .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
     .fbtn {
       background: #252b3b; border: 1px solid #3d4868; color: #94a3b8;
-      padding: 5px 13px; border-radius: 4px; font-size: 12px; cursor: pointer;
+      padding: 5px 13px; border-radius: 4px; font-size: 12px;
       text-decoration: none; display: inline-block; white-space: nowrap;
       transition: background 0.12s, border-color 0.12s, color 0.12s;
     }
     .fbtn:hover { background: #2d3453; color: #e2e8f0; }
-
     #stats { border-bottom: 1px solid #2d3348; }
     .stats-inner { display: flex; justify-content: center; flex-wrap: wrap; }
     .stat {
@@ -39,29 +47,22 @@
     .stat-value { font-size: 1.2rem; font-weight: 700; line-height: 1.1; }
     .stat-label { font-size: 0.67rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
     .stat-sub   { font-size: 0.67rem; color: #475569; margin-top: 1px; }
-
     #main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
-
     .chart-block { background: #161a24; border: 1px solid #2d3348; border-radius: 8px; padding: 14px; }
     .chart-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
     .chart-sub   { font-size: 11px; color: #475569; margin-bottom: 10px; }
     .chart-container { position: relative; height: 480px; }
-
-    /* Legend */
     .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 10px; }
     .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #94a3b8; }
     .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-    /* Explainer section */
     .section-divider { border: none; border-top: 1px solid #2d3348; }
     .section-heading { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 0.3rem; }
     .section-sub { font-size: 0.82rem; color: #64748b; line-height: 1.5; margin-bottom: 1.2rem; }
-
     .fund-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; }
     .fund-card {
       background: #1e2230; border: 1px solid #2d3348;
       border-top: 3px solid var(--accent);
-      border-radius: 10px; padding: 1.2rem 1.2rem;
+      border-radius: 10px; padding: 1.2rem;
       display: flex; flex-direction: column; gap: 0.45rem;
     }
     .fund-icon { font-size: 1.4rem; line-height: 1; }
@@ -73,30 +74,84 @@
       border-top: 1px solid #2d3348; padding-top: 0.5rem; line-height: 1.4;
     }
     .fund-note strong { color: #64748b; }
-
-    #data-source {
-      font-size: 0.75rem; color: #334155; text-align: center; padding-bottom: 4px;
-    }
+    #data-source { font-size: 0.75rem; color: #334155; text-align: center; padding-bottom: 4px; }
     #data-source a { color: #475569; text-decoration: none; }
     #data-source a:hover { color: #64748b; }
-
-    footer {
-      text-align: center; padding: 14px 16px;
-      font-size: 0.74rem; color: #475569; border-top: 1px solid #1e2230;
-    }
+    footer { text-align: center; padding: 14px 16px; font-size: 0.74rem; color: #475569; border-top: 1px solid #1e2230; }
     footer a { color: #64748b; text-decoration: none; }
     footer a:hover { color: #94a3b8; }
-
     @media (max-width: 520px) { .stat-value { font-size: 1rem; } .chart-container { height: 560px; } }
+
+    /* ── drill-down panel ── */
+    #drill-panel {
+      display: none;
+      background: #1a1f2e;
+      border: 1px solid #3d4868;
+      border-radius: 8px;
+      padding: 18px 16px 20px;
+      animation: slideIn 0.18s ease;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #drill-header {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 14px; flex-wrap: wrap; gap: 6px;
+    }
+    #drill-title {
+      font-size: 15px; font-weight: 700; color: #f1f5f9;
+    }
+    #drill-totals {
+      font-size: 11px; color: #64748b;
+    }
+    #drill-close {
+      background: none; border: 1px solid #3d4868; color: #64748b;
+      border-radius: 4px; padding: 3px 9px; font-size: 11px; cursor: pointer;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    #drill-close:hover { border-color: #94a3b8; color: #e2e8f0; }
+    #drill-body {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 600px) {
+      #drill-body { grid-template-columns: 1fr; }
+      #drill-donut-wrap { height: 220px; }
+    }
+    #drill-donut-wrap { position: relative; height: 260px; }
+    #drill-legend {
+      display: flex; flex-direction: column; gap: 9px; padding: 4px 0;
+    }
+    .drill-legend-row {
+      display: flex; align-items: center; gap: 9px;
+    }
+    .drill-swatch {
+      width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0;
+    }
+    .drill-legend-name {
+      font-size: 12px; font-weight: 600; color: #e2e8f0; flex: 1;
+    }
+    .drill-legend-vals {
+      text-align: right; font-size: 11px; color: #64748b;
+      white-space: nowrap;
+    }
+    .drill-legend-pct {
+      font-size: 11px; font-weight: 700; color: #94a3b8; min-width: 36px; text-align: right;
+    }
+    #drill-hint { font-size: 11px; color: #334155; margin-top: 12px; text-align: center; }
   </style>
 </head>
 <body>
 
   <div id="panel">
     <div id="panel-title">💰 Austin General Fund — FY2026</div>
-    <div id="panel-subtitle">Adopted budget by department · actuals through Q2 (Oct 2025 – Mar 2026)</div>
+    <div id="panel-subtitle">Adopted budget by department · actuals through Q2 (Oct 2025–Mar 2026)</div>
+    <div id="last-updated">Updated: 2026-04-28</div>
     <div class="btn-row">
-      <a class="fbtn" href="../">← ATX Pulse Home</a>
+      <a class="fbtn" href="../">← Austin 311 Home</a>
     </div>
   </div>
 
@@ -113,9 +168,9 @@
         <div class="stat-sub">Police + Fire + EMS</div>
       </div>
       <div class="stat">
-        <div class="stat-value" style="color:#fbbf24;">49.9%</div>
+        <div class="stat-value" style="color:#fbbf24;">50.2%</div>
         <div class="stat-label">Spent through Q2</div>
-        <div class="stat-sub">$741M of $1.49B</div>
+        <div class="stat-sub">$745M of $1.49B</div>
       </div>
     </div>
   </div>
@@ -124,25 +179,40 @@
 
     <div class="chart-block">
       <div class="chart-title">General Fund — adopted budget by department</div>
-      <div class="chart-sub">Solid = spent through Q2 · Dim = remaining budget · Hover for details</div>
+      <div class="chart-sub">Solid = spent through Q2 · Dim = remaining budget · <strong style="color:#60a5fa;">Click a bar to see the spending breakdown</strong></div>
       <div class="legend">
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Public Safety</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span>Parks & Community</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span>Health & Wellbeing</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span>Housing & Social Services</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>Courts & Justice</span>
-        <span class="legend-item"><span class="legend-dot" style="background:#64748b;"></span>Admin & Other</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span>Parks &amp; Community</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#06b6d4;"></span>Health &amp; Wellbeing</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#8b5cf6;"></span>Housing &amp; Social Services</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>Courts &amp; Justice</span>
+        <span class="legend-item"><span class="legend-dot" style="background:#64748b;"></span>Admin &amp; Other</span>
       </div>
       <div class="chart-container"><canvas id="deptChart"></canvas></div>
+      <div id="drill-hint" style="margin-top:8px;">👆 Click any bar to see how that department spends its budget</div>
+    </div>
+
+    <!-- Drill-down panel (hidden until a bar is clicked) -->
+    <div id="drill-panel">
+      <div id="drill-header">
+        <div>
+          <div id="drill-title">Department</div>
+          <div id="drill-totals"></div>
+        </div>
+        <button id="drill-close" onclick="closeDrill()">✕ Close</button>
+      </div>
+      <div id="drill-body">
+        <div id="drill-donut-wrap"><canvas id="drillChart"></canvas></div>
+        <div id="drill-legend"></div>
+      </div>
     </div>
 
     <hr class="section-divider" />
 
     <div>
-      <div class="section-heading">How Austin's Budget Works</div>
-      <p class="section-sub">Three separate money pools fund city services — understanding which is which explains why the city can't simply "move money around."</p>
+      <div class="section-heading">How Austin&#39;s Budget Works</div>
+      <p class="section-sub">Three separate money pools fund city services — understanding which is which explains why the city can&#39;t simply &#34;move money around.&#34;</p>
       <div class="fund-grid">
-
         <div class="fund-card" style="--accent:#60a5fa;">
           <span class="fund-icon">🏛️</span>
           <div class="fund-name">General Fund</div>
@@ -156,7 +226,6 @@
           </ul>
           <div class="fund-note"><strong>Where policy happens.</strong> Council allocates this fund — it reflects actual priorities. Operational gaps (staffing, response times) can only be fixed here.</div>
         </div>
-
         <div class="fund-card" style="--accent:#34d399;">
           <span class="fund-icon">⚡</span>
           <div class="fund-name">Enterprise Funds</div>
@@ -169,7 +238,6 @@
           </ul>
           <div class="fund-note"><strong>Legally ring-fenced.</strong> Your electric and water bills fund these departments only — they cannot be redirected to police, parks, or anything else.</div>
         </div>
-
         <div class="fund-card" style="--accent:#fbbf24;">
           <span class="fund-icon">🏗️</span>
           <div class="fund-name">Bonds</div>
@@ -182,51 +250,628 @@
           </ul>
           <div class="fund-note"><strong>Capital only.</strong> Bonds build and repair physical things — they cannot hire staff, improve response times, or fund any ongoing service.</div>
         </div>
-
       </div>
     </div>
 
     <div id="data-source">
-      Data: <a href="https://data.austintexas.gov/resource/g5k8-8sud" target="_blank" rel="noopener">City of Austin Operating Budget (g5k8-8sud)</a> · FY2026 · updated annually
+      Data: <a href="https://data.austintexas.gov/resource/g5k8-8sud" target="_blank" rel="noopener">City of Austin Operating Budget (g5k8-8sud)</a>
+      · FY2026 · refreshed quarterly
     </div>
 
   </div>
 
   <footer>
-    <a href="../">← ATX Pulse Home</a>
+    <a href="../">← Austin 311 Home</a>
   </footer>
 
   <script>
     const DEPTS = [
-      { name: "Police (APD)",              budget: 525359250, spent: 278155946.91, color: "#ef4444" },
-      { name: "Fire",                       budget: 269064011, spent: 148088763.98, color: "#f97316" },
-      { name: "EMS",                        budget: 151080254, spent:  77309999.05, color: "#f59e0b" },
-      { name: "Parks & Recreation",         budget: 135791723, spent:  62573899.83, color: "#22c55e" },
-      { name: "Public Library",             budget:  80022495, spent:  40459797.43, color: "#10b981" },
-      { name: "Public Health",              budget:  65338454, spent:  32355237.00, color: "#06b6d4" },
-      { name: "Nondepartmental",            budget:  57207068, spent:  25358271.53, color: "#64748b" },
-      { name: "Municipal Court",            budget:  39680608, spent:  17995908.08, color: "#6366f1" },
-      { name: "Social Services (Homeless)", budget:  38705288, spent:   6344533.70, color: "#8b5cf6" },
-      { name: "Social Services (Health)",   budget:  25265420, spent:   9717923.30, color: "#a78bfa" },
-      { name: "Animal Services",            budget:  25107547, spent:  11844846.22, color: "#22c55e" },
-      { name: "Forensic Science",           budget:  15949216, spent:   6545943.53, color: "#6366f1" },
-      { name: "Planning",                   budget:  13140082, spent:   6152779.20, color: "#64748b" },
-      { name: "Housing",                    budget:  12028860, spent:   6104686.89, color: "#8b5cf6" },
-      { name: "Arts & Culture",             budget:  11392925, spent:   5099053.43, color: "#ec4899" },
-      { name: "Homeless Strategy & Ops",    budget:   9954869, spent:   2165126.92, color: "#a78bfa" },
-      { name: "Social Services (Courts)",   budget:   6166090, spent:   3317424.34, color: "#818cf8" },
-      { name: "Social Services (Econ Dev)", budget:   4066735, spent:   1004600.50, color: "#818cf8" },
-      { name: "Human Resources",            budget:    465000, spent:    272444.57, color: "#64748b" },
-    ];
+      {
+            "name": "Police (APD)",
+            "budget": 525359250.0,
+            "spent": 279143346.08,
+            "color": "#ef4444"
+      },
+      {
+            "name": "Fire",
+            "budget": 269064011.0,
+            "spent": 148186275.09,
+            "color": "#f97316"
+      },
+      {
+            "name": "EMS",
+            "budget": 151080254.0,
+            "spent": 77770594.53,
+            "color": "#f59e0b"
+      },
+      {
+            "name": "Parks & Recreation",
+            "budget": 135791723.0,
+            "spent": 62852683.31,
+            "color": "#22c55e"
+      },
+      {
+            "name": "Public Library",
+            "budget": 80022495.0,
+            "spent": 40678539.42,
+            "color": "#10b981"
+      },
+      {
+            "name": "Public Health",
+            "budget": 65338454.0,
+            "spent": 32672012.83,
+            "color": "#06b6d4"
+      },
+      {
+            "name": "Nondepartmental",
+            "budget": 57207068.0,
+            "spent": 25358271.53,
+            "color": "#64748b"
+      },
+      {
+            "name": "Municipal Court",
+            "budget": 39680608.0,
+            "spent": 18088658.55,
+            "color": "#6366f1"
+      },
+      {
+            "name": "Social Services (Homeless)",
+            "budget": 38705288.0,
+            "spent": 7417862.45,
+            "color": "#8b5cf6"
+      },
+      {
+            "name": "Social Services (Health)",
+            "budget": 25265420.0,
+            "spent": 9751138.3,
+            "color": "#a78bfa"
+      },
+      {
+            "name": "Animal Services",
+            "budget": 25107547.0,
+            "spent": 11923014.1,
+            "color": "#22c55e"
+      },
+      {
+            "name": "Forensic Science",
+            "budget": 15949216.0,
+            "spent": 6572481.17,
+            "color": "#6366f1"
+      },
+      {
+            "name": "Planning",
+            "budget": 13140082.0,
+            "spent": 6177264.61,
+            "color": "#64748b"
+      },
+      {
+            "name": "Housing",
+            "budget": 12028860.0,
+            "spent": 6280554.05,
+            "color": "#8b5cf6"
+      },
+      {
+            "name": "Arts & Culture",
+            "budget": 11392925.0,
+            "spent": 5105751.27,
+            "color": "#ec4899"
+      },
+      {
+            "name": "Homeless Strategy & Ops",
+            "budget": 9954869.0,
+            "spent": 2177083.88,
+            "color": "#a78bfa"
+      },
+      {
+            "name": "Social Services (Courts)",
+            "budget": 6166090.0,
+            "spent": 3940401.86,
+            "color": "#818cf8"
+      },
+      {
+            "name": "Social Services (Econ Dev)",
+            "budget": 4066735.0,
+            "spent": 1021450.79,
+            "color": "#818cf8"
+      },
+      {
+            "name": "Human Resources",
+            "budget": 465000.0,
+            "spent": 272444.57,
+            "color": "#64748b"
+      }
+];
+    const BREAKDOWN = {
+      "Police (APD)": {
+            "Labor": {
+                  "budget": 270468858.0,
+                  "spent": 153191538.41
+            },
+            "Benefits": {
+                  "budget": 136447157.0,
+                  "spent": 65965248.39
+            },
+            "Contracted Services": {
+                  "budget": 2240145.0,
+                  "spent": 759466.02
+            },
+            "Technology": {
+                  "budget": 31180480.0,
+                  "spent": 19253025.29
+            },
+            "Facilities & Fleet": {
+                  "budget": 20344095.0,
+                  "spent": 6253358.3
+            },
+            "Supplies & Equip.": {
+                  "budget": 5241663.0,
+                  "spent": 1725681.84
+            },
+            "Grants": {
+                  "budget": 331586.0,
+                  "spent": 181012.89
+            },
+            "Transfers & Other": {
+                  "budget": 59105266.0,
+                  "spent": 31814014.94
+            }
+      },
+      "Fire": {
+            "Labor": {
+                  "budget": 162895013.0,
+                  "spent": 94918066.01
+            },
+            "Benefits": {
+                  "budget": 60963286.0,
+                  "spent": 30811473.75
+            },
+            "Contracted Services": {
+                  "budget": 2231123.0,
+                  "spent": 1309168.31
+            },
+            "Technology": {
+                  "budget": 9761922.0,
+                  "spent": 5134636.54
+            },
+            "Facilities & Fleet": {
+                  "budget": 10782228.0,
+                  "spent": 4531386.25
+            },
+            "Supplies & Equip.": {
+                  "budget": 6120497.0,
+                  "spent": 1940398.7
+            },
+            "Transfers & Other": {
+                  "budget": 16309942.0,
+                  "spent": 9541145.53
+            }
+      },
+      "EMS": {
+            "Labor": {
+                  "budget": 79294984.0,
+                  "spent": 43192268.61
+            },
+            "Benefits": {
+                  "budget": 32712340.0,
+                  "spent": 15570939.58
+            },
+            "Contracted Services": {
+                  "budget": 1136894.0,
+                  "spent": 326684.98
+            },
+            "Technology": {
+                  "budget": 6699488.0,
+                  "spent": 3673452.68
+            },
+            "Facilities & Fleet": {
+                  "budget": 7335147.0,
+                  "spent": 2829846.53
+            },
+            "Supplies & Equip.": {
+                  "budget": 6023633.0,
+                  "spent": 2352413.66
+            },
+            "Grants": {
+                  "budget": 10000.0,
+                  "spent": 0.0
+            },
+            "Transfers & Other": {
+                  "budget": 17867768.0,
+                  "spent": 9824988.49
+            }
+      },
+      "Parks & Recreation": {
+            "Labor": {
+                  "budget": 67204211.0,
+                  "spent": 32070151.46
+            },
+            "Benefits": {
+                  "budget": 28018584.0,
+                  "spent": 13120428.32
+            },
+            "Contracted Services": {
+                  "budget": 8457908.0,
+                  "spent": 2032511.12
+            },
+            "Technology": {
+                  "budget": 6207762.0,
+                  "spent": 3537676.42
+            },
+            "Facilities & Fleet": {
+                  "budget": 12291935.0,
+                  "spent": 5452042.3
+            },
+            "Supplies & Equip.": {
+                  "budget": 5493246.0,
+                  "spent": 1950468.06
+            },
+            "Grants": {
+                  "budget": 105166.0,
+                  "spent": 0.0
+            },
+            "Transfers & Other": {
+                  "budget": 8012911.0,
+                  "spent": 4689405.63
+            }
+      },
+      "Public Library": {
+            "Labor": {
+                  "budget": 30595716.0,
+                  "spent": 16455278.69
+            },
+            "Benefits": {
+                  "budget": 16452621.0,
+                  "spent": 7827498.42
+            },
+            "Contracted Services": {
+                  "budget": 708977.0,
+                  "spent": 316108.38
+            },
+            "Technology": {
+                  "budget": 19624381.0,
+                  "spent": 10455377.63
+            },
+            "Facilities & Fleet": {
+                  "budget": 2563278.0,
+                  "spent": 1398593.41
+            },
+            "Supplies & Equip.": {
+                  "budget": 5233977.0,
+                  "spent": 1184165.25
+            },
+            "Transfers & Other": {
+                  "budget": 4843545.0,
+                  "spent": 3041517.64
+            }
+      },
+      "Public Health": {
+            "Labor": {
+                  "budget": 26497045.0,
+                  "spent": 14090956.1
+            },
+            "Benefits": {
+                  "budget": 14735029.0,
+                  "spent": 6257997.05
+            },
+            "Contracted Services": {
+                  "budget": 1359091.0,
+                  "spent": 370606.78
+            },
+            "Technology": {
+                  "budget": 6110232.0,
+                  "spent": 3570677.64
+            },
+            "Facilities & Fleet": {
+                  "budget": 2766259.0,
+                  "spent": 396071.31
+            },
+            "Supplies & Equip.": {
+                  "budget": 875963.0,
+                  "spent": 138779.64
+            },
+            "Grants": {
+                  "budget": 2981204.0,
+                  "spent": 1115423.15
+            },
+            "Transfers & Other": {
+                  "budget": 10013631.0,
+                  "spent": 6731501.16
+            }
+      },
+      "Nondepartmental": {
+            "Benefits": {
+                  "budget": 119878.0,
+                  "spent": 0.0
+            },
+            "Contracted Services": {
+                  "budget": 16138702.0,
+                  "spent": 4034675.5
+            },
+            "Transfers & Other": {
+                  "budget": 40948488.0,
+                  "spent": 21323596.03
+            }
+      },
+      "Municipal Court": {
+            "Labor": {
+                  "budget": 12917909.0,
+                  "spent": 7187969.59
+            },
+            "Benefits": {
+                  "budget": 6447684.0,
+                  "spent": 3186682.03
+            },
+            "Contracted Services": {
+                  "budget": 8008604.0,
+                  "spent": 1529632.92
+            },
+            "Technology": {
+                  "budget": 2017522.0,
+                  "spent": 919850.72
+            },
+            "Facilities & Fleet": {
+                  "budget": 4138372.0,
+                  "spent": 1722064.62
+            },
+            "Supplies & Equip.": {
+                  "budget": 139546.0,
+                  "spent": 50116.35
+            },
+            "Transfers & Other": {
+                  "budget": 6010971.0,
+                  "spent": 3516268.53
+            }
+      },
+      "Social Services (Homeless)": {
+            "Grants": {
+                  "budget": 39492782.0,
+                  "spent": 7417862.45
+            },
+            "Transfers & Other": {
+                  "budget": -787494.0,
+                  "spent": 0.0
+            }
+      },
+      "Social Services (Health)": {
+            "Benefits": {
+                  "budget": 65000.0,
+                  "spent": 0.0
+            },
+            "Contracted Services": {
+                  "budget": 150000.0,
+                  "spent": 0.0
+            },
+            "Grants": {
+                  "budget": 25510420.0,
+                  "spent": 10211138.3
+            },
+            "Transfers & Other": {
+                  "budget": -460000.0,
+                  "spent": -460000.0
+            }
+      },
+      "Animal Services": {
+            "Labor": {
+                  "budget": 9484295.0,
+                  "spent": 4765269.74
+            },
+            "Benefits": {
+                  "budget": 4453568.0,
+                  "spent": 2158430.14
+            },
+            "Contracted Services": {
+                  "budget": 2550934.0,
+                  "spent": 905612.34
+            },
+            "Technology": {
+                  "budget": 1241909.0,
+                  "spent": 684596.83
+            },
+            "Facilities & Fleet": {
+                  "budget": 1447821.0,
+                  "spent": 335660.73
+            },
+            "Supplies & Equip.": {
+                  "budget": 1707867.0,
+                  "spent": 685723.51
+            },
+            "Grants": {
+                  "budget": 1000.0,
+                  "spent": 0.0
+            },
+            "Transfers & Other": {
+                  "budget": 4220153.0,
+                  "spent": 2387720.81
+            }
+      },
+      "Forensic Science": {
+            "Labor": {
+                  "budget": 7368917.0,
+                  "spent": 3997186.89
+            },
+            "Benefits": {
+                  "budget": 3488346.0,
+                  "spent": 1726282.16
+            },
+            "Contracted Services": {
+                  "budget": 2735042.0,
+                  "spent": 55942.57
+            },
+            "Technology": {
+                  "budget": 641908.0,
+                  "spent": 173643.3
+            },
+            "Facilities & Fleet": {
+                  "budget": 1096931.0,
+                  "spent": 349100.26
+            },
+            "Supplies & Equip.": {
+                  "budget": 507220.0,
+                  "spent": 161909.37
+            },
+            "Transfers & Other": {
+                  "budget": 110852.0,
+                  "spent": 108416.62
+            }
+      },
+      "Planning": {
+            "Labor": {
+                  "budget": 7078652.0,
+                  "spent": 3809640.68
+            },
+            "Benefits": {
+                  "budget": 3696478.0,
+                  "spent": 1525166.4
+            },
+            "Contracted Services": {
+                  "budget": 253834.0,
+                  "spent": 12970.0
+            },
+            "Technology": {
+                  "budget": 590870.0,
+                  "spent": 342060.79
+            },
+            "Facilities & Fleet": {
+                  "budget": 367156.0,
+                  "spent": 3620.0
+            },
+            "Supplies & Equip.": {
+                  "budget": 44000.0,
+                  "spent": 7143.5
+            },
+            "Transfers & Other": {
+                  "budget": 1109092.0,
+                  "spent": 476663.24
+            }
+      },
+      "Housing": {
+            "Labor": {
+                  "budget": 7783263.0,
+                  "spent": 4125938.46
+            },
+            "Benefits": {
+                  "budget": 4005277.0,
+                  "spent": 1790136.81
+            },
+            "Contracted Services": {
+                  "budget": 571853.0,
+                  "spent": 4264.17
+            },
+            "Technology": {
+                  "budget": 639713.0,
+                  "spent": 369292.86
+            },
+            "Facilities & Fleet": {
+                  "budget": 1224922.0,
+                  "spent": 711701.34
+            },
+            "Supplies & Equip.": {
+                  "budget": 44103.0,
+                  "spent": 9070.89
+            },
+            "Transfers & Other": {
+                  "budget": -2240271.0,
+                  "spent": -733663.55
+            }
+      },
+      "Arts & Culture": {
+            "Labor": {
+                  "budget": 6763160.0,
+                  "spent": 3764198.74
+            },
+            "Benefits": {
+                  "budget": 2405616.0,
+                  "spent": 1043632.16
+            },
+            "Contracted Services": {
+                  "budget": 1950876.0,
+                  "spent": 335873.74
+            },
+            "Technology": {
+                  "budget": 40103.0,
+                  "spent": 16426.79
+            },
+            "Facilities & Fleet": {
+                  "budget": 1781115.0,
+                  "spent": 409083.87
+            },
+            "Supplies & Equip.": {
+                  "budget": 310480.0,
+                  "spent": 88872.28
+            },
+            "Transfers & Other": {
+                  "budget": -1858425.0,
+                  "spent": -552336.31
+            }
+      },
+      "Homeless Strategy & Ops": {
+            "Labor": {
+                  "budget": 2778588.0,
+                  "spent": 1579843.12
+            },
+            "Benefits": {
+                  "budget": 1289147.0,
+                  "spent": 551246.03
+            },
+            "Contracted Services": {
+                  "budget": 120087.0,
+                  "spent": 25273.57
+            },
+            "Technology": {
+                  "budget": 170341.0,
+                  "spent": 105339.55
+            },
+            "Facilities & Fleet": {
+                  "budget": 378088.0,
+                  "spent": 162726.04
+            },
+            "Supplies & Equip.": {
+                  "budget": 29206.0,
+                  "spent": 2923.64
+            },
+            "Grants": {
+                  "budget": 5000000.0,
+                  "spent": 0.0
+            },
+            "Transfers & Other": {
+                  "budget": 189412.0,
+                  "spent": -250268.07
+            }
+      },
+      "Social Services (Courts)": {
+            "Grants": {
+                  "budget": 6166090.0,
+                  "spent": 3940401.86
+            }
+      },
+      "Social Services (Econ Dev)": {
+            "Grants": {
+                  "budget": 4565557.0,
+                  "spent": 1470390.59
+            },
+            "Transfers & Other": {
+                  "budget": -498822.0,
+                  "spent": -448939.8
+            }
+      },
+      "Human Resources": {
+            "Transfers & Other": {
+                  "budget": 465000.0,
+                  "spent": 272444.57
+            }
+      }
+};
+    const CAT_META  = {"Labor": {"color": "#3b82f6", "icon": "\ud83d\udc77"}, "Benefits": {"color": "#8b5cf6", "icon": "\ud83c\udfe5"}, "Contracted Services": {"color": "#22c55e", "icon": "\ud83e\udd1d"}, "Technology": {"color": "#06b6d4", "icon": "\ud83d\udcbb"}, "Facilities & Fleet": {"color": "#f59e0b", "icon": "\ud83c\udfd7\ufe0f"}, "Supplies & Equip.": {"color": "#f97316", "icon": "\ud83d\udce6"}, "Grants": {"color": "#ec4899", "icon": "\ud83d\udcb0"}, "Transfers & Other": {"color": "#64748b", "icon": "\ud83d\udd04"}};
 
-    const fmt = n => "$" + (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : (n / 1e3).toFixed(0) + "K");
-    const pct = (a, b) => ((a / b) * 100).toFixed(1) + "%";
+    const fmt = n => {
+      const abs = Math.abs(n);
+      const s = abs >= 1e6 ? (abs / 1e6).toFixed(1) + "M" : (abs / 1e3).toFixed(0) + "K";
+      return (n < 0 ? "-$" : "$") + s;
+    };
+    const pct = (a, b) => b ? ((a / b) * 100).toFixed(1) + "%" : "—";
 
-    // Spent bars + remaining bars (stacked)
-    const remaining = DEPTS.map(d => d.budget - d.spent);
-    const remainColors = DEPTS.map(d => d.color + "40"); // 25% opacity hex
-
-    new Chart(document.getElementById("deptChart"), {
+    // ── main dept bar chart ──────────────────────────────────────────────────
+    const deptChart = new Chart(document.getElementById("deptChart"), {
       type: "bar",
       data: {
         labels: DEPTS.map(d => d.name),
@@ -240,8 +885,8 @@
           },
           {
             label: "Remaining budget",
-            data: remaining,
-            backgroundColor: remainColors,
+            data: DEPTS.map(d => d.budget - d.spent),
+            backgroundColor: DEPTS.map(d => d.color + "40"),
             borderRadius: 4,
             stack: "budget",
           },
@@ -251,6 +896,9 @@
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
+        onClick(evt, elements) {
+          if (elements.length) openDrill(DEPTS[elements[0].index].name);
+        },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -261,27 +909,21 @@
             bodyColor: "#e2e8f0",
             callbacks: {
               title: ctx => ctx[0].label,
-              afterTitle: ctx => {
-                const d = DEPTS[ctx[0].dataIndex];
-                return `Adopted: ${fmt(d.budget)}`;
-              },
+              afterTitle: ctx => `Adopted: ${fmt(DEPTS[ctx[0].dataIndex].budget)}`,
               label: ctx => {
                 const d = DEPTS[ctx.dataIndex];
-                if (ctx.datasetIndex === 0) {
-                  return ` Spent through Q2: ${fmt(d.spent)} (${pct(d.spent, d.budget)})`;
-                }
-                return ` Remaining: ${fmt(d.budget - d.spent)}`;
+                return ctx.datasetIndex === 0
+                  ? ` Spent through Q2: ${fmt(d.spent)} (${pct(d.spent, d.budget)})`
+                  : ` Remaining: ${fmt(d.budget - d.spent)}`;
               },
+              afterBody: () => ["", "  Click to see spending breakdown →"],
             },
           },
         },
         scales: {
           x: {
             stacked: true,
-            ticks: {
-              color: "#64748b", font: { size: 11 },
-              callback: v => "$" + (v / 1e6).toFixed(0) + "M",
-            },
+            ticks: { color: "#64748b", font: { size: 11 }, callback: v => "$" + (v / 1e6).toFixed(0) + "M" },
             grid: { color: "#252b3b" },
             beginAtZero: true,
           },
@@ -293,6 +935,96 @@
         },
       },
     });
+
+    // ── drill-down ────────────────────────────────────────────────────────────
+    let drillChart = null;
+
+    function openDrill(deptName) {
+      const cats = BREAKDOWN[deptName];
+      if (!cats) return;
+
+      const panel = document.getElementById("drill-panel");
+      const dept  = DEPTS.find(d => d.name === deptName);
+
+      document.getElementById("drill-title").textContent = deptName;
+      document.getElementById("drill-totals").textContent =
+        `Adopted: ${fmt(dept.budget)}  ·  Spent Q2: ${fmt(dept.spent)} (${pct(dept.spent, dept.budget)})`;
+
+      // Filter to categories with non-zero budget, sort descending
+      const entries = Object.entries(cats)
+        .filter(([, v]) => v.budget > 0)
+        .sort(([, a], [, b]) => b.budget - a.budget);
+
+      const labels = entries.map(([cat]) => cat);
+      const budgets = entries.map(([, v]) => v.budget);
+      const colors  = entries.map(([cat]) => CAT_META[cat]?.color ?? "#64748b");
+      const totalBudget = budgets.reduce((a, b) => a + b, 0);
+
+      // Destroy previous drill chart
+      if (drillChart) { drillChart.destroy(); drillChart = null; }
+
+      drillChart = new Chart(document.getElementById("drillChart"), {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: budgets,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: "#1a1f2e",
+            hoverOffset: 8,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "58%",
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "#1e2230",
+              borderColor: "#3d4868",
+              borderWidth: 1,
+              titleColor: "#f1f5f9",
+              bodyColor: "#e2e8f0",
+              callbacks: {
+                label: ctx => {
+                  const p = totalBudget ? ((ctx.parsed / totalBudget) * 100).toFixed(1) : "0";
+                  return ` ${fmt(ctx.parsed)} (${p}% of dept budget)`;
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // Build legend
+      const legendEl = document.getElementById("drill-legend");
+      legendEl.innerHTML = "";
+      entries.forEach(([cat, v]) => {
+        const p = totalBudget ? ((v.budget / totalBudget) * 100).toFixed(1) : "0";
+        const icon = CAT_META[cat]?.icon ?? "";
+        const color = CAT_META[cat]?.color ?? "#64748b";
+        const row = document.createElement("div");
+        row.className = "drill-legend-row";
+        row.innerHTML = `
+          <span class="drill-swatch" style="background:${color};"></span>
+          <span class="drill-legend-name">${icon} ${cat}</span>
+          <span class="drill-legend-vals">${fmt(v.budget)}</span>
+          <span class="drill-legend-pct">${p}%</span>`;
+        legendEl.appendChild(row);
+      });
+
+      panel.style.display = "block";
+      document.getElementById("drill-hint").style.display = "none";
+      panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function closeDrill() {
+      document.getElementById("drill-panel").style.display = "none";
+      document.getElementById("drill-hint").style.display = "block";
+      if (drillChart) { drillChart.destroy(); drillChart = null; }
+    }
   </script>
 </body>
 </html>

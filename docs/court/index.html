@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Court Caseloads</title>
+  <title>Austin 311 — Court Caseloads</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,10 +51,11 @@
       transition: background 0.12s, border-color 0.12s, color 0.12s;
       white-space: nowrap;
     }
-
     .fbtn:hover { background: #2d3453; color: #e2e8f0; }
     .fbtn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 600; }
     .fbtn.active-amber { background: #b45309; border-color: #b45309; color: #fff; font-weight: 600; }
+    .fbtn.active-purple { background: #7c3aed; border-color: #7c3aed; color: #fff; font-weight: 600; }
+    .fbtn.active-teal { background: #0d9488; border-color: #0d9488; color: #fff; font-weight: 600; }
 
     #stats {
       display: none;
@@ -70,15 +71,8 @@
       padding: 10px 8px 9px;
       border-right: 1px solid #2d3348;
     }
-
     .stat:last-child { border-right: none; }
-
-    .stat-value {
-      font-size: 1.3rem;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
+    .stat-value { font-size: 1.3rem; font-weight: 700; line-height: 1.1; }
     .stat-label {
       font-size: 0.67rem;
       color: #475569;
@@ -87,15 +81,9 @@
       margin-top: 3px;
     }
 
-    #chart-wrap {
-      flex: 1;
-      padding: 16px 16px 4px;
-    }
+    #chart-wrap { flex: 1; padding: 16px 16px 4px; }
 
-    #chart-container {
-      display: none;
-      position: relative;
-    }
+    #chart-container { display: none; position: relative; }
 
     #loading {
       display: flex;
@@ -106,47 +94,39 @@
       font-size: 14px;
     }
 
-    /* Data gap note — shown for caseload views */
-    #data-note {
+    .note-box {
       display: none;
       margin-top: 20px;
       padding: 12px 14px;
       background: #1e2230;
       border: 1px solid #2d3348;
-      border-left: 3px solid #f59e0b;
       border-radius: 6px;
       font-size: 0.8rem;
       color: #94a3b8;
       line-height: 1.6;
     }
-
-    #data-note strong { color: #f1f5f9; }
-    #data-note .note-btn {
-      background: none;
-      border: none;
-      color: #3b82f6;
-      cursor: pointer;
-      font-size: inherit;
-      text-decoration: underline;
-      padding: 0;
+    .note-box strong { color: #f1f5f9; }
+    .note-box .note-btn {
+      background: none; border: none; color: #3b82f6;
+      cursor: pointer; font-size: inherit; text-decoration: underline; padding: 0;
     }
-    #data-note .note-btn:hover { color: #60a5fa; }
+    .note-box .note-btn:hover { color: #60a5fa; }
+    .note-box.amber { border-left: 3px solid #f59e0b; }
+    .note-box.green  { border-left: 3px solid #22c55e; }
+    .note-box.purple { border-left: 3px solid #a78bfa; }
+    .note-box.teal   { border-left: 3px solid #2dd4bf; }
 
-    /* Prop B info note — shown for disposition view */
-    #propb-note {
-      display: none;
-      margin-top: 20px;
-      padding: 12px 14px;
-      background: #1e2230;
-      border: 1px solid #2d3348;
-      border-left: 3px solid #22c55e;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      color: #94a3b8;
-      line-height: 1.6;
+    /* disposition sub-table */
+    .dispo-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.78rem; }
+    .dispo-table th { color: #64748b; text-align: left; padding: 4px 6px; border-bottom: 1px solid #2d3348; }
+    .dispo-table td { padding: 4px 6px; border-bottom: 1px solid #1e2230; }
+    .dispo-table tr:last-child td { border-bottom: none; }
+    .dispo-table .cnt { text-align: right; color: #94a3b8; }
+    .dispo-table .pct { text-align: right; color: #475569; }
+    .dispo-badge {
+      display: inline-block; padding: 1px 6px; border-radius: 3px;
+      font-size: 0.72rem; font-weight: 600;
     }
-
-    #propb-note strong { color: #f1f5f9; }
 
     footer {
       text-align: center;
@@ -155,7 +135,6 @@
       color: #475569;
       border-top: 1px solid #1e2230;
     }
-
     footer a { color: #64748b; text-decoration: none; }
     footer a:hover { color: #94a3b8; }
 
@@ -164,6 +143,14 @@
       .stat-label { font-size: 0.61rem; }
     }
   </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TS158R7XSN');
+</script>
 </head>
 <body>
 
@@ -171,14 +158,23 @@
     <div id="panel-title">⚖️ Austin Court Caseloads</div>
     <div id="panel-subtitle">Case pipeline status by charge type</div>
     <div class="btn-row">
-      <button class="fbtn active" id="btn-municipal" onclick="switchDataset('municipal')">
+      <button class="fbtn active" id="btn-municipal" onclick="switchView('municipal')">
         ⚖️ Municipal Court FY2026
       </button>
-      <button class="fbtn" id="btn-dacc" onclick="switchDataset('dacc')">
-        🏛️ Downtown Community Court FY2025
+      <button class="fbtn" id="btn-dacc26" onclick="switchView('dacc26')">
+        🏛️ DACC FY2026
       </button>
-      <button class="fbtn" id="btn-propb" onclick="switchDataset('propb')">
-        ⛺ Prop B — Actual Outcomes
+      <button class="fbtn" id="btn-dacc" onclick="switchView('dacc')">
+        🏛️ DACC FY2025
+      </button>
+      <button class="fbtn" id="btn-propb" onclick="switchView('propb')">
+        ⛺ Prop B — Outcomes
+      </button>
+      <button class="fbtn" id="btn-multiyear" onclick="switchView('multiyear')">
+        📊 Multi-Year
+      </button>
+      <button class="fbtn" id="btn-demo" onclick="switchView('demo')">
+        👥 Demographics
       </button>
     </div>
   </div>
@@ -208,25 +204,47 @@
       <canvas id="myChart"></canvas>
     </div>
 
-    <div id="data-note">
+    <!-- Caseload explanation note -->
+    <div id="note-caseload" class="note-box amber">
       <strong>What TERM / ACT / IN actually mean:</strong>
       These are workflow pipeline statuses — not verdicts.
       <strong>TERM</strong> (Terminated) = case closed, but the dataset doesn't record <em>how</em> it closed (guilty plea, dismissal, acquittal, etc.).
       <strong>ACT</strong> (Active) = open, in progress.
-      <strong>IN</strong> (Inactive) = open but dormant — stalled, unserved warrant, or awaiting action. Despite the name, "Inactive" does <em>not</em> mean closed.
+      <strong>IN</strong> (Inactive) = open but dormant — stalled, unserved warrant, or awaiting action.
       <br /><br />
       Austin does not publish conviction or dismissal data for general court caseloads.
-      The <button class="note-btn" onclick="switchDataset('propb')">⛺ Prop B tab</button>
+      The <button class="note-btn" onclick="switchView('propb')">⛺ Prop B tab</button>
       is the only charge category on this portal where full disposition data is available.
     </div>
 
-    <div id="propb-note">
-      <strong>About this data:</strong>
-      This dataset covers Proposition B (camping ban) offenses filed at Austin Municipal Court and Downtown Community Court — it is the <em>only</em> charge type on data.austintexas.gov where actual verdict/dismissal data is published.
-      Charge types reflect multiple ordinances: "Camping in a Public Area" (city code), "Camping – State Law" (Tex. Penal Code §48.05, added 2023), and "Sitting, Lying Down, Sleeping Outdoors."
+    <!-- Prop B explanation note -->
+    <div id="note-propb" class="note-box green">
+      <strong>About Prop B disposition data:</strong>
+      This dataset covers Proposition B (camping ban) offenses filed at Austin Municipal Court and Downtown Community Court.
+      It is the <em>only</em> charge type on data.austintexas.gov where actual verdict/dismissal data is published.
       <br /><br />
-      <strong>~68% of records show no disposition yet</strong> — those cases remain open or the outcome hasn't been recorded.
-      The resolved subset (~640 cases) is what drives the Convicted / Dismissed breakdown shown above.
+      Charge types cover multiple ordinances: "Camping in a Public Area" (city code),
+      "Camping – State Law" (Tex. Penal Code §48.05, added 2023), and "Sitting, Lying Down, Sleeping Outdoors."
+      <br /><br />
+      The table below breaks out all published disposition sub-types. Cases with no disposition recorded remain open or are pending entry.
+      <div id="propb-dispo-detail"></div>
+    </div>
+
+    <!-- Multi-year note -->
+    <div id="note-multiyear" class="note-box purple">
+      <strong>Multi-year case volume (FY2022–FY2026):</strong>
+      Shows total cases filed per fiscal year for both Austin Municipal Court and Downtown Community Court (DACC).
+      FY2026 is in progress (Oct 2025–present) so its bar will be lower than complete years.
+      Data does not include verdict or dismissal information — only case volume.
+    </div>
+
+    <!-- Demographics note -->
+    <div id="note-demo" class="note-box teal">
+      <strong>About demographics data:</strong>
+      Race and gender are recorded by the citing officer at the time of the citation.
+      This data reflects who is being <em>charged</em>, not outcomes.
+      Note that "Hispanic or Latino" is severely undercounted in the municipal court data —
+      the field appears to capture race, not ethnicity, and many Hispanic defendants may be recorded as White.
     </div>
   </div>
 
@@ -235,7 +253,7 @@
     &nbsp;·&nbsp;
     <a href="trends/">Travis County Trends →</a>
     &nbsp;·&nbsp;
-    <a href="../">← ATX Pulse</a>
+    <a href="../">← Austin 311</a>
   </footer>
 
   <script>
@@ -246,16 +264,25 @@
         id: 'tuwa-vk6q',
         chargeField: 'offense_charge_description',
         statusField: 'case_closed',
-        subtitle: 'Case pipeline status by charge type — Oct 2025 to present',
+        subtitle: 'Case pipeline status by charge type — FY2026 (Oct 2025 to present)',
         sourceUrl: 'https://data.austintexas.gov/d/tuwa-vk6q',
         sourceLabel: 'Austin Municipal Court Caseload FY2026',
+        mode: 'caseload'
+      },
+      dacc26: {
+        id: '88wy-rigr',
+        chargeField: 'charges_description',
+        statusField: 'case_closed',
+        subtitle: 'DACC case pipeline status by charge type — FY2026 (Oct 2025 to present)',
+        sourceUrl: 'https://data.austintexas.gov/d/88wy-rigr',
+        sourceLabel: 'Downtown Community Court Caseload FY2026',
         mode: 'caseload'
       },
       dacc: {
         id: 'emdh-pf9u',
         chargeField: 'charges_description',
         statusField: 'case_closed',
-        subtitle: 'Case pipeline status by charge type — FY2025 full year',
+        subtitle: 'DACC case pipeline status by charge type — FY2025 full year',
         sourceUrl: 'https://data.austintexas.gov/d/emdh-pf9u',
         sourceLabel: 'Downtown Community Court Caseload FY2025',
         mode: 'caseload'
@@ -271,9 +298,20 @@
       }
     };
 
-    // ── Status/disposition definitions ─────────────────────────────────────────
+    // Multi-year dataset IDs: [fy_label, municipal_id, dacc_id]
+    const MULTIYEAR_FY = [
+      { fy: 'FY2022', muni: '26w4-part', dacc: '56au-zawf' },
+      { fy: 'FY2023', muni: '7njn-cb55', dacc: '4tje-ntwx' },
+      { fy: 'FY2024', muni: 'q4t4-skuc', dacc: 'mv2b-q2wb' },
+      { fy: 'FY2025', muni: 't47c-f82f', dacc: 'emdh-pf9u' },
+      { fy: 'FY2026', muni: 'tuwa-vk6q', dacc: '88wy-rigr' },
+    ];
 
-    // For caseload mode: TERM/ACT/IN
+    // Demographics: municipal court FY2026 is richest dataset
+    const DEMO_DATASET = { id: 'tuwa-vk6q', label: 'Municipal Court FY2026' };
+
+    // ── Status/disposition definitions ────────────────────────────────────────
+
     const CASELOAD_STATUSES = [
       { key: 'TERM', label: 'Closed — TERM',       bg: 'rgba(34,197,94,0.75)',  border: 'rgba(34,197,94,1)' },
       { key: 'ACT',  label: 'Open — Active (ACT)',  bg: 'rgba(59,130,246,0.75)', border: 'rgba(59,130,246,1)' },
@@ -281,8 +319,8 @@
       { key: 'OTH',  label: 'Other',                bg: 'rgba(100,116,139,0.6)', border: 'rgba(100,116,139,1)' }
     ];
 
-    // For disposition mode: convicted/dismissed/etc.
-    const DISPOSITION_STATUSES = [
+    // Prop B: top-level groupings for chart bars
+    const DISPOSITION_GROUPS = [
       { key: 'CONV', label: 'Convicted',   bg: 'rgba(239,68,68,0.8)',   border: 'rgba(239,68,68,1)' },
       { key: 'DISM', label: 'Dismissed',   bg: 'rgba(34,197,94,0.75)',  border: 'rgba(34,197,94,1)' },
       { key: 'ACQ',  label: 'Acquitted',   bg: 'rgba(16,185,129,0.85)', border: 'rgba(16,185,129,1)' },
@@ -290,8 +328,17 @@
       { key: 'PEND', label: 'Pending',     bg: 'rgba(245,158,11,0.75)', border: 'rgba(245,158,11,1)' }
     ];
 
+    // Prop B disposition sub-type colors for the detail table
+    const DISPO_BADGE_COLORS = {
+      CONV: { bg: '#7f1d1d', color: '#fca5a5' },
+      DISM: { bg: '#14532d', color: '#86efac' },
+      ACQ:  { bg: '#064e3b', color: '#6ee7b7' },
+      XFER: { bg: '#3b0764', color: '#c4b5fd' },
+      PEND: { bg: '#451a03', color: '#fcd34d' },
+    };
+
     const TOP_N = 15;
-    let currentDataset = 'municipal';
+    let currentView = 'municipal';
     let chartInstance = null;
     const cache = {};
 
@@ -306,38 +353,64 @@
       return 'OTH';
     }
 
+    // Returns { group: 'CONV'|'DISM'|... , raw: original string }
     function normalizeDisposition(raw) {
       if (!raw || raw.trim() === '') return 'PEND';
       const s = raw.trim().toLowerCase();
-      if (s === 'conviction')            return 'CONV';
-      if (s === 'acquittal')             return 'ACQ';
-      if (s.startsWith('dismissed'))     return 'DISM';
-      if (s.startsWith('transferred'))   return 'XFER';
+      if (s === 'conviction')           return 'CONV';
+      if (s === 'acquittal')            return 'ACQ';
+      if (s.startsWith('dismissed'))    return 'DISM';
+      if (s.startsWith('transferred'))  return 'XFER';
       return 'PEND';
     }
 
-    // ── Fetch ──────────────────────────────────────────────────────────────────
+    // ── Fetch helpers ──────────────────────────────────────────────────────────
 
-    async function fetchData(dsKey) {
-      if (cache[dsKey]) return cache[dsKey];
-      const ds = DATASETS[dsKey];
-      const sel = `${ds.chargeField},${ds.statusField},count(*) as cnt`;
-      const grp = `${ds.chargeField},${ds.statusField}`;
+    async function fetchGrouped(dsId, chargeField, statusField) {
+      const key = `${dsId}:${chargeField}:${statusField}`;
+      if (cache[key]) return cache[key];
+      const sel = `${chargeField},${statusField},count(*) as cnt`;
+      const grp = `${chargeField},${statusField}`;
       const url =
-        `https://data.austintexas.gov/resource/${ds.id}.json` +
+        `https://data.austintexas.gov/resource/${dsId}.json` +
         `?$select=${encodeURIComponent(sel)}` +
         `&$group=${encodeURIComponent(grp)}` +
-        `&$limit=1000`;
+        `&$limit=2000`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const rows = await res.json();
-      cache[dsKey] = rows;
+      cache[key] = rows;
       return rows;
+    }
+
+    async function fetchTotal(dsId) {
+      const key = `total:${dsId}`;
+      if (cache[key]) return cache[key];
+      const url = `https://data.austintexas.gov/resource/${dsId}.json?$select=count(*) as n`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows = await res.json();
+      const n = parseInt(rows[0]?.n || '0', 10);
+      cache[key] = n;
+      return n;
+    }
+
+    // For demographics: fetch race+gender grouped counts
+    async function fetchDemo(dsId) {
+      const key = `demo:${dsId}`;
+      if (cache[key]) return cache[key];
+      const [raceRows, genderRows] = await Promise.all([
+        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=race,count(*) as cnt&$group=race&$order=cnt DESC`).then(r => r.json()),
+        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=defendant_gender,count(*) as cnt&$group=defendant_gender&$order=cnt DESC`).then(r => r.json()),
+      ]);
+      const result = { race: raceRows, gender: genderRows };
+      cache[key] = result;
+      return result;
     }
 
     // ── Process ────────────────────────────────────────────────────────────────
 
-    function processCaseloadData(rows, chargeField) {
+    function processCaseload(rows, chargeField) {
       const chargeMap = {};
       let grandTERM = 0, grandACT = 0, grandIN = 0, grandOTH = 0;
 
@@ -365,33 +438,39 @@
       return { topItems, grandTotal, grandTERM, grandACT, grandIN, grandOTH };
     }
 
-    function processDispositionData(rows, chargeField) {
+    function processDisposition(rows, chargeField) {
       const chargeMap = {};
+      // Also track raw sub-types for the detail table
+      const rawSubtypes = {};
       let grandCONV = 0, grandDISM = 0, grandACQ = 0, grandXFER = 0, grandPEND = 0;
 
       for (const row of rows) {
         const charge = (row[chargeField] || 'Unknown').trim();
-        const dispo = normalizeDisposition(row.disposition);
+        const rawDispo = row.disposition || '';
+        const group = normalizeDisposition(rawDispo);
         const cnt = parseInt(row.cnt, 10) || 0;
 
         if (!chargeMap[charge]) chargeMap[charge] = { CONV: 0, DISM: 0, ACQ: 0, XFER: 0, PEND: 0 };
-        chargeMap[charge][dispo] += cnt;
+        chargeMap[charge][group] += cnt;
 
-        if (dispo === 'CONV') grandCONV += cnt;
-        else if (dispo === 'DISM') grandDISM += cnt;
-        else if (dispo === 'ACQ')  grandACQ  += cnt;
-        else if (dispo === 'XFER') grandXFER += cnt;
+        // Aggregate raw sub-types across all charges
+        const sub = rawDispo || '(no disposition recorded)';
+        rawSubtypes[sub] = (rawSubtypes[sub] || 0) + cnt;
+
+        if (group === 'CONV') grandCONV += cnt;
+        else if (group === 'DISM') grandDISM += cnt;
+        else if (group === 'ACQ')  grandACQ  += cnt;
+        else if (group === 'XFER') grandXFER += cnt;
         else grandPEND += cnt;
       }
 
       const grandTotal = grandCONV + grandDISM + grandACQ + grandXFER + grandPEND;
-      // Show all charge types for Prop B (only ~7), sorted by total
       const topItems = Object.entries(chargeMap)
         .map(([charge, c]) => ({ charge, total: c.CONV + c.DISM + c.ACQ + c.XFER + c.PEND, ...c }))
         .sort((a, b) => b.total - a.total)
         .reverse();
 
-      return { topItems, grandTotal, grandCONV, grandDISM, grandACQ, grandXFER, grandPEND };
+      return { topItems, grandTotal, grandCONV, grandDISM, grandACQ, grandXFER, grandPEND, rawSubtypes };
     }
 
     // ── Stats row ──────────────────────────────────────────────────────────────
@@ -401,9 +480,9 @@
 
       if (mode === 'caseload') {
         const { grandTERM, grandACT, grandIN, grandTotal } = processed;
-        setStatCell(1, pct(grandTERM, grandTotal), 'Closed — TERM',         '#22c55e');
-        setStatCell(2, pct(grandACT,  grandTotal), 'Open — Active (ACT)',   '#3b82f6');
-        setStatCell(3, pct(grandIN,   grandTotal), 'Open — Inactive (IN)',  '#f59e0b');
+        setStatCell(1, pct(grandTERM, grandTotal), 'Closed — TERM', '#22c55e');
+        setStatCell(2, pct(grandACT,  grandTotal), 'Open — Active', '#3b82f6');
+        setStatCell(3, pct(grandIN,   grandTotal), 'Open — Inactive', '#f59e0b');
       } else {
         const { grandCONV, grandDISM, grandPEND, grandTotal } = processed;
         setStatCell(1, pct(grandCONV, grandTotal), 'Convicted',  '#ef4444');
@@ -415,38 +494,33 @@
     }
 
     function setStatCell(n, value, label, color) {
-      document.getElementById('stat-s' + n).textContent = value;
-      document.getElementById('stat-s' + n).style.color = color;
-      document.getElementById('stat-l' + n).textContent = label;
+      document.getElementById(`stat-s${n}`).textContent = value;
+      document.getElementById(`stat-s${n}`).style.color = color;
+      document.getElementById(`stat-l${n}`).textContent = label;
     }
 
     // ── Chart ──────────────────────────────────────────────────────────────────
 
-    function renderChart(dsKey, processed) {
+    function destroyChart() {
+      if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    }
+
+    function renderCaseloadChart(dsKey, processed) {
       const ds = DATASETS[dsKey];
       const { topItems } = processed;
-      const statuses = ds.mode === 'caseload' ? CASELOAD_STATUSES : DISPOSITION_STATUSES;
 
       document.getElementById('panel-subtitle').textContent = ds.subtitle;
       document.getElementById('source-link').href = ds.sourceUrl;
       document.getElementById('source-link').textContent = ds.sourceLabel;
 
-      updateStats(ds.mode, processed);
+      updateStats('caseload', processed);
+      showNote('note-caseload');
 
-      // Notes
-      document.getElementById('data-note').style.display  = ds.mode === 'caseload'    ? 'block' : 'none';
-      document.getElementById('propb-note').style.display = ds.mode === 'disposition' ? 'block' : 'none';
-
-      // Size canvas
-      document.getElementById('loading').style.display = 'none';
-      const container = document.getElementById('chart-container');
-      container.style.display = 'block';
-      container.style.height = (topItems.length * 38 + 80) + 'px';
-
-      if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+      sizeContainer(topItems.length);
+      destroyChart();
 
       const labels = topItems.map(d => truncate(d.charge));
-      const activeStatuses = statuses.filter(s => topItems.some(d => d[s.key] > 0));
+      const activeStatuses = CASELOAD_STATUSES.filter(s => topItems.some(d => d[s.key] > 0));
 
       chartInstance = new Chart(document.getElementById('myChart'), {
         type: 'bar',
@@ -461,36 +535,220 @@
             borderSkipped: false
           }))
         },
+        options: hBarOptions(topItems)
+      });
+    }
+
+    function renderDispositionChart(processed) {
+      const ds = DATASETS['propb'];
+      const { topItems, rawSubtypes, grandTotal } = processed;
+
+      document.getElementById('panel-subtitle').textContent = ds.subtitle;
+      document.getElementById('source-link').href = ds.sourceUrl;
+      document.getElementById('source-link').textContent = ds.sourceLabel;
+
+      updateStats('disposition', processed);
+      showNote('note-propb');
+
+      // Build granular sub-type detail table
+      const tableRows = Object.entries(rawSubtypes)
+        .sort((a, b) => b[1] - a[1])
+        .map(([sub, cnt]) => {
+          const group = normalizeDisposition(sub === '(no disposition recorded)' ? '' : sub);
+          const bc = DISPO_BADGE_COLORS[group] || { bg: '#1e293b', color: '#94a3b8' };
+          const groupLabel = DISPOSITION_GROUPS.find(d => d.key === group)?.label || 'Other';
+          return `<tr>
+            <td><span class="dispo-badge" style="background:${bc.bg};color:${bc.color}">${groupLabel}</span></td>
+            <td>${sub}</td>
+            <td class="cnt">${cnt.toLocaleString()}</td>
+            <td class="pct">${pct(cnt, grandTotal)}</td>
+          </tr>`;
+        }).join('');
+
+      document.getElementById('propb-dispo-detail').innerHTML = `
+        <table class="dispo-table" style="margin-top:12px">
+          <thead><tr><th>Group</th><th>Disposition</th><th class="cnt">Cases</th><th class="pct">% Total</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>`;
+
+      sizeContainer(topItems.length);
+      destroyChart();
+
+      const labels = topItems.map(d => truncate(d.charge));
+      const activeGroups = DISPOSITION_GROUPS.filter(s => topItems.some(d => d[s.key] > 0));
+
+      chartInstance = new Chart(document.getElementById('myChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: activeGroups.map(s => ({
+            label: s.label,
+            data: topItems.map(d => d[s.key]),
+            backgroundColor: s.bg,
+            borderColor: s.border,
+            borderWidth: 1,
+            borderSkipped: false
+          }))
+        },
+        options: hBarOptions(topItems)
+      });
+    }
+
+    async function renderMultiYearChart() {
+      document.getElementById('panel-subtitle').textContent = 'Total cases filed per fiscal year — Municipal Court & DACC';
+      document.getElementById('source-link').href = 'https://data.austintexas.gov/browse?q=municipal+court+caseload';
+      document.getElementById('source-link').textContent = 'Austin Municipal Court & DACC Caseloads FY2022–FY2026';
+
+      showNote('note-multiyear');
+      document.getElementById('stats').style.display = 'none';
+
+      // Fetch all years in parallel
+      const totals = await Promise.all(
+        MULTIYEAR_FY.map(async ({ fy, muni, dacc }) => {
+          const [m, d] = await Promise.all([fetchTotal(muni), fetchTotal(dacc)]);
+          return { fy, muni: m, dacc: d };
+        })
+      );
+
+      const labels = totals.map(t => t.fy);
+      const muniData = totals.map(t => t.muni);
+      const daccData = totals.map(t => t.dacc);
+
+      const container = document.getElementById('chart-container');
+      container.style.display = 'block';
+      container.style.height = '320px';
+      document.getElementById('loading').style.display = 'none';
+
+      destroyChart();
+
+      chartInstance = new Chart(document.getElementById('myChart'), {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Municipal Court',
+              data: muniData,
+              backgroundColor: 'rgba(59,130,246,0.75)',
+              borderColor: 'rgba(59,130,246,1)',
+              borderWidth: 1
+            },
+            {
+              label: 'DACC',
+              data: daccData,
+              backgroundColor: 'rgba(167,139,250,0.75)',
+              borderColor: 'rgba(167,139,250,1)',
+              borderWidth: 1
+            }
+          ]
+        },
         options: {
-          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
           scales: {
             x: {
-              stacked: true,
-              ticks: { color: '#64748b', font: { size: 11 } },
+              ticks: { color: '#94a3b8', font: { size: 12 } },
               grid: { color: '#2d3348' },
               border: { color: '#2d3348' }
             },
             y: {
-              stacked: true,
-              ticks: { color: '#94a3b8', font: { size: 11 }, autoSkip: false },
-              grid: { display: false },
+              ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: '#2d3348' },
               border: { color: '#2d3348' }
             }
           },
           plugins: {
             legend: {
               position: 'top',
-              align: 'start',
               labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 16 }
             },
             tooltip: {
               callbacks: {
-                title(items) { return topItems[items[0].dataIndex]?.charge || ''; },
-                afterBody(items) {
-                  const d = topItems[items[0].dataIndex];
-                  return d ? ['', 'Total: ' + d.total.toLocaleString()] : [];
+                label(item) {
+                  return `${item.dataset.label}: ${item.raw.toLocaleString()} cases`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    async function renderDemoChart() {
+      document.getElementById('panel-subtitle').textContent = `Defendant race & gender breakdown — ${DEMO_DATASET.label}`;
+      document.getElementById('source-link').href = `https://data.austintexas.gov/d/${DEMO_DATASET.id}`;
+      document.getElementById('source-link').textContent = `${DEMO_DATASET.label} — Demographics`;
+
+      showNote('note-demo');
+      document.getElementById('stats').style.display = 'none';
+
+      const { race, gender } = await fetchDemo(DEMO_DATASET.id);
+
+      // Merge "Black" and "Black or African American"
+      const raceMerged = {};
+      for (const r of race) {
+        let label = (r.race || 'Unknown').trim();
+        if (label === 'Black or African American') label = 'Black';
+        raceMerged[label] = (raceMerged[label] || 0) + (parseInt(r.cnt, 10) || 0);
+      }
+      const raceEntries = Object.entries(raceMerged).sort((a, b) => b[1] - a[1]);
+      const raceTotal = raceEntries.reduce((s, [, n]) => s + n, 0);
+
+      const container = document.getElementById('chart-container');
+      container.style.display = 'block';
+      container.style.height = (raceEntries.length * 38 + 140) + 'px';
+      document.getElementById('loading').style.display = 'none';
+
+      destroyChart();
+
+      const RACE_COLORS = [
+        'rgba(59,130,246,0.8)', 'rgba(34,197,94,0.8)', 'rgba(245,158,11,0.8)',
+        'rgba(239,68,68,0.8)',  'rgba(167,139,250,0.8)', 'rgba(45,212,191,0.8)',
+        'rgba(251,146,60,0.8)', 'rgba(100,116,139,0.7)'
+      ];
+
+      // Gender breakdown as annotation in subtitle
+      const gTotal = gender.reduce((s, g) => s + (parseInt(g.cnt, 10) || 0), 0);
+      const malePct = gender.find(g => (g.defendant_gender || '').toLowerCase() === 'male');
+      const mPct = malePct ? Math.round(parseInt(malePct.cnt, 10) / gTotal * 100) : '?';
+      document.getElementById('panel-subtitle').textContent =
+        `Race by case count — ${DEMO_DATASET.label} · ${mPct}% male defendants`;
+
+      chartInstance = new Chart(document.getElementById('myChart'), {
+        type: 'bar',
+        data: {
+          labels: raceEntries.map(([r]) => r),
+          datasets: [{
+            label: 'Cases',
+            data: raceEntries.map(([, n]) => n),
+            backgroundColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length]),
+            borderColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length].replace('0.8)', '1)')),
+            borderWidth: 1,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: '#2d3348' },
+              border: { color: '#2d3348' }
+            },
+            y: {
+              ticks: { color: '#94a3b8', font: { size: 12 }, autoSkip: false },
+              grid: { display: false },
+              border: { color: '#2d3348' }
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label(item) {
+                  return `${item.raw.toLocaleString()} cases (${pct(item.raw, raceTotal)} of total)`;
                 }
               }
             }
@@ -513,39 +771,108 @@
       return s.length > n ? s.slice(0, n - 1) + '…' : s;
     }
 
+    function sizeContainer(itemCount) {
+      document.getElementById('loading').style.display = 'none';
+      const container = document.getElementById('chart-container');
+      container.style.display = 'block';
+      container.style.height = (itemCount * 38 + 80) + 'px';
+    }
+
+    function showNote(id) {
+      for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-demo']) {
+        document.getElementById(nid).style.display = nid === id ? 'block' : 'none';
+      }
+    }
+
+    function hBarOptions(topItems) {
+      return {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: '#64748b', font: { size: 11 } },
+            grid: { color: '#2d3348' },
+            border: { color: '#2d3348' }
+          },
+          y: {
+            stacked: true,
+            ticks: { color: '#94a3b8', font: { size: 11 }, autoSkip: false },
+            grid: { display: false },
+            border: { color: '#2d3348' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top', align: 'start',
+            labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 16 }
+          },
+          tooltip: {
+            callbacks: {
+              title(items) { return topItems[items[0].dataIndex]?.charge || ''; },
+              afterBody(items) {
+                const d = topItems[items[0].dataIndex];
+                return d ? ['', 'Total: ' + d.total.toLocaleString()] : [];
+              }
+            }
+          }
+        }
+      };
+    }
+
     // ── Switch ─────────────────────────────────────────────────────────────────
 
-    async function switchDataset(dsKey) {
-      if (dsKey === currentDataset && chartInstance) return;
-      currentDataset = dsKey;
+    const ACTIVE_CLASSES = {
+      municipal: 'active',
+      dacc26:    'active',
+      dacc:      'active',
+      propb:     'active-amber',
+      multiyear: 'active-purple',
+      demo:      'active-teal',
+    };
 
-      ['municipal', 'dacc', 'propb'].forEach(k => {
+    async function switchView(viewKey) {
+      if (viewKey === currentView && chartInstance) return;
+      currentView = viewKey;
+
+      // Reset buttons
+      for (const k of Object.keys(ACTIVE_CLASSES)) {
         const btn = document.getElementById('btn-' + k);
-        btn.classList.remove('active', 'active-amber');
-      });
-      const activeClass = dsKey === 'propb' ? 'active-amber' : 'active';
-      document.getElementById('btn-' + dsKey).classList.add(activeClass);
+        if (btn) btn.className = 'fbtn';
+      }
+      const btn = document.getElementById('btn-' + viewKey);
+      if (btn) btn.classList.add('fbtn', ACTIVE_CLASSES[viewKey]);
 
+      // Reset UI
       document.getElementById('loading').style.display = 'flex';
       document.getElementById('loading').textContent = 'Loading data from Socrata…';
       document.getElementById('chart-container').style.display = 'none';
       document.getElementById('stats').style.display = 'none';
-      document.getElementById('data-note').style.display = 'none';
-      document.getElementById('propb-note').style.display = 'none';
+      for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-demo']) {
+        document.getElementById(nid).style.display = 'none';
+      }
 
       try {
-        const ds = DATASETS[dsKey];
-        const rows = await fetchData(dsKey);
-        const processed = ds.mode === 'caseload'
-          ? processCaseloadData(rows, ds.chargeField)
-          : processDispositionData(rows, ds.chargeField);
-        renderChart(dsKey, processed);
+        if (viewKey === 'multiyear') {
+          await renderMultiYearChart();
+        } else if (viewKey === 'demo') {
+          await renderDemoChart();
+        } else if (viewKey === 'propb') {
+          const ds = DATASETS['propb'];
+          const rows = await fetchGrouped(ds.id, ds.chargeField, ds.statusField);
+          renderDispositionChart(processDisposition(rows, ds.chargeField));
+        } else {
+          const ds = DATASETS[viewKey];
+          const rows = await fetchGrouped(ds.id, ds.chargeField, ds.statusField);
+          renderCaseloadChart(viewKey, processCaseload(rows, ds.chargeField));
+        }
       } catch (err) {
         document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
       }
     }
 
-    switchDataset('municipal');
+    switchView('municipal');
   </script>
 
 </body>

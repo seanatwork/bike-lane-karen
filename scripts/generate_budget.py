@@ -75,6 +75,64 @@ PUBLIC_SAFETY = {
 # Quarter end months; Austin FY runs Oct 1 – Sep 30
 QUARTER_END_MONTH = {1: "Dec", 2: "Mar", 3: "Jun", 4: "Sep"}
 
+# ── expense categorization ─────────────────────────────────────────────────────
+
+# Expense codes explicitly mapped to a category (takes priority over range rules)
+EXPENSE_CODE_MAP = {
+    # Technology
+    "5723", "5724", "5726", "5727", "5729", "5760",
+    "6240", "6245", "6248", "6249", "6387", "6388", "7580", "7610",
+    # Fleet & Facilities
+    "6231", "6250", "6251", "6255", "6256",
+    "6370", "6371", "6372", "6373", "6381", "6382", "6383", "6389", "6395",
+    # Grants
+    "6820", "6825", "6828", "6830",
+}
+
+CATEGORY_META = {
+    "Labor":              {"color": "#3b82f6",  "icon": "👷"},
+    "Benefits":           {"color": "#8b5cf6",  "icon": "🏥"},
+    "Contracted Services":{"color": "#22c55e",  "icon": "🤝"},
+    "Technology":         {"color": "#06b6d4",  "icon": "💻"},
+    "Facilities & Fleet": {"color": "#f59e0b",  "icon": "🏗️"},
+    "Supplies & Equip.":  {"color": "#f97316",  "icon": "📦"},
+    "Grants":             {"color": "#ec4899",  "icon": "💰"},
+    "Transfers & Other":  {"color": "#64748b",  "icon": "🔄"},
+}
+
+CATEGORY_ORDER = list(CATEGORY_META.keys())
+
+
+def categorize_expense(code: str, name: str) -> str:
+    c = int(code)
+    # Labor: all wages, overtime, specialty pay (5001-5179)
+    if 5001 <= c <= 5179:
+        return "Labor"
+    # Benefits: insurance, retirement contributions, payroll taxes (5180-5299)
+    if 5180 <= c <= 5299:
+        return "Benefits"
+    # Technology: IT, software, radio, wireless (specific codes)
+    if code in {"5723", "5724", "5726", "5727", "5729", "5760",
+                "6240", "6245", "6248", "6249", "6387", "6388", "7580", "7610"}:
+        return "Technology"
+    # Facilities & Fleet: rent, utilities, fleet, building maint (specific codes + ranges)
+    if (6120 <= c <= 6176) or code in {
+        "6231", "6250", "6251", "6255", "6256",
+        "6370", "6371", "6372", "6373", "6381", "6382", "6383", "6389", "6395",
+    }:
+        return "Facilities & Fleet"
+    # Contracted services: external professional/specialized services (5300-5899)
+    if 5300 <= c <= 5899:
+        return "Contracted Services"
+    # Supplies & Equipment: physical goods, minor equipment (7000-7999, 9031-9056)
+    if 7000 <= c <= 7999 or 9031 <= c <= 9056:
+        return "Supplies & Equip."
+    # Grants: money given to external organizations
+    if code in {"6820", "6825", "6828", "6830"}:
+        return "Grants"
+    # Everything else: internal charges, fund transfers, admin overhead, reimbursements
+    return "Transfers & Other"
+
 
 # ── fetch + aggregate ──────────────────────────────────────────────────────────
 
@@ -108,18 +166,27 @@ def aggregate(rows):
     max_q = max(int(r["thru_quarter"]) for r in fy_rows)
     q_rows = [r for r in fy_rows if int(r["thru_quarter"]) == max_q]
 
-    totals = defaultdict(lambda: {"budget": 0.0, "spent": 0.0})
+    dept_totals = defaultdict(lambda: {"budget": 0.0, "spent": 0.0})
+    # category breakdown: dept_name -> category -> {budget, spent}
+    dept_cats = defaultdict(lambda: defaultdict(lambda: {"budget": 0.0, "spent": 0.0}))
+
     for r in q_rows:
-        k = r["department_name"]
-        totals[k]["budget"] += float(r.get("budget") or 0)
-        totals[k]["spent"] += float(r.get("expenditures") or 0)
+        dept = r["department_name"]
+        budget = float(r.get("budget") or 0)
+        spent = float(r.get("expenditures") or 0)
+        dept_totals[dept]["budget"] += budget
+        dept_totals[dept]["spent"] += spent
+
+        cat = categorize_expense(r["expense_code"], r.get("expense_name", ""))
+        dept_cats[dept][cat]["budget"] += budget
+        dept_cats[dept][cat]["spent"] += spent
 
     depts = sorted(
-        [{"dept_name": k, **v} for k, v in totals.items()],
+        [{"dept_name": k, **v} for k, v in dept_totals.items()],
         key=lambda d: d["budget"],
         reverse=True,
     )
-    return max_fy, max_q, depts
+    return max_fy, max_q, depts, dept_cats
 
 
 # ── html ───────────────────────────────────────────────────────────────────────
@@ -128,7 +195,7 @@ def fmt_stat(n):
     return f"${n/1e9:.2f}B" if n >= 1e9 else f"${n/1e6:.0f}M"
 
 
-def generate_html(fy, quarter, depts):
+def generate_html(fy, quarter, depts, dept_cats):
     total_budget = sum(d["budget"] for d in depts)
     total_spent  = sum(d["spent"]  for d in depts)
     ps_budget    = sum(d["budget"] for d in depts if d["dept_name"] in PUBLIC_SAFETY)
@@ -150,6 +217,23 @@ def generate_html(fy, quarter, depts):
         }
         for d in depts
     ], indent=6)
+
+    # Build per-department category breakdown keyed by display name
+    breakdown_map = {}
+    for d in depts:
+        display = DEPT_DISPLAY.get(d["dept_name"], d["dept_name"])
+        cats = dept_cats.get(d["dept_name"], {})
+        breakdown_map[display] = {
+            cat: {
+                "budget": round(cats[cat]["budget"], 2),
+                "spent":  round(cats[cat]["spent"],  2),
+            }
+            for cat in CATEGORY_ORDER
+            if cat in cats and cats[cat]["budget"] != 0
+        }
+
+    js_breakdown = json.dumps(breakdown_map, indent=6)
+    js_cat_meta  = json.dumps(CATEGORY_META)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -234,6 +318,67 @@ def generate_html(fy, quarter, depts):
     footer a {{ color: #64748b; text-decoration: none; }}
     footer a:hover {{ color: #94a3b8; }}
     @media (max-width: 520px) {{ .stat-value {{ font-size: 1rem; }} .chart-container {{ height: 560px; }} }}
+
+    /* ── drill-down panel ── */
+    #drill-panel {{
+      display: none;
+      background: #1a1f2e;
+      border: 1px solid #3d4868;
+      border-radius: 8px;
+      padding: 18px 16px 20px;
+      animation: slideIn 0.18s ease;
+    }}
+    @keyframes slideIn {{
+      from {{ opacity: 0; transform: translateY(-6px); }}
+      to   {{ opacity: 1; transform: translateY(0); }}
+    }}
+    #drill-header {{
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 14px; flex-wrap: wrap; gap: 6px;
+    }}
+    #drill-title {{
+      font-size: 15px; font-weight: 700; color: #f1f5f9;
+    }}
+    #drill-totals {{
+      font-size: 11px; color: #64748b;
+    }}
+    #drill-close {{
+      background: none; border: 1px solid #3d4868; color: #64748b;
+      border-radius: 4px; padding: 3px 9px; font-size: 11px; cursor: pointer;
+      transition: border-color 0.12s, color 0.12s;
+    }}
+    #drill-close:hover {{ border-color: #94a3b8; color: #e2e8f0; }}
+    #drill-body {{
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 20px;
+      align-items: start;
+    }}
+    @media (max-width: 600px) {{
+      #drill-body {{ grid-template-columns: 1fr; }}
+      #drill-donut-wrap {{ height: 220px; }}
+    }}
+    #drill-donut-wrap {{ position: relative; height: 260px; }}
+    #drill-legend {{
+      display: flex; flex-direction: column; gap: 9px; padding: 4px 0;
+    }}
+    .drill-legend-row {{
+      display: flex; align-items: center; gap: 9px;
+    }}
+    .drill-swatch {{
+      width: 11px; height: 11px; border-radius: 2px; flex-shrink: 0;
+    }}
+    .drill-legend-name {{
+      font-size: 12px; font-weight: 600; color: #e2e8f0; flex: 1;
+    }}
+    .drill-legend-vals {{
+      text-align: right; font-size: 11px; color: #64748b;
+      white-space: nowrap;
+    }}
+    .drill-legend-pct {{
+      font-size: 11px; font-weight: 700; color: #94a3b8; min-width: 36px; text-align: right;
+    }}
+    #drill-hint {{ font-size: 11px; color: #334155; margin-top: 12px; text-align: center; }}
   </style>
 </head>
 <body>
@@ -271,7 +416,7 @@ def generate_html(fy, quarter, depts):
 
     <div class="chart-block">
       <div class="chart-title">General Fund — adopted budget by department</div>
-      <div class="chart-sub">Solid = spent through Q{quarter} · Dim = remaining budget · Hover for details</div>
+      <div class="chart-sub">Solid = spent through Q{quarter} · Dim = remaining budget · <strong style="color:#60a5fa;">Click a bar to see the spending breakdown</strong></div>
       <div class="legend">
         <span class="legend-item"><span class="legend-dot" style="background:#ef4444;"></span>Public Safety</span>
         <span class="legend-item"><span class="legend-dot" style="background:#22c55e;"></span>Parks &amp; Community</span>
@@ -281,6 +426,22 @@ def generate_html(fy, quarter, depts):
         <span class="legend-item"><span class="legend-dot" style="background:#64748b;"></span>Admin &amp; Other</span>
       </div>
       <div class="chart-container"><canvas id="deptChart"></canvas></div>
+      <div id="drill-hint" style="margin-top:8px;">👆 Click any bar to see how that department spends its budget</div>
+    </div>
+
+    <!-- Drill-down panel (hidden until a bar is clicked) -->
+    <div id="drill-panel">
+      <div id="drill-header">
+        <div>
+          <div id="drill-title">Department</div>
+          <div id="drill-totals"></div>
+        </div>
+        <button id="drill-close" onclick="closeDrill()">✕ Close</button>
+      </div>
+      <div id="drill-body">
+        <div id="drill-donut-wrap"><canvas id="drillChart"></canvas></div>
+        <div id="drill-legend"></div>
+      </div>
     </div>
 
     <hr class="section-divider" />
@@ -342,11 +503,18 @@ def generate_html(fy, quarter, depts):
 
   <script>
     const DEPTS = {js_depts};
+    const BREAKDOWN = {js_breakdown};
+    const CAT_META  = {js_cat_meta};
 
-    const fmt = n => "$" + (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : (n / 1e3).toFixed(0) + "K");
-    const pct = (a, b) => ((a / b) * 100).toFixed(1) + "%";
+    const fmt = n => {{
+      const abs = Math.abs(n);
+      const s = abs >= 1e6 ? (abs / 1e6).toFixed(1) + "M" : (abs / 1e3).toFixed(0) + "K";
+      return (n < 0 ? "-$" : "$") + s;
+    }};
+    const pct = (a, b) => b ? ((a / b) * 100).toFixed(1) + "%" : "—";
 
-    new Chart(document.getElementById("deptChart"), {{
+    // ── main dept bar chart ──────────────────────────────────────────────────
+    const deptChart = new Chart(document.getElementById("deptChart"), {{
       type: "bar",
       data: {{
         labels: DEPTS.map(d => d.name),
@@ -371,6 +539,9 @@ def generate_html(fy, quarter, depts):
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
+        onClick(evt, elements) {{
+          if (elements.length) openDrill(DEPTS[elements[0].index].name);
+        }},
         plugins: {{
           legend: {{ display: false }},
           tooltip: {{
@@ -388,6 +559,7 @@ def generate_html(fy, quarter, depts):
                   ? ` Spent through Q{quarter}: ${{fmt(d.spent)}} (${{pct(d.spent, d.budget)}})`
                   : ` Remaining: ${{fmt(d.budget - d.spent)}}`;
               }},
+              afterBody: () => ["", "  Click to see spending breakdown →"],
             }},
           }},
         }},
@@ -406,6 +578,96 @@ def generate_html(fy, quarter, depts):
         }},
       }},
     }});
+
+    // ── drill-down ────────────────────────────────────────────────────────────
+    let drillChart = null;
+
+    function openDrill(deptName) {{
+      const cats = BREAKDOWN[deptName];
+      if (!cats) return;
+
+      const panel = document.getElementById("drill-panel");
+      const dept  = DEPTS.find(d => d.name === deptName);
+
+      document.getElementById("drill-title").textContent = deptName;
+      document.getElementById("drill-totals").textContent =
+        `Adopted: ${{fmt(dept.budget)}}  ·  Spent Q{quarter}: ${{fmt(dept.spent)}} (${{pct(dept.spent, dept.budget)}})`;
+
+      // Filter to categories with non-zero budget, sort descending
+      const entries = Object.entries(cats)
+        .filter(([, v]) => v.budget > 0)
+        .sort(([, a], [, b]) => b.budget - a.budget);
+
+      const labels = entries.map(([cat]) => cat);
+      const budgets = entries.map(([, v]) => v.budget);
+      const colors  = entries.map(([cat]) => CAT_META[cat]?.color ?? "#64748b");
+      const totalBudget = budgets.reduce((a, b) => a + b, 0);
+
+      // Destroy previous drill chart
+      if (drillChart) {{ drillChart.destroy(); drillChart = null; }}
+
+      drillChart = new Chart(document.getElementById("drillChart"), {{
+        type: "doughnut",
+        data: {{
+          labels,
+          datasets: [{{
+            data: budgets,
+            backgroundColor: colors,
+            borderWidth: 2,
+            borderColor: "#1a1f2e",
+            hoverOffset: 8,
+          }}],
+        }},
+        options: {{
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "58%",
+          plugins: {{
+            legend: {{ display: false }},
+            tooltip: {{
+              backgroundColor: "#1e2230",
+              borderColor: "#3d4868",
+              borderWidth: 1,
+              titleColor: "#f1f5f9",
+              bodyColor: "#e2e8f0",
+              callbacks: {{
+                label: ctx => {{
+                  const p = totalBudget ? ((ctx.parsed / totalBudget) * 100).toFixed(1) : "0";
+                  return ` ${{fmt(ctx.parsed)}} (${{p}}% of dept budget)`;
+                }},
+              }},
+            }},
+          }},
+        }},
+      }});
+
+      // Build legend
+      const legendEl = document.getElementById("drill-legend");
+      legendEl.innerHTML = "";
+      entries.forEach(([cat, v]) => {{
+        const p = totalBudget ? ((v.budget / totalBudget) * 100).toFixed(1) : "0";
+        const icon = CAT_META[cat]?.icon ?? "";
+        const color = CAT_META[cat]?.color ?? "#64748b";
+        const row = document.createElement("div");
+        row.className = "drill-legend-row";
+        row.innerHTML = `
+          <span class="drill-swatch" style="background:${{color}};"></span>
+          <span class="drill-legend-name">${{icon}} ${{cat}}</span>
+          <span class="drill-legend-vals">${{fmt(v.budget)}}</span>
+          <span class="drill-legend-pct">${{p}}%</span>`;
+        legendEl.appendChild(row);
+      }});
+
+      panel.style.display = "block";
+      document.getElementById("drill-hint").style.display = "none";
+      panel.scrollIntoView({{ behavior: "smooth", block: "nearest" }});
+    }}
+
+    function closeDrill() {{
+      document.getElementById("drill-panel").style.display = "none";
+      document.getElementById("drill-hint").style.display = "block";
+      if (drillChart) {{ drillChart.destroy(); drillChart = null; }}
+    }}
   </script>
 </body>
 </html>"""
@@ -418,10 +680,10 @@ def main():
     rows = fetch_rows()
     print(f"  {len(rows)} rows fetched")
 
-    fy, quarter, depts = aggregate(rows)
+    fy, quarter, depts, dept_cats = aggregate(rows)
     print(f"  FY{fy} Q{quarter} — {len(depts)} departments")
 
-    html = generate_html(fy, quarter, depts)
+    html = generate_html(fy, quarter, depts, dept_cats)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(html, encoding="utf-8")
     print(f"  Written → {OUT_PATH}")

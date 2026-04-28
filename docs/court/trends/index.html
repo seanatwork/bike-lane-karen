@@ -3,26 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>ATX Pulse — Travis County Criminal Court Trends</title>
+  <title>Austin 311 — Travis County Criminal Court Trends</title>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #d1dae3; --btn-hover-color: #1e293b;
+      --btn-active-bg: #3b82f6; --btn-active-color: #fff;
+      --footer-border: #e2e8f0; --footer-color: #94a3b8;
+      --note-bg: #eff6ff; --note-border: #bfdbfe; --note-text: #1e40af; --note-strong: #1e3a8a;
+    }
+    html.dark {
+      --bg: #0f1117; --bg-panel: #1e2230; --bg-card: #161a24;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --btn-active-bg: #3b82f6; --btn-active-color: #fff;
+      --footer-border: #1e2230; --footer-color: #475569;
+      --note-bg: #1e2230; --note-border: #2d3348; --note-text: #94a3b8; --note-strong: #f1f5f9;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0f1117;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      transition: background 0.2s, color 0.2s;
     }
 
     #panel {
       position: sticky;
       top: 0;
       z-index: 100;
-      background: #1e2230;
-      border-bottom: 1px solid #2d3348;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
       padding: 10px 16px 12px;
       display: flex;
       flex-direction: column;
@@ -30,35 +53,41 @@
       gap: 6px;
     }
 
-    #panel-title  { font-size: 15px; font-weight: 700; color: #f1f5f9; }
-    #panel-subtitle { font-size: 12px; color: #64748b; text-align: center; }
+    #panel-title  { font-size: 15px; font-weight: 700; color: var(--text-head); }
+    #panel-subtitle { font-size: 12px; color: var(--text-sub); text-align: center; }
 
     .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
 
     .fbtn {
-      background: #252b3b;
-      border: 1px solid #3d4868;
-      color: #94a3b8;
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--btn-color);
       padding: 5px 13px;
       border-radius: 4px;
       font-size: 12px;
       cursor: pointer;
-      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      transition: background 0.12s, color 0.12s;
       white-space: nowrap;
     }
-    .fbtn:hover { background: #2d3453; color: #e2e8f0; }
-    .fbtn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; font-weight: 600; }
+    .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+    .fbtn.active { background: var(--btn-active-bg); border-color: var(--btn-active-bg); color: var(--btn-active-color); font-weight: 600; }
 
     .btn-divider {
       width: 1px;
-      background: #2d3348;
+      background: var(--border);
       margin: 0 2px;
       align-self: stretch;
     }
 
+    #theme-toggle {
+      position: fixed; top: 10px; right: 12px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer;
+    }
+
     #stats {
       display: none;
-      border-bottom: 1px solid #2d3348;
+      border-bottom: 1px solid var(--border);
     }
 
     .stats-inner {
@@ -71,19 +100,19 @@
       max-width: 160px;
       text-align: center;
       padding: 10px 8px 9px;
-      border-right: 1px solid #2d3348;
+      border-right: 1px solid var(--border);
     }
     .stat:last-child { border-right: none; }
 
     .stat-value { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
-    .stat-label { font-size: 0.67rem; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
-    .stat-sub   { font-size: 0.67rem; color: #475569; margin-top: 1px; }
+    .stat-label { font-size: 0.67rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+    .stat-sub   { font-size: 0.67rem; color: var(--text-muted); margin-top: 1px; }
 
     #chart-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
     #loading {
       display: flex; align-items: center; justify-content: center;
-      padding: 60px 0; color: #475569; font-size: 14px;
+      padding: 60px 0; color: var(--text-muted); font-size: 14px;
     }
 
     #chart-container {
@@ -95,32 +124,42 @@
     #data-note {
       display: none;
       padding: 12px 14px;
-      background: #1e2230;
-      border: 1px solid #2d3348;
+      background: var(--note-bg);
+      border: 1px solid var(--note-border);
       border-left: 3px solid #3b82f6;
       border-radius: 6px;
       font-size: 0.8rem;
-      color: #94a3b8;
+      color: var(--note-text);
       line-height: 1.6;
     }
-    #data-note strong { color: #f1f5f9; }
+    #data-note strong { color: var(--note-strong); }
 
     footer {
       text-align: center;
       padding: 14px 16px;
       font-size: 0.74rem;
-      color: #475569;
-      border-top: 1px solid #1e2230;
+      color: var(--footer-color);
+      border-top: 1px solid var(--footer-border);
     }
-    footer a { color: #64748b; text-decoration: none; }
-    footer a:hover { color: #94a3b8; }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--text); }
 
     @media (max-width: 520px) {
       .stat-value { font-size: 1rem; }
     }
   </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TS158R7XSN');
+</script>
 </head>
 <body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
 
   <div id="panel">
     <div id="panel-title">📊 Travis County Criminal Court Trends</div>
@@ -188,7 +227,7 @@
     &nbsp;·&nbsp;
     <a href="../">← Court Charges</a>
     &nbsp;·&nbsp;
-    <a href="../../">← ATX Pulse</a>
+    <a href="../../">← Austin 311</a>
   </footer>
 
   <script>
@@ -239,6 +278,25 @@
     let chartInstance = null;
     let annualRows = null;
     let monthlyRows = null;
+
+    // ── Theme ──────────────────────────────────────────────────────────────────
+    const isDark = document.documentElement.classList.contains("dark");
+    const toggleBtn = document.getElementById("theme-toggle");
+    toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }
+
+    const tickColor  = isDark ? "#64748b" : "#6b7280";
+    const gridColor  = isDark ? "#2d3348" : "#e8ecf0";
+    const gridBorder = isDark ? "#2d3348" : "#e2e8f0";
+    const legColor   = isDark ? "#94a3b8" : "#4b5563";
+    const tipBg      = isDark ? "#1e2230" : "#ffffff";
+    const tipBorder  = isDark ? "#2d3348" : "#e2e8f0";
+    const tipTitle   = isDark ? "#f1f5f9" : "#111827";
+    const tipBody    = isDark ? "#94a3b8"  : "#4b5563";
 
     // ── Colors ─────────────────────────────────────────────────────────────────
     const C = {
@@ -423,34 +481,34 @@
           scales: {
             x: {
               ticks: {
-                color: '#64748b',
+                color: tickColor,
                 font: { size: 11 },
                 maxRotation: viewMode === 'monthly' ? 45 : 0,
                 autoSkip: viewMode === 'monthly',
                 maxTicksLimit: viewMode === 'monthly' ? 18 : 10
               },
-              grid: { color: '#1e2230' },
-              border: { color: '#2d3348' }
+              grid: { color: gridColor },
+              border: { color: gridBorder }
             },
             y: {
-              ticks: { color: '#64748b', font: { size: 11 } },
-              grid: { color: '#2d3348' },
-              border: { color: '#2d3348' }
+              ticks: { color: tickColor, font: { size: 11 } },
+              grid: { color: gridColor },
+              border: { color: gridBorder }
             }
           },
           plugins: {
             legend: {
               position: 'top',
               align: 'start',
-              labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 14,
+              labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 14,
                 usePointStyle: true, pointStyle: 'line' }
             },
             tooltip: {
-              backgroundColor: '#1e2230',
-              borderColor: '#2d3348',
+              backgroundColor: tipBg,
+              borderColor: tipBorder,
               borderWidth: 1,
-              titleColor: '#f1f5f9',
-              bodyColor: '#94a3b8',
+              titleColor: tipTitle,
+              bodyColor: tipBody,
               padding: 10,
               callbacks: {
                 label(ctx) {
