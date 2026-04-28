@@ -34,12 +34,12 @@ def _get_session() -> requests.Session:
 # ── UCR category mapping ───────────────────────────────────────────────────────
 
 CRIME_CATEGORIES = {
-    "Domestic & Family":     {"icon": "🏠", "color": "#ef4444"},
+    "Domestic & Family":     {"icon": "👪", "color": "#ef4444"},
     "Assault":               {"icon": "🥊", "color": "#dc2626"},
     "Vehicle Crime":         {"icon": "🚗", "color": "#f97316"},
     "Theft":                 {"icon": "💰", "color": "#f59e0b"},
-    "Harassment & Disorder": {"icon": "😤", "color": "#a78bfa"},
-    "Burglary":              {"icon": "🏚️", "color": "#6366f1"},
+    "Harassment & Disorder": {"icon": "🗣️", "color": "#a78bfa"},
+    "Burglary":              {"icon": "🥷", "color": "#6366f1"},
     "Drugs & DWI":           {"icon": "💊", "color": "#22c55e"},
     "Criminal Mischief":     {"icon": "🔨", "color": "#64748b"},
     "Fraud & Financial":     {"icon": "💳", "color": "#06b6d4"},
