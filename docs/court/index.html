@@ -204,6 +204,11 @@
       <canvas id="myChart"></canvas>
     </div>
 
+    <!-- Agency breakdown (demographics view only) -->
+    <div id="chart-container-agency" style="display:none; position:relative; margin-top:20px;">
+      <canvas id="agencyChart"></canvas>
+    </div>
+
     <!-- Caseload explanation note -->
     <div id="note-caseload" class="note-box amber">
       <strong>What TERM / ACT / IN actually mean:</strong>
@@ -240,11 +245,9 @@
 
     <!-- Demographics note -->
     <div id="note-demo" class="note-box teal">
-      <strong>About demographics data:</strong>
-      Race and gender are recorded by the citing officer at the time of the citation.
-      This data reflects who is being <em>charged</em>, not outcomes.
-      Note that "Hispanic or Latino" is severely undercounted in the municipal court data —
-      the field appears to capture race, not ethnicity, and many Hispanic defendants may be recorded as White.
+      The agency breakdown above explains the gap: Austin Transportation's parking citations are issued to <em>unattended vehicles</em> — no officer interaction, no race to record.
+      For APD-issued stops, race is self-reported or officer-observed per <strong>APD General Orders 328.3.2</strong>.
+      Note: "Hispanic or Latino" is severely undercounted — the field captures race, not ethnicity, so many Hispanic defendants are recorded as White.
     </div>
   </div>
 
@@ -340,6 +343,7 @@
     const TOP_N = 15;
     let currentView = 'municipal';
     let chartInstance = null;
+    let agencyChartInstance = null;
     const cache = {};
 
     // ── Normalizers ────────────────────────────────────────────────────────────
@@ -393,6 +397,25 @@
       const n = parseInt(rows[0]?.n || '0', 10);
       cache[key] = n;
       return n;
+    }
+
+    // Fetch cases by agency with race-recorded count
+    async function fetchByAgency(dsId) {
+      const key = `agency:${dsId}`;
+      if (cache[key]) return cache[key];
+      const [totalRows, raceRows] = await Promise.all([
+        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=agency,count(*) as total&$group=agency&$order=total DESC&$limit=20`).then(r => r.json()),
+        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=agency,count(*) as has_race&$where=race IS NOT NULL&$group=agency&$limit=20`).then(r => r.json()),
+      ]);
+      const raceMap = {};
+      for (const r of raceRows) raceMap[r.agency] = parseInt(r.has_race, 10) || 0;
+      const result = totalRows.map(r => ({
+        agency: r.agency || 'Unknown',
+        total: parseInt(r.total, 10) || 0,
+        hasRace: raceMap[r.agency] || 0,
+      })).filter(r => r.total > 0);
+      cache[key] = result;
+      return result;
     }
 
     // For demographics: fetch race+gender grouped counts
@@ -675,19 +698,92 @@
     }
 
     async function renderDemoChart() {
-      document.getElementById('panel-subtitle').textContent = `Defendant race & gender breakdown — ${DEMO_DATASET.label}`;
+      document.getElementById('panel-subtitle').textContent = `Demographics — by agency & race · ${DEMO_DATASET.label}`;
       document.getElementById('source-link').href = `https://data.austintexas.gov/d/${DEMO_DATASET.id}`;
       document.getElementById('source-link').textContent = `${DEMO_DATASET.label} — Demographics`;
 
       showNote('note-demo');
       document.getElementById('stats').style.display = 'none';
 
-      const { race, gender } = await fetchDemo(DEMO_DATASET.id);
+      const [agencies, { race, gender }] = await Promise.all([
+        fetchByAgency(DEMO_DATASET.id),
+        fetchDemo(DEMO_DATASET.id),
+      ]);
 
-      // Merge "Black" and "Black or African American"
+      document.getElementById('loading').style.display = 'none';
+
+      // ── Agency stacked bar ────────────────────────────────────────────────
+      const agencyContainer = document.getElementById('chart-container-agency');
+      agencyContainer.style.display = 'block';
+      agencyContainer.style.height = (agencies.length * 36 + 100) + 'px';
+
+      if (agencyChartInstance) { agencyChartInstance.destroy(); agencyChartInstance = null; }
+
+      agencyChartInstance = new Chart(document.getElementById('agencyChart'), {
+        type: 'bar',
+        data: {
+          labels: agencies.map(a => a.agency),
+          datasets: [
+            {
+              label: 'Race recorded',
+              data: agencies.map(a => a.hasRace),
+              backgroundColor: 'rgba(59,130,246,0.8)',
+              borderColor: 'rgba(59,130,246,1)',
+              borderWidth: 1,
+              borderSkipped: false,
+            },
+            {
+              label: 'Race not recorded',
+              data: agencies.map(a => a.total - a.hasRace),
+              backgroundColor: 'rgba(100,116,139,0.45)',
+              borderColor: 'rgba(100,116,139,0.7)',
+              borderWidth: 1,
+              borderSkipped: false,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+              ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: '#2d3348' },
+              border: { color: '#2d3348' },
+            },
+            y: {
+              stacked: true,
+              ticks: { color: '#94a3b8', font: { size: 11 }, autoSkip: false },
+              grid: { display: false },
+              border: { color: '#2d3348' },
+            },
+          },
+          plugins: {
+            legend: {
+              position: 'top', align: 'start',
+              labels: { color: '#94a3b8', font: { size: 12 }, boxWidth: 14, padding: 16 },
+            },
+            tooltip: {
+              callbacks: {
+                title: items => items[0].label,
+                afterBody: items => {
+                  const a = agencies[items[0].dataIndex];
+                  const p = a.total > 0 ? Math.round(a.hasRace / a.total * 100) : 0;
+                  return [`Total: ${a.total.toLocaleString()}`, `Race recorded: ${p}%`];
+                },
+              },
+            },
+          },
+        },
+      });
+
+      // ── Race breakdown bar ────────────────────────────────────────────────
       const raceMerged = {};
       for (const r of race) {
-        let label = (r.race || 'Unknown').trim();
+        let label = (r.race || 'Not recorded').trim();
+        if (!label) label = 'Not recorded';
         if (label === 'Black or African American') label = 'Black';
         raceMerged[label] = (raceMerged[label] || 0) + (parseInt(r.cnt, 10) || 0);
       }
@@ -696,23 +792,22 @@
 
       const container = document.getElementById('chart-container');
       container.style.display = 'block';
-      container.style.height = (raceEntries.length * 38 + 140) + 'px';
-      document.getElementById('loading').style.display = 'none';
+      container.style.height = (raceEntries.length * 38 + 100) + 'px';
 
-      destroyChart();
-
-      const RACE_COLORS = [
-        'rgba(59,130,246,0.8)', 'rgba(34,197,94,0.8)', 'rgba(245,158,11,0.8)',
-        'rgba(239,68,68,0.8)',  'rgba(167,139,250,0.8)', 'rgba(45,212,191,0.8)',
-        'rgba(251,146,60,0.8)', 'rgba(100,116,139,0.7)'
-      ];
-
-      // Gender breakdown as annotation in subtitle
       const gTotal = gender.reduce((s, g) => s + (parseInt(g.cnt, 10) || 0), 0);
       const malePct = gender.find(g => (g.defendant_gender || '').toLowerCase() === 'male');
       const mPct = malePct ? Math.round(parseInt(malePct.cnt, 10) / gTotal * 100) : '?';
       document.getElementById('panel-subtitle').textContent =
-        `Race by case count — ${DEMO_DATASET.label} · ${mPct}% male defendants`;
+        `Demographics — ${DEMO_DATASET.label} · ${mPct}% male defendants`;
+
+      destroyChart();
+
+      const RACE_COLORS = [
+        'rgba(100,116,139,0.6)',
+        'rgba(59,130,246,0.8)', 'rgba(34,197,94,0.8)', 'rgba(245,158,11,0.8)',
+        'rgba(239,68,68,0.8)',  'rgba(167,139,250,0.8)', 'rgba(45,212,191,0.8)',
+        'rgba(251,146,60,0.8)', 'rgba(100,116,139,0.7)'
+      ];
 
       chartInstance = new Chart(document.getElementById('myChart'), {
         type: 'bar',
@@ -722,10 +817,10 @@
             label: 'Cases',
             data: raceEntries.map(([, n]) => n),
             backgroundColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length]),
-            borderColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length].replace('0.8)', '1)')),
+            borderColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length].replace(/[\d.]+\)$/, '1)')),
             borderWidth: 1,
-            borderSkipped: false
-          }]
+            borderSkipped: false,
+          }],
         },
         options: {
           indexAxis: 'y',
@@ -735,25 +830,23 @@
             x: {
               ticks: { color: '#64748b', font: { size: 11 }, callback: v => formatNum(v) },
               grid: { color: '#2d3348' },
-              border: { color: '#2d3348' }
+              border: { color: '#2d3348' },
             },
             y: {
               ticks: { color: '#94a3b8', font: { size: 12 }, autoSkip: false },
               grid: { display: false },
-              border: { color: '#2d3348' }
-            }
+              border: { color: '#2d3348' },
+            },
           },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label(item) {
-                  return `${item.raw.toLocaleString()} cases (${pct(item.raw, raceTotal)} of total)`;
-                }
-              }
-            }
-          }
-        }
+                label: item => `${item.raw.toLocaleString()} cases (${pct(item.raw, raceTotal)} of total)`,
+              },
+            },
+          },
+        },
       });
     }
 
@@ -848,6 +941,8 @@
       document.getElementById('loading').style.display = 'flex';
       document.getElementById('loading').textContent = 'Loading data from Socrata…';
       document.getElementById('chart-container').style.display = 'none';
+      document.getElementById('chart-container-agency').style.display = 'none';
+      if (agencyChartInstance) { agencyChartInstance.destroy(); agencyChartInstance = null; }
       document.getElementById('stats').style.display = 'none';
       for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-demo']) {
         document.getElementById(nid).style.display = 'none';
