@@ -1,17 +1,12 @@
 """
 Generate a static HTML trends page for homeless-related 311 reports.
 
-Focus: tracking the volume of tickets being administratively closed with
-the Homeless Strategy Office (HSO) deflection boilerplate, month over month.
+Primary story: total matched complaint volume over time — how many 311 tickets
+are filed each month that match homeless/encampment keywords across all relevant
+service codes. Since Austin 311 has no homeless-specific category, keyword
+matching across multiple codes is the only way to track this.
 
-The HSO closure note reads:
-  "The Service Request submitted has been reviewed and administratively
-   closed out. All reports related to encampments will be sent to the
-   Homeless Strategy Office to ensure prioritization of the issue."
-
-These tickets never get actioned by a crew — they're closed immediately
-and routed to a separate office with no public-facing ticket tracking.
-This page makes that pattern visible over time.
+Secondary layer: how many of those tickets are closed with the HSO boilerplate.
 """
 
 import io
@@ -63,12 +58,10 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
         buf.seek(0)
         return buf, "No homeless-related 311 records found."
 
-    # ── Monthly aggregation ────────────────────────────────────────────────────
     MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
 
     monthly = defaultdict(lambda: {"total": 0, "hso": 0, "other_closed": 0, "open": 0})
-    by_code = defaultdict(lambda: {"total": 0, "hso": 0})
-    hso_with_no_desc = 0
+
     total_hso = 0
 
     for r in records:
@@ -88,44 +81,42 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
         if is_hso:
             monthly[key]["hso"] += 1
             total_hso += 1
-            if not (r.get("description") or "").strip():
-                hso_with_no_desc += 1
         elif status == "closed":
             monthly[key]["other_closed"] += 1
         else:
             monthly[key]["open"] += 1
 
-        code = r.get("_service_code", "unknown")
-        by_code[code]["total"] += 1
-        if is_hso:
-            by_code[code]["hso"] += 1
-
     sorted_months = sorted(monthly.keys())
     total_reports = len(records)
-    total_open = sum(1 for r in records if (r.get("status") or "").lower() == "open")
+    total_open    = sum(1 for r in records if (r.get("status") or "").lower() == "open")
     deflection_rate = round(total_hso / total_reports * 100) if total_reports else 0
 
-    # ── Recent trend: are deflections increasing? ──────────────────────────────
-    # Compare first half vs second half of the period
+    # Volume trend: first half vs second half total count
     half = len(sorted_months) // 2
     first_half  = sorted_months[:half]
     second_half = sorted_months[half:]
+    vol_first  = sum(monthly[m]["total"] for m in first_half)
+    vol_second = sum(monthly[m]["total"] for m in second_half)
+    avg_first  = round(vol_first  / len(first_half))  if first_half  else 0
+    avg_second = round(vol_second / len(second_half)) if second_half else 0
+    vol_arrow  = "📈 rising"  if avg_second > avg_first  else \
+                 ("📉 falling" if avg_second < avg_first else "➡️ stable")
+
+    # HSO rate trend
     hso_first  = sum(monthly[m]["hso"] for m in first_half)
     hso_second = sum(monthly[m]["hso"] for m in second_half)
-    total_first  = sum(monthly[m]["total"] for m in first_half)
-    total_second = sum(monthly[m]["total"] for m in second_half)
-    rate_first  = round(hso_first  / total_first  * 100) if total_first  else 0
-    rate_second = round(hso_second / total_second * 100) if total_second else 0
-    trend_arrow = "📈 rising" if rate_second > rate_first else ("📉 falling" if rate_second < rate_first else "➡️ stable")
+    rate_first  = round(hso_first  / vol_first  * 100) if vol_first  else 0
+    rate_second = round(hso_second / vol_second * 100) if vol_second else 0
+    hso_arrow   = "📈 rising"  if rate_second > rate_first  else \
+                  ("📉 falling" if rate_second < rate_first else "➡️ stable")
 
-    # ── Build month rows ───────────────────────────────────────────────────────
+    # Monthly bar rows
     max_total = max((monthly[m]["total"] for m in sorted_months), default=1)
-
     month_rows_html = ""
     for key in sorted_months:
         d = monthly[key]
         yr, mo = key.split("-")
-        label = f"{MONTH_NAMES[int(mo)-1]} {yr}"
+        label  = f"{MONTH_NAMES[int(mo)-1]} {yr}"
         total  = d["total"]
         hso    = d["hso"]
         other  = d["other_closed"]
@@ -134,8 +125,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
         hso_pct   = round(hso   / max_total * 100)
         other_pct = round(other / max_total * 100)
         open_pct  = round(open_ / max_total * 100)
-
-        hso_rate = round(hso / total * 100) if total else 0
+        hso_rate  = round(hso / total * 100) if total else 0
 
         month_rows_html += f"""
         <div class="month-row">
@@ -149,31 +139,8 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
           <span class="month-hso">{hso_rate}% HSO</span>
         </div>"""
 
-    # ── Service code breakdown ────────────────────────────────────────────────
-    CODE_LABELS = {
-        "PRGRDISS": "Parks — Grounds",
-        "ATCOCIRW": "TPW — Construction in ROW",
-        "OBSTMIDB": "TPW — Obstruction in ROW",
-        "SBDEBROW": "TPW — Debris in Street",
-        "DRCHANEL": "Watershed — Drainage/Creek",
-        "NOISECMP": "Non-Emergency Noise",
-    }
-    max_code_total = max((v["total"] for v in by_code.values()), default=1)
-    code_rows_html = ""
-    for code, vals in sorted(by_code.items(), key=lambda x: -x[1]["total"]):
-        lbl = CODE_LABELS.get(code, code)
-        pct_bar = round(vals["total"] / max_code_total * 100)
-        hso_of_code = round(vals["hso"] / vals["total"] * 100) if vals["total"] else 0
-        code_rows_html += f"""
-        <div class="bar-row">
-          <span class="bar-label">{lbl}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:{pct_bar}%"></div></div>
-          <span class="bar-val">{vals['total']} total · {vals['hso']} HSO ({hso_of_code}%)</span>
-        </div>"""
-
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    # ── HTML ──────────────────────────────────────────────────────────────────
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -219,7 +186,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       position: sticky; top: 0; z-index: 100;
     }}
     #panel-title {{ font-size: 15px; font-weight: 700; color: var(--text-head); }}
-    #panel-sub   {{ font-size: 12px; color: var(--text-sub); }}
+    #panel-sub   {{ font-size: 12px; color: var(--text-sub); text-align: center; }}
     #last-ran    {{ font-size: 11px; color: var(--text-muted); }}
     .btn-row {{ display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }}
     .fbtn {{
@@ -249,45 +216,30 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     .legend-inline {{ display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }}
     .legend-item {{ display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sub); }}
     .legend-dot  {{ width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }}
-
-    /* month chart */
     .month-row  {{ display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; }}
     .month-lbl  {{ flex: 0 0 62px; color: var(--text-sub); font-size: 10px; }}
     .month-track {{ flex: 1; display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--bar-bg); }}
-    .bar-seg    {{ height: 14px; transition: width 0.3s; }}
+    .bar-seg    {{ height: 14px; }}
     .hso-seg    {{ background: #dc2626; }}
     .other-seg  {{ background: #6b7280; }}
     .open-seg   {{ background: #f59e0b; }}
     .month-total {{ flex: 0 0 36px; text-align: right; color: var(--text-muted); font-size: 10px; }}
     .month-hso  {{ flex: 0 0 62px; text-align: right; color: #dc2626; font-size: 10px; font-weight: 600; }}
-
-    /* code breakdown */
-    .bar-rows {{ display: flex; flex-direction: column; gap: 6px; }}
-    .bar-row  {{ display: flex; align-items: center; gap: 8px; font-size: 11px; }}
-    .bar-label {{ flex: 0 0 180px; color: var(--text-sub); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }}
-    .bar-track {{ flex: 1; background: var(--bar-bg); border-radius: 3px; height: 8px; }}
-    .bar-fill  {{ height: 8px; border-radius: 3px; background: #64748b; }}
-    .bar-val   {{ flex: 0 0 180px; color: var(--text-muted); font-size: 10px; }}
-
-    /* HSO note box */
+    .trend-badges {{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }}
+    .trend-badge {{
+      display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-sub);
+    }}
     .hso-note {{
       background: var(--note-bg); border: 1px solid var(--note-border);
-      border-left: 4px solid #dc2626;
-      border-radius: 8px; padding: 14px 16px;
+      border-left: 4px solid #dc2626; border-radius: 8px; padding: 14px 16px;
     }}
     .hso-note-title {{ font-size: 12px; font-weight: 700; color: var(--text-head); margin-bottom: 8px; }}
     .hso-quote {{
       font-size: 12px; font-style: italic; color: var(--note-text);
-      line-height: 1.6; border-left: 3px solid #dc2626;
-      padding-left: 10px; margin: 8px 0;
+      line-height: 1.6; border-left: 3px solid #dc2626; padding-left: 10px; margin: 8px 0;
     }}
     .hso-note p {{ font-size: 12px; color: var(--text-sub); line-height: 1.6; margin-top: 8px; }}
-    .trend-badge {{
-      display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;
-      background: #1e2230; color: #e2e8f0; margin-top: 6px;
-    }}
-    html:not(.dark) .trend-badge {{ background: #f1f5f9; color: #1e293b; }}
-
     footer {{ font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 8px; }}
     footer a {{ color: var(--text-sub); text-decoration: none; }}
   </style>
@@ -297,8 +249,9 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
   <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
 
   <div id="panel">
-    <div id="panel-title">🏕️ Homeless 311 — Report Trends</div>
-    <div id="panel-sub">Keyword-matched reports across 5 service codes · last {days_back} days</div>
+    <div id="panel-title">🏕️ Homeless 311 — Complaint Trends</div>
+    <div id="panel-sub">Keyword-matched reports across all relevant service codes · last {days_back} days<br/>
+    Austin 311 has no homeless-specific category — complaints are filed under parks, ROW, debris &amp; noise codes</div>
     <div id="last-ran">Last ran: {now_str}</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Homeless Map</a>
@@ -311,23 +264,34 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     <div class="stats-row">
       <div class="stat">
         <div class="stat-val" style="color:#3b82f6;">{total_reports:,}</div>
-        <div class="stat-label">Total matched reports</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="color:#dc2626;">{total_hso:,}</div>
-        <div class="stat-label">HSO deflections</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="color:#dc2626;">{deflection_rate}%</div>
-        <div class="stat-label">Deflection rate</div>
+        <div class="stat-label">Total matched ({days_back}d)</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="color:#f59e0b;">{total_open:,}</div>
-        <div class="stat-label">Still open</div>
+        <div class="stat-label">Currently open</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="color:#6b7280;">{hso_with_no_desc:,}</div>
-        <div class="stat-label">HSO w/ blank description</div>
+        <div class="stat-val" style="color:#dc2626;">{total_hso:,}</div>
+        <div class="stat-label">Closed → HSO</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" style="color:#dc2626;">{deflection_rate}%</div>
+        <div class="stat-label">HSO deflection rate</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">📊 Monthly Complaint Volume</div>
+      <div class="chart-sub">Total keyword-matched 311 tickets filed each month, broken down by outcome</div>
+      <div class="legend-inline">
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Closed → HSO</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#6b7280;"></div> Other closed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Open</div>
+      </div>
+      {month_rows_html}
+      <div class="trend-badges">
+        <span class="trend-badge">Volume: avg {avg_first}/mo → {avg_second}/mo &nbsp;{vol_arrow}</span>
+        <span class="trend-badge">HSO rate: {rate_first}% → {rate_second}% &nbsp;{hso_arrow}</span>
       </div>
     </div>
 
@@ -335,40 +299,16 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       <div class="hso-note-title">⚠️ What is an HSO Deflection?</div>
       <div class="hso-quote">{HSO_BOILERPLATE}</div>
       <p>
-        When a resident files a 311 report about an encampment, it may be closed with
-        this boilerplate and routed to the Homeless Strategy Office — a separate department
-        with no public-facing 311 tracking. The resident receives a "closed" status, and
-        the ticket exits the standard 311 system. What happened before this boilerplate
-        became common is unknown: tickets may have been kept open longer, closed with
-        different messages, or handled differently. This page tracks only how often
-        <em>this specific closure pattern</em> appears, and whether it is becoming more
-        or less frequent over time.
+        When a homeless-related 311 report is closed with this note, the ticket exits
+        the standard 311 system and is routed to the Homeless Strategy Office — a separate
+        department with no public-facing ticket tracking. The red portion of each bar above
+        shows how many matched tickets received this closure each month.
       </p>
-      <div class="trend-badge">
-        Deflection rate: {rate_first}% (first half) → {rate_second}% (second half) · {trend_arrow}
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="chart-title">📊 Monthly Report Volume</div>
-      <div class="chart-sub">Each bar shows the breakdown of matched reports by outcome</div>
-      <div class="legend-inline">
-        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> HSO deflected (closed → HSO)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#6b7280;"></div> Other closed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Open</div>
-      </div>
-      {month_rows_html}
-    </div>
-
-    <div class="chart-card">
-      <div class="chart-title">📁 By Service Code</div>
-      <div class="chart-sub">Which 311 categories are generating these reports and deflections</div>
-      <div class="bar-rows">{code_rows_html}</div>
     </div>
 
     <footer>
       Data: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 API</a>
-      &nbsp;·&nbsp; Reports matched by keyword across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP
+      &nbsp;·&nbsp; Keyword-matched across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP
       &nbsp;·&nbsp; Generated {now_str}
     </footer>
 
@@ -394,9 +334,9 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
         f"🏕️ *Homeless 311 Trends*\n"
         f"_Last {days_back} days_\n\n"
         f"📊 *{total_reports:,} matched reports*\n"
-        f"🔴 *{total_hso:,} HSO deflections* ({deflection_rate}% deflection rate)\n"
-        f"📈 Trend: {rate_first}% → {rate_second}% ({trend_arrow})\n"
-        f"🟡 *{total_open:,} still open*\n\n"
+        f"🔴 *{total_hso:,} closed → HSO* ({deflection_rate}%)\n"
+        f"Volume: avg {avg_first}/mo → {avg_second}/mo {vol_arrow}\n"
+        f"HSO rate: {rate_first}% → {rate_second}% {hso_arrow}\n\n"
         f"_Source: Austin Open311 API_"
     )
     return buf, summary

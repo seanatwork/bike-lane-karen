@@ -51,7 +51,7 @@
       position: sticky; top: 0; z-index: 100;
     }
     #panel-title { font-size: 15px; font-weight: 700; color: var(--text-head); }
-    #panel-sub   { font-size: 12px; color: var(--text-sub); }
+    #panel-sub   { font-size: 12px; color: var(--text-sub); text-align: center; }
     #last-ran    { font-size: 11px; color: var(--text-muted); }
     .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
     .fbtn {
@@ -81,45 +81,30 @@
     .legend-inline { display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
     .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sub); }
     .legend-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-    /* month chart */
     .month-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; }
     .month-lbl  { flex: 0 0 62px; color: var(--text-sub); font-size: 10px; }
     .month-track { flex: 1; display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--bar-bg); }
-    .bar-seg    { height: 14px; transition: width 0.3s; }
+    .bar-seg    { height: 14px; }
     .hso-seg    { background: #dc2626; }
     .other-seg  { background: #6b7280; }
     .open-seg   { background: #f59e0b; }
     .month-total { flex: 0 0 36px; text-align: right; color: var(--text-muted); font-size: 10px; }
     .month-hso  { flex: 0 0 62px; text-align: right; color: #dc2626; font-size: 10px; font-weight: 600; }
-
-    /* code breakdown */
-    .bar-rows { display: flex; flex-direction: column; gap: 6px; }
-    .bar-row  { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-    .bar-label { flex: 0 0 180px; color: var(--text-sub); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-    .bar-track { flex: 1; background: var(--bar-bg); border-radius: 3px; height: 8px; }
-    .bar-fill  { height: 8px; border-radius: 3px; background: #64748b; }
-    .bar-val   { flex: 0 0 180px; color: var(--text-muted); font-size: 10px; }
-
-    /* HSO note box */
+    .trend-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .trend-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-sub);
+    }
     .hso-note {
       background: var(--note-bg); border: 1px solid var(--note-border);
-      border-left: 4px solid #dc2626;
-      border-radius: 8px; padding: 14px 16px;
+      border-left: 4px solid #dc2626; border-radius: 8px; padding: 14px 16px;
     }
     .hso-note-title { font-size: 12px; font-weight: 700; color: var(--text-head); margin-bottom: 8px; }
     .hso-quote {
       font-size: 12px; font-style: italic; color: var(--note-text);
-      line-height: 1.6; border-left: 3px solid #dc2626;
-      padding-left: 10px; margin: 8px 0;
+      line-height: 1.6; border-left: 3px solid #dc2626; padding-left: 10px; margin: 8px 0;
     }
     .hso-note p { font-size: 12px; color: var(--text-sub); line-height: 1.6; margin-top: 8px; }
-    .trend-badge {
-      display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;
-      background: #1e2230; color: #e2e8f0; margin-top: 6px;
-    }
-    html:not(.dark) .trend-badge { background: #f1f5f9; color: #1e293b; }
-
     footer { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 8px; }
     footer a { color: var(--text-sub); text-decoration: none; }
   </style>
@@ -137,9 +122,10 @@
   <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
 
   <div id="panel">
-    <div id="panel-title">🏕️ Homeless 311 — Report Trends</div>
-    <div id="panel-sub">Keyword-matched reports across 5 service codes · last 365 days</div>
-    <div id="last-ran">Last ran: 2026-04-28 16:57 UTC</div>
+    <div id="panel-title">🏕️ Homeless 311 — Complaint Trends</div>
+    <div id="panel-sub">Keyword-matched reports across all relevant service codes · last 365 days<br/>
+    Austin 311 has no homeless-specific category — complaints are filed under parks, ROW, debris &amp; noise codes</div>
+    <div id="last-ran">Last ran: 2026-04-28 17:05 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Homeless Map</a>
       <a class="fbtn" href="../../">🏠 Home</a>
@@ -151,49 +137,27 @@
     <div class="stats-row">
       <div class="stat">
         <div class="stat-val" style="color:#3b82f6;">369</div>
-        <div class="stat-label">Total matched reports</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="color:#dc2626;">151</div>
-        <div class="stat-label">HSO deflections</div>
-      </div>
-      <div class="stat">
-        <div class="stat-val" style="color:#dc2626;">41%</div>
-        <div class="stat-label">Deflection rate</div>
+        <div class="stat-label">Total matched (365d)</div>
       </div>
       <div class="stat">
         <div class="stat-val" style="color:#f59e0b;">0</div>
-        <div class="stat-label">Still open</div>
+        <div class="stat-label">Currently open</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="color:#6b7280;">91</div>
-        <div class="stat-label">HSO w/ blank description</div>
+        <div class="stat-val" style="color:#dc2626;">151</div>
+        <div class="stat-label">Closed → HSO</div>
       </div>
-    </div>
-
-    <div class="hso-note">
-      <div class="hso-note-title">⚠️ What is an HSO Deflection?</div>
-      <div class="hso-quote">“The Service Request submitted has been reviewed and administratively closed out. All reports related to encampments will be sent to the Homeless Strategy Office to ensure prioritization of the issue.”</div>
-      <p>
-        When a resident files a 311 report about an encampment, it may be closed with
-        this boilerplate and routed to the Homeless Strategy Office — a separate department
-        with no public-facing 311 tracking. The resident receives a "closed" status, and
-        the ticket exits the standard 311 system. What happened before this boilerplate
-        became common is unknown: tickets may have been kept open longer, closed with
-        different messages, or handled differently. This page tracks only how often
-        <em>this specific closure pattern</em> appears, and whether it is becoming more
-        or less frequent over time.
-      </p>
-      <div class="trend-badge">
-        Deflection rate: 18% (first half) → 51% (second half) · 📈 rising
+      <div class="stat">
+        <div class="stat-val" style="color:#dc2626;">41%</div>
+        <div class="stat-label">HSO deflection rate</div>
       </div>
     </div>
 
     <div class="chart-card">
-      <div class="chart-title">📊 Monthly Report Volume</div>
-      <div class="chart-sub">Each bar shows the breakdown of matched reports by outcome</div>
+      <div class="chart-title">📊 Monthly Complaint Volume</div>
+      <div class="chart-sub">Total keyword-matched 311 tickets filed each month, broken down by outcome</div>
       <div class="legend-inline">
-        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> HSO deflected (closed → HSO)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Closed → HSO</div>
         <div class="legend-item"><div class="legend-dot" style="background:#6b7280;"></div> Other closed</div>
         <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Open</div>
       </div>
@@ -238,43 +202,27 @@
           <span class="month-total">122</span>
           <span class="month-hso">64% HSO</span>
         </div>
+      <div class="trend-badges">
+        <span class="trend-badge">Volume: avg 56/mo → 128/mo &nbsp;📈 rising</span>
+        <span class="trend-badge">HSO rate: 18% → 51% &nbsp;📈 rising</span>
+      </div>
     </div>
 
-    <div class="chart-card">
-      <div class="chart-title">📁 By Service Code</div>
-      <div class="chart-sub">Which 311 categories are generating these reports and deflections</div>
-      <div class="bar-rows">
-        <div class="bar-row">
-          <span class="bar-label">Parks — Grounds</span>
-          <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
-          <span class="bar-val">275 total · 150 HSO (55%)</span>
-        </div>
-        <div class="bar-row">
-          <span class="bar-label">Watershed — Drainage/Creek</span>
-          <div class="bar-track"><div class="bar-fill" style="width:18%"></div></div>
-          <span class="bar-val">49 total · 1 HSO (2%)</span>
-        </div>
-        <div class="bar-row">
-          <span class="bar-label">TPW — Obstruction in ROW</span>
-          <div class="bar-track"><div class="bar-fill" style="width:8%"></div></div>
-          <span class="bar-val">23 total · 0 HSO (0%)</span>
-        </div>
-        <div class="bar-row">
-          <span class="bar-label">TPW — Debris in Street</span>
-          <div class="bar-track"><div class="bar-fill" style="width:7%"></div></div>
-          <span class="bar-val">20 total · 0 HSO (0%)</span>
-        </div>
-        <div class="bar-row">
-          <span class="bar-label">TPW — Construction in ROW</span>
-          <div class="bar-track"><div class="bar-fill" style="width:1%"></div></div>
-          <span class="bar-val">2 total · 0 HSO (0%)</span>
-        </div></div>
+    <div class="hso-note">
+      <div class="hso-note-title">⚠️ What is an HSO Deflection?</div>
+      <div class="hso-quote">“The Service Request submitted has been reviewed and administratively closed out. All reports related to encampments will be sent to the Homeless Strategy Office to ensure prioritization of the issue.”</div>
+      <p>
+        When a homeless-related 311 report is closed with this note, the ticket exits
+        the standard 311 system and is routed to the Homeless Strategy Office — a separate
+        department with no public-facing ticket tracking. The red portion of each bar above
+        shows how many matched tickets received this closure each month.
+      </p>
     </div>
 
     <footer>
       Data: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 API</a>
-      &nbsp;·&nbsp; Reports matched by keyword across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP
-      &nbsp;·&nbsp; Generated 2026-04-28 16:57 UTC
+      &nbsp;·&nbsp; Keyword-matched across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP
+      &nbsp;·&nbsp; Generated 2026-04-28 17:05 UTC
     </footer>
 
   </div>
