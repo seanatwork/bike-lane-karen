@@ -78,6 +78,18 @@
     }
     .chart-title { font-size: 13px; font-weight: 700; color: var(--text-head); margin-bottom: 3px; }
     .chart-sub   { font-size: 11px; color: var(--text-sub); margin-bottom: 14px; }
+    .legend-inline { display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sub); }
+    .legend-dot  { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+    .month-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; }
+    .month-lbl  { flex: 0 0 62px; color: var(--text-sub); font-size: 10px; }
+    .month-track { flex: 1; display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--bar-bg); }
+    .bar-seg    { height: 14px; }
+    .hso-seg    { background: #dc2626; }
+    .other-seg  { background: #6b7280; }
+    .open-seg   { background: #f59e0b; }
+    .month-total { flex: 0 0 36px; text-align: right; color: var(--text-muted); font-size: 10px; }
+    .month-hso  { flex: 0 0 62px; text-align: right; color: #dc2626; font-size: 10px; font-weight: 600; }
     .trend-badges { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
     .trend-badge {
       display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;
@@ -113,7 +125,7 @@
     <div id="panel-title">🏕️ Homeless 311 — Complaint Trends</div>
     <div id="panel-sub">Keyword-matched reports across all relevant service codes · last 365 days<br/>
     Austin 311 has no homeless-specific category — complaints are filed under parks, ROW, debris &amp; noise codes</div>
-    <div id="last-ran">Last ran: 2026-04-28 20:08 UTC</div>
+    <div id="last-ran">Last ran: 2026-04-29 00:30 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Homeless Map</a>
       <a class="fbtn" href="../../">🏠 Home</a>
@@ -124,7 +136,7 @@
 
     <div class="stats-row">
       <div class="stat">
-        <div class="stat-val" style="color:#3b82f6;">2,349</div>
+        <div class="stat-val" style="color:#3b82f6;">2,350</div>
         <div class="stat-label">Total matched (365d)</div>
       </div>
       <div class="stat">
@@ -132,66 +144,147 @@
         <div class="stat-label">Currently open</div>
       </div>
       <div class="stat">
-        <div class="stat-val" style="color:#dc2626;">1,309</div>
+        <div class="stat-val" style="color:#dc2626;">1,310</div>
         <div class="stat-label">Closed → HSO</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" style="color:#dc2626;">56%</div>
+        <div class="stat-label">HSO deflection rate</div>
       </div>
     </div>
 
     <div class="chart-card">
-      <div class="chart-title">📈 Monthly Complaint Volume</div>
-      <div class="chart-sub">Total keyword-matched 311 tickets filed per month · hover dots for exact counts</div>
-      <svg viewBox="0 0 560 155" width="100%" style="display:block;overflow:visible;margin-top:4px">
-        <defs>
-          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.18"/>
-            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>
-          </linearGradient>
-        </defs>
-        <!-- gridlines -->
-        <line x1="44" y1="130" x2="548" y2="130" stroke="var(--border)" stroke-width="1"/>
-        <line x1="44" y1="92.5" x2="548" y2="92.5" stroke="var(--border)" stroke-width="0.7" stroke-dasharray="3,2"/>
-        <line x1="44" y1="65.6" x2="548" y2="65.6" stroke="var(--border)" stroke-width="0.7" stroke-dasharray="3,2"/>
-        <line x1="44" y1="38.8" x2="548" y2="38.8" stroke="var(--border)" stroke-width="0.7" stroke-dasharray="3,2"/>
-        <!-- y-axis labels -->
-        <text x="40" y="133" text-anchor="end" font-size="9" fill="var(--text-muted)">100</text>
-        <text x="40" y="95.5" text-anchor="end" font-size="9" fill="var(--text-muted)">150</text>
-        <text x="40" y="68.6" text-anchor="end" font-size="9" fill="var(--text-muted)">200</text>
-        <text x="40" y="41.8" text-anchor="end" font-size="9" fill="var(--text-muted)">250</text>
-        <!-- area fill -->
-        <polygon points="44,130 44,91.4 89.8,100.5 135.6,98.4 181.5,57.1 227.3,56.0 273.1,26.4 318.9,68.3 364.7,49.0 410.5,57.6 456.4,53.8 502.2,73.7 548,82.8 548,130" fill="url(#areaGrad)"/>
-        <!-- line -->
-        <polyline points="44,91.4 89.8,100.5 135.6,98.4 181.5,57.1 227.3,56.0 273.1,26.4 318.9,68.3 364.7,49.0 410.5,57.6 456.4,53.8 502.2,73.7 548,82.8" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        <!-- peak label -->
-        <text x="273.1" y="19" text-anchor="middle" font-size="9" font-weight="700" fill="#3b82f6">273</text>
-        <!-- data points -->
-        <circle cx="44" cy="91.4" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>May 2025: 152</title></circle>
-        <circle cx="89.8" cy="100.5" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Jun 2025: 135</title></circle>
-        <circle cx="135.6" cy="98.4" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Jul 2025: 139</title></circle>
-        <circle cx="181.5" cy="57.1" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Aug 2025: 216</title></circle>
-        <circle cx="227.3" cy="56.0" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Sep 2025: 218</title></circle>
-        <circle cx="273.1" cy="26.4" r="4.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Oct 2025: 273 (peak)</title></circle>
-        <circle cx="318.9" cy="68.3" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Nov 2025: 195</title></circle>
-        <circle cx="364.7" cy="49.0" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Dec 2025: 231</title></circle>
-        <circle cx="410.5" cy="57.6" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Jan 2026: 215</title></circle>
-        <circle cx="456.4" cy="53.8" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Feb 2026: 222</title></circle>
-        <circle cx="502.2" cy="73.7" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Mar 2026: 185</title></circle>
-        <circle cx="548" cy="82.8" r="3.5" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>Apr 2026: 168</title></circle>
-        <!-- x-axis labels -->
-        <text x="44" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">May</text>
-        <text x="89.8" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Jun</text>
-        <text x="135.6" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Jul</text>
-        <text x="181.5" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Aug</text>
-        <text x="227.3" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Sep</text>
-        <text x="273.1" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Oct</text>
-        <text x="318.9" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Nov</text>
-        <text x="364.7" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Dec</text>
-        <text x="410.5" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Jan</text>
-        <text x="456.4" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Feb</text>
-        <text x="502.2" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Mar</text>
-        <text x="548" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">Apr</text>
-      </svg>
+      <div class="chart-title">📊 Monthly Complaint Volume</div>
+      <div class="chart-sub">Total keyword-matched 311 tickets filed each month, broken down by outcome</div>
+      <div class="legend-inline">
+        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Closed → HSO</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#6b7280;"></div> Other closed</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Open</div>
+      </div>
+      
+        <div class="month-row">
+          <span class="month-lbl">May 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:20%"   title="HSO deflected: 55"></div>
+            <div class="bar-seg other-seg" style="width:36%" title="Other closed: 97"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">152</span>
+          <span class="month-hso">36% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Jun 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:19%"   title="HSO deflected: 53"></div>
+            <div class="bar-seg other-seg" style="width:30%" title="Other closed: 82"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">135</span>
+          <span class="month-hso">39% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Jul 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:33%"   title="HSO deflected: 90"></div>
+            <div class="bar-seg other-seg" style="width:18%" title="Other closed: 49"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">139</span>
+          <span class="month-hso">65% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Aug 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:47%"   title="HSO deflected: 128"></div>
+            <div class="bar-seg other-seg" style="width:32%" title="Other closed: 88"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">216</span>
+          <span class="month-hso">59% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Sep 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:53%"   title="HSO deflected: 145"></div>
+            <div class="bar-seg other-seg" style="width:27%" title="Other closed: 73"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">218</span>
+          <span class="month-hso">67% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Oct 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:64%"   title="HSO deflected: 176"></div>
+            <div class="bar-seg other-seg" style="width:36%" title="Other closed: 97"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">273</span>
+          <span class="month-hso">64% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Nov 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:42%"   title="HSO deflected: 115"></div>
+            <div class="bar-seg other-seg" style="width:29%" title="Other closed: 80"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">195</span>
+          <span class="month-hso">59% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Dec 2025</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:51%"   title="HSO deflected: 138"></div>
+            <div class="bar-seg other-seg" style="width:34%" title="Other closed: 93"></div>
+            <div class="bar-seg open-seg"  style="width:0%"  title="Open: 0"></div>
+          </div>
+          <span class="month-total">231</span>
+          <span class="month-hso">60% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Jan 2026</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:43%"   title="HSO deflected: 118"></div>
+            <div class="bar-seg other-seg" style="width:34%" title="Other closed: 92"></div>
+            <div class="bar-seg open-seg"  style="width:2%"  title="Open: 5"></div>
+          </div>
+          <span class="month-total">215</span>
+          <span class="month-hso">55% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Feb 2026</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:44%"   title="HSO deflected: 121"></div>
+            <div class="bar-seg other-seg" style="width:36%" title="Other closed: 97"></div>
+            <div class="bar-seg open-seg"  style="width:1%"  title="Open: 4"></div>
+          </div>
+          <span class="month-total">222</span>
+          <span class="month-hso">55% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Mar 2026</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:36%"   title="HSO deflected: 98"></div>
+            <div class="bar-seg other-seg" style="width:30%" title="Other closed: 82"></div>
+            <div class="bar-seg open-seg"  style="width:2%"  title="Open: 5"></div>
+          </div>
+          <span class="month-total">185</span>
+          <span class="month-hso">53% HSO</span>
+        </div>
+        <div class="month-row">
+          <span class="month-lbl">Apr 2026</span>
+          <div class="month-track">
+            <div class="bar-seg hso-seg"   style="width:27%"   title="HSO deflected: 73"></div>
+            <div class="bar-seg other-seg" style="width:34%" title="Other closed: 92"></div>
+            <div class="bar-seg open-seg"  style="width:1%"  title="Open: 4"></div>
+          </div>
+          <span class="month-total">169</span>
+          <span class="month-hso">43% HSO</span>
+        </div>
       <div class="trend-badges">
-        <span class="trend-badge">avg 189/mo → 203/mo &nbsp;📈 rising</span>
+        <span class="trend-badge">Volume: avg 189/mo → 203/mo &nbsp;📈 rising</span>
+        <span class="trend-badge">HSO rate: 57% → 54% &nbsp;📉 falling</span>
       </div>
     </div>
 
@@ -201,15 +294,15 @@
       <p>
         When a homeless-related 311 report is closed with this note, the ticket exits
         the standard 311 system and is routed to the Homeless Strategy Office — a separate
-        department with no public-facing ticket tracking. Over half of all matched tickets
-        in the last year were closed this way.
+        department with no public-facing ticket tracking. The red portion of each bar above
+        shows how many matched tickets received this closure each month.
       </p>
     </div>
 
     <footer>
       Data: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 API</a>
       &nbsp;·&nbsp; Keyword-matched across PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL
-      &nbsp;·&nbsp; Generated 2026-04-28 20:08 UTC
+      &nbsp;·&nbsp; Generated 2026-04-29 00:30 UTC
     </footer>
 
   </div>
