@@ -54,7 +54,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     # Fetch month by month — the Open311 API returns records oldest-first, so a
     # single 365-day request only returns the oldest ~90 days before hitting the
     # pagination cap. Month-by-month ensures every period is fully covered.
-    months_back = max(1, days_back // 30)
+    months_back = max(1, days_back // 30) + 1
     records = fetch_encampment_reports_monthly(months_back=months_back)
 
     if not records:
