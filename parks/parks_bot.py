@@ -633,6 +633,151 @@ def format_resolution(data: dict) -> str:
 # MAP GENERATOR
 # =============================================================================
 
+# Type-filter sidebar injected into every generated parks map.
+# The JS scans marker tooltips at runtime (format: "Open: Grounds Maintenance")
+# and builds a per-type index so markers can be added/removed from clusters.
+_TYPE_FILTER_HTML = r"""
+    <div id="type-sidebar" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:white;padding:10px 12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.3);z-index:9999;font-family:sans-serif;max-height:80vh;overflow-y:auto;min-width:168px;display:none;">
+      <div style="font-size:12px;font-weight:700;color:#333;margin-bottom:5px;border-bottom:1px solid #eee;padding-bottom:4px;">Filter by Type</div>
+      <div id="type-btn-list"></div>
+      <div style="display:flex;gap:4px;margin-top:6px;">
+        <button onclick="selectAllTypes()" class="fbtn" style="flex:1;font-size:10px;padding:2px 6px;">All</button>
+        <button onclick="selectNoTypes()" class="fbtn" style="flex:1;font-size:10px;padding:2px 6px;">None</button>
+      </div>
+    </div>
+    <style>
+      .type-filter-btn {display:flex;align-items:center;justify-content:space-between;width:100%;margin-bottom:3px;padding:3px 7px;text-align:left;}
+    </style>
+    <script>
+    (function(){
+    var _tm={},_tt={},_at=new Set(),_built=false;
+    var _groups=[
+      {g:'Grounds',   types:['Grounds Maintenance','Grounds Plumbing','Grounds Electrical']},
+      {g:'Trees',     types:['Tree Issues']},
+      {g:'Buildings', types:['Building Plumbing','Building Issues','Building A/C & Heating','Building Electric']},
+      {g:'Other',     types:['Commercial Use of Parkland','Park Cemeteries']}
+    ];
+    var _icons={'Grounds Maintenance':'\u{1F33F}','Grounds Plumbing':'\u{1F4A7}','Grounds Electrical':'⚡',
+      'Tree Issues':'\u{1F333}','Building Plumbing':'\u{1F527}','Building Issues':'\u{1F3D7}',
+      'Building A/C & Heating':'❄','Building Electric':'\u{1F4A1}',
+      'Commercial Use of Parkland':'\u{1F3EA}','Park Cemeteries':'⚰'};
+    var _short={'Grounds Maintenance':'Grounds Maint.','Grounds Plumbing':'Grnds Plumbing',
+      'Grounds Electrical':'Grnds Electric','Tree Issues':'Tree Issues',
+      'Building Plumbing':'Bldg Plumbing','Building Issues':'Bldg Issues',
+      'Building A/C & Heating':'Bldg A/C & Heat','Building Electric':'Bldg Electric',
+      'Commercial Use of Parkland':'Commercial Use','Park Cemeteries':'Cemeteries'};
+
+    function _buildIdx(){
+      if(!window.layerMap||!window.leafletMap){setTimeout(_buildIdx,500);return;}
+      _tm={};_tt={};
+      Object.keys(window.layerMap).forEach(function(fk){
+        var p=fk.split('_'),fs=p[0],fb=p[1];
+        window.layerMap[fk].eachLayer(function(child){
+          if(!child.eachLayer)return;
+          child.eachLayer(function(mk){
+            var tip=mk.getTooltip?mk.getTooltip():null;
+            var raw=tip?(tip.getContent()+''):'';
+            var text=raw.replace(/<[^>]+>/g,'').trim().replace(/\s+/g,' ');
+            var m=text.match(/^(?:Open|Closed): (.+)$/);
+            var lbl=m?m[1]:'Other';
+            if(!_tm[lbl])_tm[lbl]=[];
+            _tm[lbl].push({cluster:child,marker:mk,fs:fs,fb:fb});
+            if(!_tt[lbl])_tt[lbl]={'30':{open:0,closed:0},'60':{open:0,closed:0},'90':{open:0,closed:0}};
+            _tt[lbl][fb][fs]=(_tt[lbl][fb][fs]||0)+1;
+          });
+        });
+      });
+      _at=new Set(Object.keys(_tm));
+      _built=true;
+      _buildPanel();
+      window.updateSummary();
+    }
+
+    function _cnt(lbl){
+      var b=_tt[lbl];if(!b)return 0;
+      var n=0;
+      ['30','60','90'].forEach(function(bk){
+        if(parseInt(bk)<=window.currentDays&&b[bk]){
+          if(window.showOpen)n+=b[bk].open||0;
+          if(window.showClosed)n+=b[bk].closed||0;
+        }
+      });
+      return n;
+    }
+
+    function _buildPanel(){
+      var c=document.getElementById('type-btn-list');if(!c)return;
+      c.innerHTML='';
+      _groups.forEach(function(grp){
+        if(!grp.types.some(function(t){return _tm[t];}))return;
+        var hdr=document.createElement('div');
+        hdr.style.cssText='font-size:10px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;margin:5px 0 2px;';
+        hdr.textContent=grp.g;c.appendChild(hdr);
+        grp.types.forEach(function(lbl){
+          if(!_tm[lbl])return;
+          var btn=document.createElement('button');
+          btn.id='tbtn-'+lbl.replace(/[^a-zA-Z0-9]/g,'_');
+          btn.className='fbtn type-filter-btn active';
+          btn.innerHTML=(_icons[lbl]||'•')+' '+(_short[lbl]||lbl)+
+            ' <span class="tc" style="font-size:10px;opacity:.7;margin-left:4px;">'+_cnt(lbl)+'</span>';
+          btn.onclick=(function(l){return function(){window.toggleType(l);};})(lbl);
+          c.appendChild(btn);
+        });
+      });
+      document.getElementById('type-sidebar').style.display='';
+    }
+
+    function _updBtns(){
+      Object.keys(_tm).forEach(function(lbl){
+        var btn=document.getElementById('tbtn-'+lbl.replace(/[^a-zA-Z0-9]/g,'_'));
+        if(!btn)return;
+        btn.classList.toggle('active',_at.has(lbl));
+        var tc=btn.querySelector('.tc');if(tc)tc.textContent=_cnt(lbl);
+      });
+    }
+
+    window.toggleType=function(lbl){
+      if(_at.has(lbl)){
+        _at.delete(lbl);
+        (_tm[lbl]||[]).forEach(function(e){try{e.cluster.removeLayer(e.marker);}catch(x){}});
+      }else{
+        _at.add(lbl);
+        (_tm[lbl]||[]).forEach(function(e){try{e.cluster.addLayer(e.marker);}catch(x){}});
+      }
+      _updBtns();window.updateSummary();
+    };
+    window.selectAllTypes=function(){Object.keys(_tm).forEach(function(l){if(!_at.has(l))window.toggleType(l);});};
+    window.selectNoTypes =function(){Object.keys(_tm).forEach(function(l){if(_at.has(l)) window.toggleType(l);});};
+
+    window.updateSummary=function(){
+      if(!_built){
+        var d=String(window.currentDays),ct=window.bucketCounts[d]||{};
+        var o=window.showOpen?(ct.open||0):0,c=window.showClosed?(ct.closed||0):0;
+        document.getElementById('map-summary').textContent='Last '+d+' days · '+(o+c)+' total · '+o+' open · '+c+' closed';
+        return;
+      }
+      var tot=0,opn=0,cls=0;
+      _at.forEach(function(t){
+        var b=_tt[t];if(!b)return;
+        ['30','60','90'].forEach(function(bk){
+          if(parseInt(bk)<=window.currentDays&&b[bk]){
+            if(window.showOpen)  {opn+=b[bk].open||0;  tot+=b[bk].open||0;}
+            if(window.showClosed){cls+=b[bk].closed||0;tot+=b[bk].closed||0;}
+          }
+        });
+      });
+      document.getElementById('map-summary').textContent='Last '+window.currentDays+'d · '+tot+' shown · '+opn+' open · '+cls+' closed';
+    };
+
+    var _osd=window.setDayFilter,_ots=window.toggleStatus;
+    window.setDayFilter=function(days){_osd(days);if(_built)_updBtns();};
+    window.toggleStatus=function(s){_ots(s);if(_built)_updBtns();};
+
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(_buildIdx,1500);});
+    })();
+    </script>
+"""
+
 def generate_parks_map(days_back: int = 90) -> tuple:
     """Generate an interactive HTML map of park maintenance complaints.
 
@@ -834,7 +979,7 @@ def generate_parks_map(days_back: int = 90) -> tuple:
         }});
     </script>
     """
-    m.get_root().html.add_child(folium.Element(panel_html))
+    m.get_root().html.add_child(folium.Element(panel_html + _TYPE_FILTER_HTML))
 
     with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as tmp:
         tmp_path = tmp.name

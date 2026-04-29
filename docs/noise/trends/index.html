@@ -8,7 +8,6 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff;
       --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
@@ -25,29 +24,17 @@
       --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
       --chart-title: #e2e8f0; --footer-border: #1e2230; --footer-color: #475569;
     }
-
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; transition: background 0.2s, color 0.2s; }
     #panel { position: sticky; top: 0; z-index: 100; background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
     #panel-title { font-size: 15px; font-weight: 700; color: var(--text-head); }
     #panel-subtitle { font-size: 12px; color: var(--text-sub); text-align: center; }
-    #last-ran { font-size: 11px; color: var(--text-muted); }
     .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
-    .fbtn { background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color); padding: 5px 13px; border-radius: 4px; font-size: 12px; white-space: nowrap; text-decoration: none; display: inline-block; cursor: pointer; transition: background 0.12s, color 0.12s; }
+    .fbtn { background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color); padding: 5px 13px; border-radius: 4px; font-size: 12px; white-space: nowrap; text-decoration: none; display: inline-block; cursor: pointer; }
     .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
     #theme-toggle { position: fixed; top: 10px; right: 12px; z-index: 200; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer; }
-    #stats { border-bottom: 1px solid var(--border); }
-    .stats-inner { display: flex; justify-content: center; }
-    .stat { flex: 1; max-width: 170px; text-align: center; padding: 10px 8px 9px; border-right: 1px solid var(--border); }
-    .stat:last-child { border-right: none; }
-    .stat-value { font-size: 1.25rem; font-weight: 700; line-height: 1.1; }
-    .stat-label { font-size: 0.67rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
-    .stat-sub { font-size: 0.67rem; color: var(--text-muted); margin-top: 1px; }
-    #chart-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
-    .chart-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
-    .chart-title { font-size: 13px; font-weight: 600; color: var(--chart-title); margin-bottom: 10px; }
-    .chart-container { position: relative; height: 320px; }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } .stat-value { font-size: 1rem; } .chart-container { height: 260px; } }
+    #message { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; padding: 60px 24px; text-align: center; }
+    #message h2 { font-size: 1.1rem; font-weight: 600; color: var(--text-head); }
+    #message p { font-size: 0.88rem; color: var(--text-sub); max-width: 380px; line-height: 1.7; }
     footer { text-align: center; padding: 14px 16px; font-size: 0.74rem; color: var(--footer-color); border-top: 1px solid var(--footer-border); }
     footer a { color: var(--text-sub); text-decoration: none; }
     footer a:hover { color: var(--text); }
@@ -68,48 +55,15 @@
   <div id="panel">
     <div id="panel-title">🔊 Austin Noise Complaint Trends</div>
     <div id="panel-subtitle">Monthly complaints — last 12 months</div>
-    <div id="last-ran">Last ran: 2026-04-29 00:24 UTC</div>
     <div class="btn-row">
       <a class="fbtn" href="../">← Noise Map</a>
       <a class="fbtn" href="../../">Austin 311 Home</a>
     </div>
   </div>
 
-  <div id="stats">
-    <div class="stats-inner">
-      <div class="stat">
-        <div class="stat-value" style="color:#3b82f6;">6,614</div>
-        <div class="stat-label">Total complaints</div>
-        <div class="stat-sub">last 12 months</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" style="color:#22c55e;">1654</div>
-        <div class="stat-label">Avg / month</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value" style="color:#f59e0b;">2,376</div>
-        <div class="stat-label">Peak month</div>
-        <div class="stat-sub">May 2025</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="chart-wrap">
-    <div class="chart-block">
-      <div class="chart-title">Monthly complaints (all types)</div>
-      <div class="chart-container"><canvas id="monthlyChart"></canvas></div>
-    </div>
-
-    <div class="two-col">
-      <div class="chart-block">
-        <div class="chart-title">Complaint type breakdown</div>
-        <div class="chart-container" style="height:280px;"><canvas id="typeChart"></canvas></div>
-      </div>
-      <div class="chart-block" style="display:flex;flex-direction:column;justify-content:center;">
-        <div class="chart-title">By type</div>
-        <div id="type-legend" style="display:flex;flex-direction:column;gap:10px;padding:8px 4px;"></div>
-      </div>
-    </div>
+  <div id="message">
+    <h2>Data refresh in progress</h2>
+    <p>This page is updated weekly. Charts will appear here after the next scheduled refresh. Check back soon, or explore the <a href="../" style="color:#3b82f6;">Noise Map</a> in the meantime.</p>
   </div>
 
   <footer>
@@ -119,125 +73,8 @@
   </footer>
 
   <script>
-    const DATA = {"months": ["Apr 2025", "May 2025", "Jun 2025", "Jul 2025"], "totalByMonth": [114, 2376, 2018, 2106], "rollingAvg": [null, null, 1502.7, 2166.7], "typeLabels": ["Non-Emergency Noise", "Outdoor Venue / Music", "Fireworks"], "typeTotals": [5728, 486, 400], "typeColors": ["#3b82f6", "#22c55e", "#f59e0b"]};
-
-    const isDark = () => document.documentElement.classList.contains("dark");
-
-    function themeColors() {
-      return {
-        grid:    isDark() ? "#252b3b" : "#e8ecf0",
-        tick:    isDark() ? "#64748b" : "#6b7280",
-        legend:  isDark() ? "#94a3b8" : "#4b5563",
-        tipBg:   isDark() ? "#1e2230" : "#ffffff",
-        tipBorder: isDark() ? "#3d4868" : "#e2e8f0",
-        tipTitle: isDark() ? "#f1f5f9" : "#111827",
-        tipBody:  isDark() ? "#e2e8f0" : "#374151",
-      };
-    }
-
-    function makeTooltip(c) {
-      return { backgroundColor: c.tipBg, borderColor: c.tipBorder, borderWidth: 1, titleColor: c.tipTitle, bodyColor: c.tipBody };
-    }
-
-    function makeScales(c) {
-      return {
-        x: { ticks: { color: c.tick, font: { size: 11 } }, grid: { color: c.grid } },
-        y: { ticks: { color: c.tick, font: { size: 11 } }, grid: { color: c.grid }, beginAtZero: true },
-      };
-    }
-
-    const c = themeColors();
-
-    // Monthly bar chart with rolling avg line
-    new Chart(document.getElementById("monthlyChart"), {
-      type: "bar",
-      data: {
-        labels: DATA.months,
-        datasets: [
-          {
-            label: "Complaints",
-            data: DATA.totalByMonth,
-            backgroundColor: "#3b82f6",
-            borderRadius: 4,
-            order: 2,
-          },
-          {
-            label: "3-mo avg",
-            data: DATA.rollingAvg,
-            type: "line",
-            borderColor: "#8b5cf6",
-            borderWidth: 2,
-            borderDash: [5, 3],
-            pointRadius: 0,
-            tension: 0.4,
-            fill: false,
-            spanGaps: true,
-            order: 1,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: c.legend, font: { size: 11 } } },
-          tooltip: makeTooltip(c),
-        },
-        scales: makeScales(c),
-      },
-    });
-
-    // Doughnut by type
-    const typeTotal = DATA.typeTotals.reduce((a, b) => a + b, 0);
-    new Chart(document.getElementById("typeChart"), {
-      type: "doughnut",
-      data: {
-        labels: DATA.typeLabels,
-        datasets: [{
-          data: DATA.typeTotals,
-          backgroundColor: DATA.typeColors,
-          borderWidth: 2,
-          borderColor: isDark() ? "#161a24" : "#ffffff",
-          hoverOffset: 6,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "62%",
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            ...makeTooltip(c),
-            callbacks: {
-              label: ctx => {
-                const pct = typeTotal ? ((ctx.parsed / typeTotal) * 100).toFixed(1) : "0.0";
-                return ` ${ctx.parsed.toLocaleString()} complaints (${pct}%)`;
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Build the legend sidebar
-    const legend = document.getElementById("type-legend");
-    DATA.typeLabels.forEach((label, i) => {
-      const pct = typeTotal ? ((DATA.typeTotals[i] / typeTotal) * 100).toFixed(1) : "0.0";
-      const row = document.createElement("div");
-      row.style.cssText = "display:flex;align-items:center;gap:10px;";
-      row.innerHTML = `
-        <span style="width:12px;height:12px;border-radius:3px;background:${DATA.typeColors[i]};flex-shrink:0;"></span>
-        <div>
-          <div style="font-size:12px;font-weight:600;">${label}</div>
-          <div style="font-size:11px;color:var(--text-sub);">${DATA.typeTotals[i].toLocaleString()} (${pct}%)</div>
-        </div>`;
-      legend.appendChild(row);
-    });
-
-    // Theme toggle
-    const btn = document.getElementById("theme-toggle");
-    btn.textContent = isDark() ? "☀️ Light" : "🌙 Dark";
+    const isDark = document.documentElement.classList.contains("dark");
+    document.getElementById("theme-toggle").textContent = isDark ? "☀️ Light" : "🌙 Dark";
     function toggleTheme() {
       const dark = document.documentElement.classList.toggle("dark");
       localStorage.setItem("theme", dark ? "dark" : "light");
