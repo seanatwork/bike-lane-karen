@@ -70,6 +70,16 @@ Query patterns: ISO8601 dates with `Z` suffix, `per_page`/`page` pagination, `$w
 - All bot output is Markdown-formatted.
 - Environment variables: `TELEGRAM_BOT_TOKEN` (required), `AUSTIN_APP_TOKEN` (optional, raises Open311 rate limits), `GOOGLE_MAPS_API_KEY` (optional, for `/directory`).
 
+## Open311 API — Known Pagination Gotcha
+
+**The API returns records in chronological order (oldest first).** A single request with `start_date` 365 days ago and `end_date` today will return the oldest records first — so with `MAX_PAGES=10` (1000 records) you only see records from the *start* of the window, never the recent months.
+
+**Impact:** Any module fetching more than ~90 days in a single call will silently miss recent records. The 90-day map queries are fine (all records fit within the page cap). Only long-range trend queries are affected.
+
+**Fix used in `homeless/trends.py`:** Fetch month by month — one 30-day window per API call — so each request is small enough that all records for that period are returned. See `fetch_encampment_reports_monthly()` in `homeless/homeless_bot.py`.
+
+**Applies to:** any `_fetch_code`-style function across bicycle, graffiti, homeless, noise, parking, parks modules if they ever need historical trend data beyond 90 days.
+
 ## Static Map Website
 
 Public maps are deployed via GitHub Pages (`docs/` folder), generated from the same data as Telegram commands.

@@ -169,6 +169,12 @@
     const cutoffStr = cutoff90.toISOString().split("T")[0] + "T00:00:00";
     const ytdStart  = now.getFullYear() + "-01-01T00:00:00";
 
+    // Exactly 12 complete calendar months, excluding the current partial month
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const twelveMonthsAgo   = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+    const monthRangeStart   = twelveMonthsAgo.toISOString().slice(0,10) + "T00:00:00";
+    const monthRangeEnd     = currentMonthStart.toISOString().slice(0,10) + "T00:00:00";
+
     function enc(s) { return encodeURIComponent(s); }
     function where90(extra) { return `crash_timestamp_ct > '${cutoffStr}'${extra ? " AND " + extra : ""}`; }
 
@@ -189,7 +195,7 @@
     async function loadAll() {
       const el = document.getElementById("content");
       try {
-        const [hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows, ytdRows, modeRows, latestRows] =
+        const [hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows, ytdRows, modeRows, latestRows, bikeRows, bikeMonthRows] =
           await Promise.all([
             // crashes by hour of day
             fetch(`${BASE}?$select=date_extract_hh(crash_timestamp_ct) as hr,count(*) as cnt&$where=${enc(where90())}&$group=hr&$order=hr&$limit=24`).then(r=>r.json()),
@@ -199,8 +205,8 @@
             fetch(`${BASE}?$select=rpt_street_name,count(*) as cnt&$where=${enc(where90("rpt_street_name != 'NOT REPORTED'"))}&$group=rpt_street_name&$order=cnt DESC&$limit=10`).then(r=>r.json()),
             // collision types
             fetch(`${BASE}?$select=collsn_desc,count(*) as cnt&$where=${enc(where90("collsn_desc IS NOT NULL"))}&$group=collsn_desc&$order=cnt DESC&$limit=10`).then(r=>r.json()),
-            // monthly trend (last 14 months)
-            fetch(`${BASE}?$select=date_extract_y(crash_timestamp_ct) as yr,date_extract_m(crash_timestamp_ct) as mo,count(*) as cnt,sum(death_cnt) as deaths&$group=yr,mo&$order=yr DESC,mo DESC&$limit=14`).then(r=>r.json()),
+            // monthly trend (last 12 complete months, no partial current month)
+            fetch(`${BASE}?$select=date_extract_y(crash_timestamp_ct) as yr,date_extract_m(crash_timestamp_ct) as mo,count(*) as cnt,sum(death_cnt) as deaths&$where=${enc(`crash_timestamp_ct >= '${monthRangeStart}' AND crash_timestamp_ct < '${monthRangeEnd}'`)}&$group=yr,mo&$order=yr ASC,mo ASC&$limit=12`).then(r=>r.json()),
             // 90-day totals
             fetch(`${BASE}?$select=count(*) as total,sum(death_cnt) as deaths,sum(tot_injry_cnt) as injuries,sum(sus_serious_injry_cnt) as serious&$where=${enc(where90())}&$limit=1`).then(r=>r.json()),
             // YTD totals
@@ -209,10 +215,14 @@
             fetch(`${BASE}?$select=sum(motor_vehicle_death_count) as mv,sum(pedestrian_death_count) as ped,sum(motorcycle_death_count) as moto,sum(bicycle_death_count) as bike,sum(micromobility_death_count) as micro&$where=${enc(where90())}&$limit=1`).then(r=>r.json()),
             // latest record date (to show actual data lag)
             fetch(`${BASE}?$select=max(crash_timestamp_ct) as latest&$limit=1`).then(r=>r.json()),
+            // bicycle-involved crash totals (90 days)
+            fetch(`${BASE}?$select=count(*) as total,sum(bicycle_death_count) as deaths,sum(bicycle_serious_injury_count) as serious&$where=${enc(where90("units_involved like '%Bicycle%'"))}&$limit=1`).then(r=>r.json()),
+            // bicycle monthly trend (last 12 complete months)
+            fetch(`${BASE}?$select=date_extract_y(crash_timestamp_ct) as yr,date_extract_m(crash_timestamp_ct) as mo,count(*) as cnt,sum(bicycle_death_count) as deaths,sum(bicycle_serious_injury_count) as serious&$where=${enc(`crash_timestamp_ct >= '${monthRangeStart}' AND crash_timestamp_ct < '${monthRangeEnd}' AND units_involved like '%Bicycle%'`)}&$group=yr,mo&$order=yr ASC,mo ASC&$limit=12`).then(r=>r.json()),
           ]);
 
         const latestDate = latestRows[0]?.latest ? new Date(latestRows[0].latest) : null;
-        render(hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows[0]||{}, ytdRows[0]||{}, modeRows[0]||{}, latestDate);
+        render(hourRows, dowRows, streetRows, collsnRows, monthRows, totalsRows[0]||{}, ytdRows[0]||{}, modeRows[0]||{}, latestDate, bikeRows[0]||{}, bikeMonthRows);
       } catch(err) {
         el.innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
       }
@@ -222,7 +232,7 @@
       return `<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>`;
     }
 
-    function render(hourRows, dowRows, streetRows, collsnRows, monthRows, totals, ytd, modes, latestDate) {
+    function render(hourRows, dowRows, streetRows, collsnRows, monthRows, totals, ytd, modes, latestDate, bikeStats, bikeMonthRows) {
       const el = document.getElementById("content");
 
       // Build accurate coverage label from actual latest record date
@@ -335,12 +345,14 @@
         label: `${MNAMES[parseInt(r.mo)-1]} ${r.yr}`,
         cnt:   parseInt(r.cnt || 0),
         deaths:parseInt(r.deaths || 0),
-      })).reverse();
+      }));
       const maxCnt = Math.max(...months.map(m => m.cnt), 1);
       const maxDead= Math.max(...months.map(m => m.deaths), 1);
       const monthHtml = months.map(m => {
         const crashPct = Math.round(m.cnt / maxCnt * 100);
-        const deadPct  = Math.round(m.deaths / maxDead * 100);
+        // Scale deaths relative to maxDead but cap at crashPct so the red bar
+        // never extends past the blue bar (deaths are a subset of crash outcomes)
+        const deadPct  = Math.min(Math.round(m.deaths / maxDead * 100), crashPct);
         return `<div class="month-row">
           <span class="month-lbl">${m.label}</span>
           <div class="month-track">
@@ -348,9 +360,55 @@
             <div class="month-bar-death" style="width:${deadPct}%"></div>
           </div>
           <span class="month-val">${m.cnt.toLocaleString()}</span>
-          <span class="month-dead">${m.deaths > 0 ? "⚰ " + m.deaths : "—"}</span>
+          <span class="month-dead">${m.deaths > 0 ? m.deaths + " fatal" : "—"}</span>
         </div>`;
       }).join("");
+
+      // ── bicycle crashes ───────────────────────────────────────────────────
+      const bikeTotal   = parseInt(bikeStats.total   || 0);
+      const bikeDead    = parseInt(bikeStats.deaths  || 0);
+      const bikeSerious = parseInt(bikeStats.serious || 0);
+
+      const bikeMonths = bikeMonthRows.map(r => ({
+        label:   `${MNAMES[parseInt(r.mo)-1]} ${r.yr}`,
+        cnt:     parseInt(r.cnt     || 0),
+        deaths:  parseInt(r.deaths  || 0),
+        serious: parseInt(r.serious || 0),
+      }));
+      const maxBikeCnt     = Math.max(...bikeMonths.map(m => m.cnt), 1);
+      const maxBikeSerious = Math.max(...bikeMonths.map(m => m.serious), 1);
+      const bikeMonthHtml = bikeMonths.map(m => {
+        const crashPct   = Math.round(m.cnt     / maxBikeCnt     * 100);
+        const seriousPct = Math.min(Math.round(m.serious / maxBikeSerious * 100), crashPct);
+        const sideNote = m.deaths > 0
+          ? `${m.deaths} fatal`
+          : (m.serious > 0 ? `${m.serious} serious` : "—");
+        return `<div class="month-row">
+          <span class="month-lbl">${m.label}</span>
+          <div class="month-track">
+            <div class="month-bar-crash" style="width:${crashPct}%;background:#16a34a;"></div>
+            <div class="month-bar-death" style="width:${seriousPct}%;background:#dc2626;"></div>
+          </div>
+          <span class="month-val">${m.cnt.toLocaleString()}</span>
+          <span class="month-dead" style="color:${m.deaths > 0 ? '#dc2626' : 'var(--text-muted)'};">${sideNote}</span>
+        </div>`;
+      }).join("");
+
+      const bikeStatsHtml = `
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-val" style="color:#16a34a;">${bikeTotal.toLocaleString()}</div>
+            <div class="stat-label">Bike-involved crashes</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" style="color:#f59e0b;">${bikeSerious.toLocaleString()}</div>
+            <div class="stat-label">Serious injuries</div>
+          </div>
+          <div class="stat">
+            <div class="stat-val" style="color:#dc2626;">${bikeDead.toLocaleString()}</div>
+            <div class="stat-label">Fatalities</div>
+          </div>
+        </div>`;
 
       // ── road user fatalities ───────────────────────────────────────────────
       const ruserData = [
@@ -380,7 +438,7 @@
             <div class="bar-rows">${dowHtml}</div>
           </div>
           <div class="chart-card">
-            <div class="chart-title">⚰️ Fatalities by Road User</div>
+            <div class="chart-title">Fatalities by Road User</div>
             <div class="chart-sub">${daysLabel} · ${deaths} total fatalities</div>
             <div class="ruser-rows">${ruserHtml}</div>
           </div>
@@ -406,6 +464,21 @@
             <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Fatalities</div>
           </div>
           <div class="month-rows">${monthHtml}</div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">🚲 Bicycle Crashes</div>
+          <div class="chart-sub">${daysLabel} · crashes where a bicycle was involved</div>
+          ${bikeStatsHtml}
+          <div style="margin-top:16px;">
+            <div style="font-size:13px;font-weight:700;color:var(--text-head);margin-bottom:3px;">Monthly trend</div>
+            <div class="chart-sub" style="margin-bottom:10px;">Last 12 months · green bar = crashes · red overlay = serious injuries</div>
+            <div class="legend-inline">
+              <div class="legend-item"><div class="legend-dot" style="background:#16a34a;"></div> Bike crashes</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Serious injuries</div>
+            </div>
+            <div class="month-rows">${bikeMonths.length ? bikeMonthHtml : '<div style="font-size:12px;color:var(--text-muted);">No data for this period.</div>'}</div>
+          </div>
         </div>
 
         <footer>

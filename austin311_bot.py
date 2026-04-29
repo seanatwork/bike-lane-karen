@@ -253,17 +253,10 @@ async def _send_chunked(target, text: str, parse_mode: str = "Markdown", reply_m
 @rate_limited
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
+        [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
         [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
-        [InlineKeyboardButton("🚦 Traffic & Infrastructure", callback_data="service_traffic")],
-        [InlineKeyboardButton("🚴 Bicycle", callback_data="service_bicycle")],
-        [InlineKeyboardButton("💧 Water Quality", callback_data="service_water")],
-        [InlineKeyboardButton("🎨 Graffiti", callback_data="service_graffiti")],
         [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
-        [InlineKeyboardButton("🐾 Animal Services", callback_data="service_animal")],
-        [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
-        [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
-        [InlineKeyboardButton("🏞️ Parks", callback_data="service_parks")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
@@ -293,50 +286,9 @@ _HELP_TEXT = """📡 *Austin 311 Bot*
 💰 *City Budget:*
 /budget — Homelessness services · NGO grants · pension & benefits
 
-🏕️ *Homelessness:*
-/homeless — Encampment 311 reports · dept burden · trends · locations
-
-🚦 *Traffic & Infrastructure:*
-/traffic — Potholes · signals · live incidents · crash stats
-
-🚴 *Bicycle:*
-/bicycle — Infrastructure complaints · recent · stats
-
-💧 *Water:*
-/water — Surface water quality by watershed
-/waterviolations — Conservation violations · sprinklers · leaks
-
-🎨 *Graffiti:*
-/graffiti — Analysis · hotspots · remediation · trends
-
 🍽️ *Restaurants:*
 /rest — Worst scores · grade report
 /rest <name or address> — Search by name or address
-
-🐾 *Animal Services:*
-/animal — Hotspots · stats · response times
-/coyote — Seasonal patterns · hotspots · overview
-
-🔊 *Noise:*
-/noise — Hotspots · stats · response times
-
-🅿️ *Parking:*
-/parking — Citations · hot zones · stats
-
-🏞️ *Parks:*
-/parks — Maintenance hotspots · stats · resolution times
-
-🏗️ *Permits & Development:*
-/permits — Building permit activity · last 30 days by type & district
-
-🍺 *Nightlife:*
-/bars — Top TABC mixed beverage sales · biggest movers
-
-🧒 *Child Care:*
-/childcare — Licensed facilities · compliance flags · top deficiencies
-
-⚖️ *Courts:*
-/court — Municipal & community court caseloads · Prop B outcomes
 
 _If you subscribe to alerts, we store your Telegram user ID, chat ID, and council district or approximate location only. No messages or addresses are saved. /deletedata removes everything._
 
@@ -447,10 +399,9 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         keyboard = [
             [InlineKeyboardButton("🚔 Crime Stats", callback_data="police_crime"),
              InlineKeyboardButton("🛡️ Safety by District", callback_data="police_safety")],
-            [InlineKeyboardButton("Hate Crimes", callback_data="police_hate")],
             [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
         ]
-        text = "*🚔 Police & Crime*\nAPD incident stats, safety by district, hate crimes, and homelessness spending."
+        text = "*🚔 Police & Crime*\nAPD incident stats and safety by district."
 
     elif service == "budget":
         await query.edit_message_text("⏳ Fetching budget insights...")
@@ -507,21 +458,32 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     query = update.callback_query
     await query.answer()
     keyboard = [
+        [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
         [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
-        [InlineKeyboardButton("🚦 Traffic & Infrastructure", callback_data="service_traffic")],
-        [InlineKeyboardButton("🚴 Bicycle", callback_data="service_bicycle")],
-        [InlineKeyboardButton("💧 Water Quality", callback_data="service_water")],
-        [InlineKeyboardButton("🎨 Graffiti", callback_data="service_graffiti")],
         [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
-        [InlineKeyboardButton("🐾 Animal Services", callback_data="service_animal")],
-        [InlineKeyboardButton("🔊 Noise Complaints", callback_data="service_noise")],
-        [InlineKeyboardButton("🅿️ Parking", callback_data="service_parking")],
-        [InlineKeyboardButton("🏞️ Parks", callback_data="service_parks")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
         "📡 *Welcome to Austin 311!*\n\nSelect a service:",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+@rate_limited
+async def alerts_menu_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    keyboard = [
+        [InlineKeyboardButton("🔔 Subscribe to alerts",  callback_data="subscribe_start")],
+        [InlineKeyboardButton("📬 My active alerts",     callback_data="alerts_myalerts")],
+        [InlineKeyboardButton("🔕 Unsubscribe all",      callback_data="alerts_unsubscribe")],
+        [InlineKeyboardButton("🗑️ Delete my data",       callback_data="alerts_deletedata")],
+        [InlineKeyboardButton("🔙 Back",                 callback_data="back_to_main")],
+    ]
+    await query.edit_message_text(
+        "🔔 *Alerts & Subscriptions*\n\nGet push notifications for crime, 311 reports, animal incidents, and crashes near you.",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -3516,7 +3478,21 @@ def create_application() -> Application:
     if not token:
         raise ValueError("AUSTIN311_BOT_TOKEN environment variable is not set.")
 
-    app = Application.builder().token(token).build()
+    async def post_init(application) -> None:
+        await application.bot.set_my_commands([
+            BotCommand("subscribe",   "Push alerts — crime, 311, animals, crashes near you"),
+            BotCommand("myalerts",    "View and manage your active alerts"),
+            BotCommand("unsubscribe", "Cancel all alerts"),
+            BotCommand("deletedata",  "Remove all your stored alert data"),
+            BotCommand("crime",       "APD incident stats — map · trends · homicides"),
+            BotCommand("safety",      "Crime by district — compare to city average"),
+            BotCommand("budget",      "City budget — homelessness services · spending"),
+            BotCommand("rest",        "Restaurant inspections — worst scores · search"),
+            BotCommand("help",        "All commands"),
+            BotCommand("start",       "Main menu"),
+        ])
+
+    app = Application.builder().token(token).post_init(post_init).build()
 
     # Core
     app.add_handler(CommandHandler("start", start))
@@ -3524,59 +3500,13 @@ def create_application() -> Application:
 
     # Inline menu navigation
     app.add_handler(CallbackQueryHandler(service_menu, pattern="^service_"))
-    app.add_handler(CallbackQueryHandler(back_to_main, pattern="^back_to_main"))
-    app.add_handler(CallbackQueryHandler(about_cb, pattern="^about$"))
-
-    # Graffiti inline
-
-    # Bicycle inline
-    app.add_handler(CallbackQueryHandler(bicycle_ticket_cb, pattern="^bicycle_ticket_"))
+    app.add_handler(CallbackQueryHandler(back_to_main,    pattern="^back_to_main"))
+    app.add_handler(CallbackQueryHandler(alerts_menu_cb,  pattern="^alerts_menu$"))
+    app.add_handler(CallbackQueryHandler(about_cb,        pattern="^about$"))
 
     # Restaurant inline
     app.add_handler(CallbackQueryHandler(restaurants_lowscores_cb, pattern="^restaurants_lowscores"))
     app.add_handler(CallbackQueryHandler(restaurants_grades_cb, pattern="^restaurants_grades"))
-
-    # Animal inline
-    app.add_handler(CallbackQueryHandler(animal_hotspots_cb, pattern="^animal_hotspots"))
-    app.add_handler(CallbackQueryHandler(animal_stats_cb, pattern="^animal_stats"))
-
-    # Coyote inline (sub-service of animal)
-    app.add_handler(CallbackQueryHandler(coyote_menu_cb, pattern="^coyote_menu"))
-    app.add_handler(CallbackQueryHandler(coyote_overview_cb, pattern="^coyote_overview"))
-    app.add_handler(CallbackQueryHandler(coyote_seasonal_cb, pattern="^coyote_seasonal"))
-    app.add_handler(CallbackQueryHandler(coyote_hotspots_cb, pattern="^coyote_hotspots"))
-
-    # Traffic inline
-    app.add_handler(CallbackQueryHandler(traffic_backlog_cb, pattern="^traffic_backlog"))
-    app.add_handler(CallbackQueryHandler(traffic_signals_cb, pattern="^traffic_signals"))
-    app.add_handler(CallbackQueryHandler(traffic_live_cb, pattern="^traffic_live$"))
-    app.add_handler(CallbackQueryHandler(traffic_crashes_cb, pattern="^traffic_crashes$"))
-    app.add_handler(CallbackQueryHandler(ticket_lookup_cb, pattern="^tlookup_"))
-
-    # Noise inline
-    app.add_handler(CallbackQueryHandler(noise_hotspots_cb, pattern="^noise_hotspots"))
-    app.add_handler(CallbackQueryHandler(noise_peak_cb, pattern="^noise_peak"))
-    app.add_handler(CallbackQueryHandler(noise_resolution_cb, pattern="^noise_resolution"))
-    app.add_handler(CallbackQueryHandler(noise_night_cb, pattern="^noise_night"))
-
-    # Parking slash command + inline
-    app.add_handler(CommandHandler("parking", parking_command))
-    app.add_handler(CallbackQueryHandler(parking_stats_cb, pattern="^parking_stats"))
-    app.add_handler(CallbackQueryHandler(parking_hotspots_cb, pattern="^parking_hotspots"))
-    app.add_handler(CallbackQueryHandler(parking_resolution_cb, pattern="^parking_resolution"))
-    app.add_handler(CallbackQueryHandler(parking_abandoned_cb, pattern="^parking_abandoned"))
-    app.add_handler(CallbackQueryHandler(parking_top_payments_cb, pattern="^parking_top_payments"))
-
-    # Parks slash command + inline
-    app.add_handler(CommandHandler("parks", parks_command))
-    app.add_handler(CallbackQueryHandler(parks_overview_cb,       pattern="^parks_overview$"))
-    app.add_handler(CallbackQueryHandler(parks_overview_days_cb,  pattern="^parks_overview_(30|60|90)$"))
-    app.add_handler(CallbackQueryHandler(parks_detail_cb,          pattern="^parks_detail_"))
-    app.add_handler(CallbackQueryHandler(parks_time_window_cb,    pattern="^parks_time_window$"))
-    app.add_handler(CallbackQueryHandler(parks_resolution_cb,     pattern="^parks_resolution$"))
-
-    # Graffiti slash command
-    app.add_handler(CommandHandler("graffiti", graffiti_command))
 
     # Crime slash command + inline
     app.add_handler(CommandHandler("crime", crime_command))
@@ -3590,43 +3520,10 @@ def create_application() -> Application:
     # Police & Crime menu inline
     app.add_handler(CallbackQueryHandler(police_crime_cb, pattern="^police_crime$"))
     app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
-    app.add_handler(CallbackQueryHandler(police_hate_cb, pattern="^police_hate$"))
-    app.add_handler(CallbackQueryHandler(police_homeless_cb, pattern="^police_homeless$"))
     app.add_handler(CommandHandler("budget", homeless_command))
-
-    # Homeless encampment 311 reports
-    app.add_handler(CommandHandler("homeless", homeless_311_command))
-    app.add_handler(CallbackQueryHandler(homeless311_stats_cb,       pattern="^homeless311_stats_"))
-    app.add_handler(CallbackQueryHandler(homeless311_locations_cb,   pattern="^homeless311_locations_"))
-    app.add_handler(CallbackQueryHandler(homeless311_time_window_cb, pattern="^homeless311_time_window$"))
-
-
-    # Bicycle slash commands
-    app.add_handler(CommandHandler("animal", animal_command))
-    app.add_handler(CommandHandler("coyote", coyote_command))
-    app.add_handler(CommandHandler("bicycle", bicycle_command))
 
     # Restaurant slash command
     app.add_handler(CommandHandler("rest", restaurant_command))
-
-    # Traffic slash command
-    app.add_handler(CommandHandler("traffic", traffic_command))
-
-    # Noise slash command
-    app.add_handler(CommandHandler("noise", noisecomplaints_command))
-
-    # /report archived — incompatible with privacy-first (no user data) policy
-
-    # Code violations slash command
-    app.add_handler(CommandHandler("code", code_command))
-
-    # Water quality & building permits
-    app.add_handler(CommandHandler("water", water_command))
-    app.add_handler(CommandHandler("waterviolations", waterviolations_command))
-    app.add_handler(CommandHandler("permits", permits_command))
-    app.add_handler(CommandHandler("bars", bars_command))
-    app.add_handler(CommandHandler("childcare", childcare_command))
-    app.add_handler(CommandHandler("court", court_command))
 
     # Alert subscription handlers
     alerts_db.init_db()
@@ -3642,31 +3539,6 @@ def create_application() -> Application:
     app.job_queue.run_daily(nearby_311_job,      time=__import__("datetime").time(8, 0), name="nearby_311")
     app.job_queue.run_daily(animal_nearby_job,   time=__import__("datetime").time(8, 0), name="animal_nearby")
     app.job_queue.run_daily(crash_nearby_job,    time=__import__("datetime").time(8, 0), name="crash_nearby")
-
-    # Register commands with Telegram so they appear in autocomplete
-    async def post_init(application) -> None:
-        await application.bot.set_my_commands([
-            BotCommand("subscribe",   "Push alerts — crime, 311, animals, crashes near you"),
-            BotCommand("myalerts",    "View and manage your active alerts"),
-            BotCommand("unsubscribe", "Cancel all alerts"),
-            BotCommand("deletedata",  "Remove all your stored alert data"),
-            BotCommand("crime",       "APD incident stats — map · trends · homicides"),
-            BotCommand("homeless",    "Encampment 311 reports — trends · locations"),
-            BotCommand("graffiti",    "Graffiti abatement — map · trends"),
-            BotCommand("noise",       "Noise complaints — map · trends · hotspots"),
-            BotCommand("parking",     "Parking complaints — map · hot zones · stats"),
-            BotCommand("traffic",     "Traffic & infrastructure — potholes · signals · crashes"),
-            BotCommand("animal",      "Animal complaints — hotspots · stats · coyotes"),
-            BotCommand("bicycle",     "Bicycle infrastructure complaints"),
-            BotCommand("parks",       "Park maintenance — hotspots · resolution times"),
-            BotCommand("water",       "Surface water quality — by watershed"),
-            BotCommand("rest",        "Restaurant inspections — worst scores · search"),
-            BotCommand("childcare",   "Child care licensing — compliance · deficiencies"),
-            BotCommand("help",        "All commands"),
-            BotCommand("start",       "Main menu"),
-        ])
-
-    app.post_init = post_init
 
     return app
 

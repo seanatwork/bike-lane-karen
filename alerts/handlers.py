@@ -389,6 +389,60 @@ async def deletedata_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     )
 
 
+# ── inline versions (called from alerts_menu inline button) ───────────────────
+
+async def myalerts_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    subs = db.get_user_subscriptions(update.effective_user.id)
+    if not subs:
+        await query.edit_message_text(
+            "You have no active alerts. Use /subscribe to set one up."
+        )
+        return
+    keyboard, lines = [], []
+    for sub in subs:
+        type_label = ALERT_TYPES.get(sub["alert_type"], sub["alert_type"])
+        if sub["district"]:
+            loc = DISTRICT_LABELS.get(sub["district"], f"District {sub['district']}")
+        elif sub["params"]:
+            try:
+                p = json.loads(sub["params"])
+                loc = f"{p.get('radius_miles', 0.5)} mi radius"
+            except Exception:
+                loc = "custom location"
+        else:
+            loc = "unknown"
+        short = f"{type_label} — {loc}"
+        lines.append(f"• {short}")
+        keyboard.append([InlineKeyboardButton(f"❌ Cancel: {short[:45]}", callback_data=f"unsub_{sub['id']}")])
+    keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="alerts_menu")])
+    await query.edit_message_text(
+        "📬 *Your active alerts:*\n" + "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def unsubscribe_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    count = db.deactivate_all(update.effective_user.id)
+    await query.edit_message_text(
+        f"✅ Cancelled {count} alert{'s' if count != 1 else ''}."
+        if count else "You have no active alerts."
+    )
+
+
+async def deletedata_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    db.delete_user_data(update.effective_user.id)
+    await query.edit_message_text(
+        "🗑️ Done. All your alert preferences and stored data have been deleted."
+    )
+
+
 # ── handler registration ───────────────────────────────────────────────────────
 
 def register_alert_handlers(app) -> None:
@@ -398,6 +452,9 @@ def register_alert_handlers(app) -> None:
     app.add_handler(CommandHandler("deletedata",  deletedata_command))
 
     app.add_handler(CallbackQueryHandler(subscribe_button_entry,       pattern=r"^subscribe_start$"))
+    app.add_handler(CallbackQueryHandler(myalerts_cb,                  pattern=r"^alerts_myalerts$"))
+    app.add_handler(CallbackQueryHandler(unsubscribe_cb,               pattern=r"^alerts_unsubscribe$"))
+    app.add_handler(CallbackQueryHandler(deletedata_cb,                pattern=r"^alerts_deletedata$"))
     app.add_handler(CallbackQueryHandler(choose_type_callback,         pattern=r"^sub_type_"))
     app.add_handler(CallbackQueryHandler(choose_district_callback,     pattern=r"^sub_district_"))
     app.add_handler(CallbackQueryHandler(choose_radius_callback,       pattern=r"^sub_radius_"))
