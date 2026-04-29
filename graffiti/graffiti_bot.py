@@ -18,8 +18,8 @@ from .config import Config
 logger = logging.getLogger(__name__)
 
 OPEN311_BASE_URL = "https://311.austintexas.gov/open311/v2"
-TIMEOUT = 15
-MAX_RETRIES = 3
+TIMEOUT = 45
+MAX_RETRIES = 8
 MAX_PAGES = 10
 
 API_KEY = os.getenv("AUSTIN_APP_TOKEN")

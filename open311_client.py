@@ -12,8 +12,8 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-MAX_RETRIES = 6
-RETRY_DELAY = 1.0
+MAX_RETRIES = 8
+RETRY_DELAY = 2.0
 RETRYABLE_HTTP_CODES = {423, 429, 500, 502, 503, 504}
 RETRYABLE_ERRORS = (
     requests.exceptions.Timeout,
@@ -34,7 +34,7 @@ def open311_get(
     Retries up to MAX_RETRIES times before re-raising.
     """
     try:
-        resp = session.get(url, params=params, timeout=12)
+        resp = session.get(url, params=params, timeout=45)
         resp.raise_for_status()
         data = resp.json()
         return data if isinstance(data, list) else []

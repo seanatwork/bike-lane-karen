@@ -27,8 +27,8 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 
 OPEN311_BASE_URL = "https://311.austintexas.gov/open311/v2"
-TIMEOUT = 12
-MAX_RETRIES = 3
+TIMEOUT = 45
+MAX_RETRIES = 8
 RETRY_DELAY = 1.0
 MAX_PAGES = 10
 

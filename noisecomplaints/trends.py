@@ -37,7 +37,7 @@ def _fetch_code_paginated(service_code: str, days_back: int) -> list:
     records = []
     while True:
         try:
-            resp = session.get(OPEN311_URL, params=params, timeout=20)
+            resp = session.get(OPEN311_URL, params=params, timeout=45)
             resp.raise_for_status()
             batch = resp.json()
         except Exception as e:
