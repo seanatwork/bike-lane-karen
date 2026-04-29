@@ -1,8 +1,9 @@
 name: Refresh noise trends
 
 on:
-  schedule:
-    - cron: "0 13 * * 1"  # weekly Monday 13:00 UTC
+  # DISABLED: schedule trigger to avoid 429 errors from Open311 API
+  # schedule:
+  #   - cron: "0 13 * * 1"  # weekly Monday 13:00 UTC
   workflow_dispatch:
 
 permissions:

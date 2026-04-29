@@ -1,8 +1,9 @@
 name: Refresh animal map
 
 on:
-  schedule:
-    - cron: "0 12 * * *"  # daily at noon UTC
+  # DISABLED: schedule trigger to avoid 429 errors from Open311 API
+  # schedule:
+  #   - cron: "0 12 * * *"  # daily at noon UTC
   workflow_dispatch:        # allow manual trigger from Actions tab
 
 permissions:
