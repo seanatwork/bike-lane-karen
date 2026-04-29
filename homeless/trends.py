@@ -10,6 +10,7 @@ Secondary layer: how many of those tickets are closed with the HSO boilerplate.
 """
 
 import io
+import math
 from datetime import datetime, timezone
 from collections import defaultdict
 
@@ -105,43 +106,82 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     vol_arrow  = "📈 rising"  if avg_second > avg_first  else \
                  ("📉 falling" if avg_second < avg_first else "➡️ stable")
 
-    # HSO rate trend
-    hso_first  = sum(monthly[m]["hso"] for m in first_half)
-    hso_second = sum(monthly[m]["hso"] for m in second_half)
-    rate_first  = round(hso_first  / vol_first  * 100) if vol_first  else 0
-    rate_second = round(hso_second / vol_second * 100) if vol_second else 0
-    hso_arrow   = "📈 rising"  if rate_second > rate_first  else \
-                  ("📉 falling" if rate_second < rate_first else "➡️ stable")
+    # SVG line chart
+    PLOT_X0, PLOT_X1 = 44, 548
+    PLOT_Y_BOT, PLOT_Y_TOP = 130, 12
+    n = len(sorted_months)
+    totals = [monthly[m]["total"] for m in sorted_months]
+    data_max = max(totals) if totals else 1
 
-    # Monthly bar rows
-    max_total = max((monthly[m]["total"] for m in sorted_months), default=1)
-    month_rows_html = ""
-    for key in sorted_months:
-        d = monthly[key]
-        yr, mo = key.split("-")
-        label  = f"{MONTH_NAMES[int(mo)-1]} {yr}"
-        total  = d["total"]
-        hso    = d["hso"]
-        other  = d["other_closed"]
-        open_  = d["open"]
+    y_step = 50
+    y_axis_max = math.ceil(data_max / y_step) * y_step + y_step
+    y_axis_min = 0
 
-        hso_pct   = round(hso   / max_total * 100)
-        other_pct = round(other / max_total * 100)
-        open_pct  = round(open_ / max_total * 100)
-        hso_rate  = round(hso / total * 100) if total else 0
+    def to_y(val):
+        frac = (val - y_axis_min) / (y_axis_max - y_axis_min)
+        return round(PLOT_Y_BOT - frac * (PLOT_Y_BOT - PLOT_Y_TOP), 1)
 
-        month_rows_html += f"""
-        <div class="month-row">
-          <span class="month-lbl">{label}</span>
-          <div class="month-track">
-            <div class="bar-seg hso-seg"   style="width:{hso_pct}%"   title="HSO deflected: {hso}"></div>
-            <div class="bar-seg other-seg" style="width:{other_pct}%" title="Other closed: {other}"></div>
-            <div class="bar-seg open-seg"  style="width:{open_pct}%"  title="Open: {open_}"></div>
-          </div>
-          <span class="month-total">{total}</span>
-          <span class="month-hso">{hso_rate}% HSO</span>
-        </div>"""
+    def to_x(i):
+        if n <= 1:
+            return (PLOT_X0 + PLOT_X1) / 2
+        return round(PLOT_X0 + i * (PLOT_X1 - PLOT_X0) / (n - 1), 1)
 
+    pts = [(to_x(i), to_y(totals[i])) for i in range(n)]
+
+    # Gridlines and y-axis labels
+    grid_vals = list(range(y_axis_min, y_axis_max + 1, y_step))
+    grid_html = ""
+    for gv in grid_vals:
+        gy = to_y(gv)
+        is_base = gv == y_axis_min
+        sw = "1" if is_base else "0.7"
+        dash = "" if is_base else ' stroke-dasharray="3,2"'
+        grid_html += f'<line x1="{PLOT_X0}" y1="{gy}" x2="{PLOT_X1}" y2="{gy}" stroke="var(--border)" stroke-width="{sw}"{dash}/>\n'
+        grid_html += f'<text x="{PLOT_X0 - 4}" y="{gy + 3}" text-anchor="end" font-size="9" fill="var(--text-muted)">{gv}</text>\n'
+
+    # Area fill polygon
+    area_pts = f"{PLOT_X0},{PLOT_Y_BOT} " + " ".join(f"{x},{y}" for x, y in pts) + f" {PLOT_X1},{PLOT_Y_BOT}"
+    # Line polyline
+    line_pts = " ".join(f"{x},{y}" for x, y in pts)
+
+    # Peak point
+    peak_i = totals.index(max(totals))
+    peak_x, peak_y = pts[peak_i]
+    peak_val = totals[peak_i]
+
+    # Data point circles
+    circles_html = ""
+    for i, (mx, my) in enumerate(pts):
+        mo_key = sorted_months[i]
+        yr, mo = mo_key.split("-")
+        lbl = f"{MONTH_NAMES[int(mo)-1]} {yr}"
+        r = "4.5" if i == peak_i else "3.5"
+        peak_tag = " (peak)" if i == peak_i else ""
+        circles_html += f'<circle cx="{mx}" cy="{my}" r="{r}" fill="#3b82f6" stroke="var(--bg-card)" stroke-width="1.5"><title>{lbl}: {totals[i]}{peak_tag}</title></circle>\n'
+
+    # X-axis labels (month only)
+    xlabels_html = ""
+    for i, mo_key in enumerate(sorted_months):
+        yr, mo = mo_key.split("-")
+        lbl = MONTH_NAMES[int(mo) - 1]
+        xlabels_html += f'<text x="{pts[i][0]}" y="147" text-anchor="middle" font-size="9" fill="var(--text-muted)">{lbl}</text>\n'
+
+    svg_html = f"""<svg viewBox="0 0 560 155" width="100%" style="display:block;overflow:visible;margin-top:4px">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+        {grid_html}
+        <polygon points="{area_pts}" fill="url(#areaGrad)"/>
+        <polyline points="{line_pts}" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <text x="{peak_x}" y="{peak_y - 7}" text-anchor="middle" font-size="9" font-weight="700" fill="#3b82f6">{peak_val}</text>
+        {circles_html}
+        {xlabels_html}
+      </svg>"""
+
+    deflection_pct_str = f"{deflection_rate}%" if deflection_rate else "the majority"
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     html = f"""<!DOCTYPE html>
@@ -160,7 +200,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       --text-sub: #64748b; --text-muted: #94a3b8;
       --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
       --btn-hover-bg: #dbeafe; --btn-hover-color: #1e293b;
-      --stat-border: #e2e8f0; --bar-bg: #e2e8f0;
+      --stat-border: #e2e8f0;
       --note-bg: #fff7ed; --note-border: #fed7aa; --note-text: #9a3412;
     }}
     html.dark {{
@@ -169,7 +209,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       --text-sub: #64748b; --text-muted: #475569;
       --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
       --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
-      --stat-border: #2d3348; --bar-bg: #252b3b;
+      --stat-border: #2d3348;
       --note-bg: #2d1506; --note-border: #7c2d12; --note-text: #fdba74;
     }}
     body {{
@@ -216,18 +256,6 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
     }}
     .chart-title {{ font-size: 13px; font-weight: 700; color: var(--text-head); margin-bottom: 3px; }}
     .chart-sub   {{ font-size: 11px; color: var(--text-sub); margin-bottom: 14px; }}
-    .legend-inline {{ display: flex; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }}
-    .legend-item {{ display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-sub); }}
-    .legend-dot  {{ width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }}
-    .month-row  {{ display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; }}
-    .month-lbl  {{ flex: 0 0 62px; color: var(--text-sub); font-size: 10px; }}
-    .month-track {{ flex: 1; display: flex; height: 14px; border-radius: 3px; overflow: hidden; background: var(--bar-bg); }}
-    .bar-seg    {{ height: 14px; }}
-    .hso-seg    {{ background: #dc2626; }}
-    .other-seg  {{ background: #6b7280; }}
-    .open-seg   {{ background: #f59e0b; }}
-    .month-total {{ flex: 0 0 36px; text-align: right; color: var(--text-muted); font-size: 10px; }}
-    .month-hso  {{ flex: 0 0 62px; text-align: right; color: #dc2626; font-size: 10px; font-weight: 600; }}
     .trend-badges {{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }}
     .trend-badge {{
       display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;
@@ -277,24 +305,14 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
         <div class="stat-val" style="color:#dc2626;">{total_hso:,}</div>
         <div class="stat-label">Closed → HSO</div>
       </div>
-      <div class="stat">
-        <div class="stat-val" style="color:#dc2626;">{deflection_rate}%</div>
-        <div class="stat-label">HSO deflection rate</div>
-      </div>
     </div>
 
     <div class="chart-card">
-      <div class="chart-title">📊 Monthly Complaint Volume</div>
-      <div class="chart-sub">Total keyword-matched 311 tickets filed each month, broken down by outcome</div>
-      <div class="legend-inline">
-        <div class="legend-item"><div class="legend-dot" style="background:#dc2626;"></div> Closed → HSO</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#6b7280;"></div> Other closed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div> Open</div>
-      </div>
-      {month_rows_html}
+      <div class="chart-title">📈 Monthly Complaint Volume</div>
+      <div class="chart-sub">Total keyword-matched 311 tickets filed per month · hover dots for exact counts</div>
+      {svg_html}
       <div class="trend-badges">
-        <span class="trend-badge">Volume: avg {avg_first}/mo → {avg_second}/mo &nbsp;{vol_arrow}</span>
-        <span class="trend-badge">HSO rate: {rate_first}% → {rate_second}% &nbsp;{hso_arrow}</span>
+        <span class="trend-badge">avg {avg_first}/mo → {avg_second}/mo &nbsp;{vol_arrow}</span>
       </div>
     </div>
 
@@ -304,8 +322,8 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       <p>
         When a homeless-related 311 report is closed with this note, the ticket exits
         the standard 311 system and is routed to the Homeless Strategy Office — a separate
-        department with no public-facing ticket tracking. The red portion of each bar above
-        shows how many matched tickets received this closure each month.
+        department with no public-facing ticket tracking. {deflection_pct_str} of matched
+        tickets in the last year were closed this way.
       </p>
     </div>
 
@@ -338,8 +356,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
         f"_Last {days_back} days_\n\n"
         f"📊 *{total_reports:,} matched reports*\n"
         f"🔴 *{total_hso:,} closed → HSO* ({deflection_rate}%)\n"
-        f"Volume: avg {avg_first}/mo → {avg_second}/mo {vol_arrow}\n"
-        f"HSO rate: {rate_first}% → {rate_second}% {hso_arrow}\n\n"
+        f"Volume: avg {avg_first}/mo → {avg_second}/mo {vol_arrow}\n\n"
         f"_Source: Austin Open311 API_"
     )
     return buf, summary

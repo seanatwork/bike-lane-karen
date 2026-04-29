@@ -15,7 +15,6 @@ Target service codes (from 311categories.txt):
 - OBSTMIDB: Obstruction in Right of Way
 - SBDEBROW: Debris in Street
 - DRCHANEL: Channels / Creeks / Drainage Issues (watershed dept)
-- NOISECMP: Non-Emergency Noise Complaint (catch-all quality-of-life)
 
 Keywords (per Austin 311 research guide):
   encampment · homeless · camp · tent · transient · trash + homeless
