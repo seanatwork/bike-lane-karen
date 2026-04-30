@@ -188,11 +188,8 @@
       <button class="fbtn active" id="btn-municipal" onclick="switchView('municipal')">
         ⚖️ Municipal Court FY2026
       </button>
-      <button class="fbtn" id="btn-dacc26" onclick="switchView('dacc26')">
-        🏛️ DACC FY2026
-      </button>
       <button class="fbtn" id="btn-dacc" onclick="switchView('dacc')">
-        🏛️ DACC FY2025
+        🏛️ DACC Year-over-Year
       </button>
       <button class="fbtn" id="btn-propb" onclick="switchView('propb')">
         ⛺ Prop B — Outcomes
@@ -208,7 +205,7 @@
 
   <div id="stats">
     <div class="stat">
-      <div class="stat-value" id="stat-total" style="color:#f1f5f9;">—</div>
+      <div class="stat-value" id="stat-total" style="color:#3b82f6;">—</div>
       <div class="stat-label">Total Cases</div>
     </div>
     <div class="stat">
@@ -270,11 +267,16 @@
       Data does not include verdict or dismissal information — only case volume.
     </div>
 
+    <!-- DACC year-over-year note -->
+    <div id="note-dacc" class="note-box" style="border-left: 3px solid #3b82f6; display:none;">
+      <div id="dacc-insights"></div>
+    </div>
+
     <!-- Demographics note -->
     <div id="note-demo" class="note-box teal">
-      The agency breakdown above explains the gap: Austin Transportation's parking citations are issued to <em>unattended vehicles</em> — no officer interaction, no race to record.
-      For APD-issued stops, race is self-reported or officer-observed per <strong>APD General Orders 328.3.2</strong>.
-      Note: "Hispanic or Latino" is severely undercounted — the field captures race, not ethnicity, so many Hispanic defendants are recorded as White.
+      Only cases where race was recorded by the arresting agency are shown. Parking citations and some other charge types don't collect race data and are excluded.
+      <br /><br />
+      <strong>Note:</strong> "Hispanic or Latino" is severely undercounted — the field captures race, not ethnicity, so many Hispanic defendants are recorded as White.
     </div>
   </div>
 
@@ -310,24 +312,6 @@
         subtitle: 'Case pipeline status by charge type — FY2026 (Oct 2025 to present)',
         sourceUrl: 'https://data.austintexas.gov/d/tuwa-vk6q',
         sourceLabel: 'Austin Municipal Court Caseload FY2026',
-        mode: 'caseload'
-      },
-      dacc26: {
-        id: '88wy-rigr',
-        chargeField: 'charges_description',
-        statusField: 'case_closed',
-        subtitle: 'DACC case pipeline status by charge type — FY2026 (Oct 2025 to present)',
-        sourceUrl: 'https://data.austintexas.gov/d/88wy-rigr',
-        sourceLabel: 'Downtown Community Court Caseload FY2026',
-        mode: 'caseload'
-      },
-      dacc: {
-        id: 'emdh-pf9u',
-        chargeField: 'charges_description',
-        statusField: 'case_closed',
-        subtitle: 'DACC case pipeline status by charge type — FY2025 full year',
-        sourceUrl: 'https://data.austintexas.gov/d/emdh-pf9u',
-        sourceLabel: 'Downtown Community Court Caseload FY2025',
         mode: 'caseload'
       },
       propb: {
@@ -439,36 +423,190 @@
       return n;
     }
 
-    // Fetch cases by agency with race-recorded count
-    async function fetchByAgency(dsId) {
-      const key = `agency:${dsId}`;
-      if (cache[key]) return cache[key];
-      const [totalRows, raceRows] = await Promise.all([
-        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=agency,count(*) as total&$group=agency&$order=total DESC&$limit=20`).then(r => r.json()),
-        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=agency,count(*) as has_race&$where=race IS NOT NULL&$group=agency&$limit=20`).then(r => r.json()),
-      ]);
-      const raceMap = {};
-      for (const r of raceRows) raceMap[r.agency] = parseInt(r.has_race, 10) || 0;
-      const result = totalRows.map(r => ({
-        agency: r.agency || 'Unknown',
-        total: parseInt(r.total, 10) || 0,
-        hasRace: raceMap[r.agency] || 0,
-      })).filter(r => r.total > 0);
-      cache[key] = result;
-      return result;
-    }
-
-    // For demographics: fetch race+gender grouped counts
+    // For demographics: fetch race+gender counts — only cases where race IS recorded
     async function fetchDemo(dsId) {
       const key = `demo:${dsId}`;
       if (cache[key]) return cache[key];
+      const where = encodeURIComponent('race IS NOT NULL');
       const [raceRows, genderRows] = await Promise.all([
-        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=race,count(*) as cnt&$group=race&$order=cnt DESC`).then(r => r.json()),
-        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=defendant_gender,count(*) as cnt&$group=defendant_gender&$order=cnt DESC`).then(r => r.json()),
+        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=race,count(*) as cnt&$where=${where}&$group=race&$order=cnt DESC`).then(r => r.json()),
+        fetch(`https://data.austintexas.gov/resource/${dsId}.json?$select=defendant_gender,count(*) as cnt&$where=${where}&$group=defendant_gender&$order=cnt DESC`).then(r => r.json()),
       ]);
       const result = { race: raceRows, gender: genderRows };
       cache[key] = result;
       return result;
+    }
+
+    // Fetch DACC comparison: same elapsed period, FY2025 vs FY2026
+    async function fetchDACCComparison() {
+      const key = 'dacc-comparison';
+      if (cache[key]) return cache[key];
+
+      // FY2026 starts Oct 1 2025. Mirror the same elapsed days in FY2025.
+      const now = new Date();
+      const fy25End = new Date(now);
+      fy25End.setFullYear(fy25End.getFullYear() - 1);
+      const fy25EndStr = fy25End.toISOString().split('T')[0];
+
+      const sel     = encodeURIComponent('charges_description,count(*) as cnt');
+      const grp     = encodeURIComponent('charges_description');
+      const fy25W   = encodeURIComponent(`offense_date >= '2024-10-01' AND offense_date <= '${fy25EndStr}'`);
+      const fy26W   = encodeURIComponent(`offense_date >= '2025-10-01'`);
+
+      const [fy25Rows, fy26Rows] = await Promise.all([
+        fetch(`https://data.austintexas.gov/resource/emdh-pf9u.json?$select=${sel}&$where=${fy25W}&$group=${grp}&$limit=500`).then(r => r.json()),
+        fetch(`https://data.austintexas.gov/resource/88wy-rigr.json?$select=${sel}&$where=${fy26W}&$group=${grp}&$limit=500`).then(r => r.json()),
+      ]);
+
+      const result = { fy25Rows, fy26Rows, fy25EndStr };
+      cache[key] = result;
+      return result;
+    }
+
+    async function renderDACCChart() {
+      document.getElementById('source-link').href = 'https://data.austintexas.gov/browse?q=downtown+community+court';
+      document.getElementById('source-link').textContent = 'DACC Caseloads FY2025 & FY2026';
+      showNote('note-dacc');
+
+      const { fy25Rows, fy26Rows, fy25EndStr } = await fetchDACCComparison();
+      document.getElementById('loading').style.display = 'none';
+
+      // Build charge → { fy25, fy26 } map
+      const chargeMap = {};
+      for (const r of fy25Rows) {
+        const c = (r.charges_description || 'Unknown').trim();
+        if (!chargeMap[c]) chargeMap[c] = { fy25: 0, fy26: 0 };
+        chargeMap[c].fy25 += parseInt(r.cnt, 10) || 0;
+      }
+      for (const r of fy26Rows) {
+        const c = (r.charges_description || 'Unknown').trim();
+        if (!chargeMap[c]) chargeMap[c] = { fy25: 0, fy26: 0 };
+        chargeMap[c].fy26 += parseInt(r.cnt, 10) || 0;
+      }
+
+      const allEntries = Object.entries(chargeMap)
+        .map(([charge, d]) => ({ charge, ...d, total: d.fy25 + d.fy26 }));
+
+      // Top 15 by combined total
+      const topItems = [...allEntries].sort((a, b) => b.total - a.total).slice(0, TOP_N);
+
+      const fy25Total = allEntries.reduce((s, d) => s + d.fy25, 0);
+      const fy26Total = allEntries.reduce((s, d) => s + d.fy26, 0);
+      const changePct = fy25Total > 0 ? Math.round((fy26Total - fy25Total) / fy25Total * 100) : 0;
+
+      // Date labels
+      const fmt = (s, tz) => new Date(s + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      const fy25EndFmt = fmt(fy25EndStr);
+      const nowFmt     = fmt(new Date().toISOString().split('T')[0]);
+
+      document.getElementById('panel-subtitle').textContent =
+        `DACC — Oct 2024–${fy25EndFmt} vs Oct 2025–${nowFmt}`;
+
+      // Stats row
+      document.getElementById('stat-total').textContent = formatNum(fy26Total);
+      document.getElementById('stat-total').style.color = '#3b82f6';
+      setStatCell(1, formatNum(fy25Total), 'FY2025 Same Period', '#64748b');
+      setStatCell(2, (changePct >= 0 ? '+' : '') + changePct + '%', 'YoY Change',
+                  changePct > 5 ? '#ef4444' : changePct < -5 ? '#22c55e' : '#f59e0b');
+      setStatCell(3, allEntries.length.toString(), 'Charge Types', '#a78bfa');
+      document.getElementById('stats').style.display = 'flex';
+
+      // ── Auto-generated insights ───────────────────────────────────────────
+      const relevant = allEntries.filter(d => d.fy25 > 30 || d.fy26 > 30);
+      const biggestUp   = [...relevant].sort((a, b) => (b.fy26 - b.fy25) - (a.fy26 - a.fy25))[0];
+      const biggestDown = [...relevant].sort((a, b) => (a.fy26 - a.fy25) - (b.fy26 - b.fy25))[0];
+      const newCharges  = allEntries.filter(d => d.fy25 === 0 && d.fy26 >= 20)
+                                    .sort((a, b) => b.fy26 - a.fy26).slice(0, 2);
+      const goneCharges = allEntries.filter(d => d.fy25 >= 20 && d.fy26 === 0)
+                                    .sort((a, b) => b.fy25 - a.fy25).slice(0, 2);
+
+      let html = `Comparing the same elapsed period year-over-year: `
+               + `<strong>Oct 2024–${fy25EndFmt}</strong> vs <strong>Oct 2025–${nowFmt}</strong>.<br/><br/>`;
+
+      if (biggestUp && biggestUp.fy25 > 0) {
+        const p = Math.round((biggestUp.fy26 - biggestUp.fy25) / biggestUp.fy25 * 100);
+        html += `📈 <strong>Biggest increase:</strong> ${biggestUp.charge} — `
+              + `${biggestUp.fy25.toLocaleString()} → ${biggestUp.fy26.toLocaleString()} cases `
+              + `(${p > 0 ? '+' : ''}${p}%)<br/>`;
+      }
+      if (biggestDown && biggestDown.fy25 > 0 && biggestDown !== biggestUp) {
+        const p = Math.round((biggestDown.fy26 - biggestDown.fy25) / biggestDown.fy25 * 100);
+        html += `📉 <strong>Biggest decrease:</strong> ${biggestDown.charge} — `
+              + `${biggestDown.fy25.toLocaleString()} → ${biggestDown.fy26.toLocaleString()} cases `
+              + `(${p}%)<br/>`;
+      }
+      if (newCharges.length)
+        html += `🆕 <strong>New this year:</strong> ${newCharges.map(d => `${d.charge} (${d.fy26} cases)`).join('; ')}<br/>`;
+      if (goneCharges.length)
+        html += `🚫 <strong>No longer filed:</strong> ${goneCharges.map(d => `${d.charge} (${d.fy25} last year)`).join('; ')}<br/>`;
+
+      document.getElementById('dacc-insights').innerHTML = html;
+
+      // ── Grouped bar chart ─────────────────────────────────────────────────
+      const container = document.getElementById('chart-container');
+      container.style.display = 'block';
+      container.style.height = (topItems.length * 52 + 80) + 'px';
+
+      destroyChart();
+
+      chartInstance = new Chart(document.getElementById('myChart'), {
+        type: 'bar',
+        data: {
+          labels: topItems.map(d => truncate(d.charge)),
+          datasets: [
+            {
+              label: `FY2025 (Oct 2024–${fy25EndFmt})`,
+              data: topItems.map(d => d.fy25),
+              backgroundColor: 'rgba(100,116,139,0.6)',
+              borderColor: 'rgba(100,116,139,1)',
+              borderWidth: 1,
+              borderSkipped: false,
+            },
+            {
+              label: `FY2026 (Oct 2025–${nowFmt})`,
+              data: topItems.map(d => d.fy26),
+              backgroundColor: 'rgba(59,130,246,0.75)',
+              borderColor: 'rgba(59,130,246,1)',
+              borderWidth: 1,
+              borderSkipped: false,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: { color: mutedTick, font: { size: 11 }, callback: v => formatNum(v) },
+              grid: { color: gridColor },
+              border: { color: gridColor },
+            },
+            y: {
+              ticks: { color: tickColor, font: { size: 11 }, autoSkip: false },
+              grid: { display: false },
+              border: { color: gridColor },
+            },
+          },
+          plugins: {
+            legend: {
+              position: 'top', align: 'start',
+              labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 14 },
+            },
+            tooltip: {
+              callbacks: {
+                title: items => topItems[items[0].dataIndex]?.charge || '',
+                afterBody: items => {
+                  const d = topItems[items[0].dataIndex];
+                  if (!d || !d.fy25) return [];
+                  const chg = Math.round((d.fy26 - d.fy25) / d.fy25 * 100);
+                  return ['', `YoY change: ${chg > 0 ? '+' : ''}${chg}%`];
+                },
+              },
+            },
+          },
+        },
+      });
     }
 
     // ── Process ────────────────────────────────────────────────────────────────
@@ -495,8 +633,7 @@
       const topItems = Object.entries(chargeMap)
         .map(([charge, c]) => ({ charge, total: c.TERM + c.ACT + c.IN + c.OTH, ...c }))
         .sort((a, b) => b.total - a.total)
-        .slice(0, TOP_N)
-        .reverse();
+        .slice(0, TOP_N);
 
       return { topItems, grandTotal, grandTERM, grandACT, grandIN, grandOTH };
     }
@@ -530,8 +667,7 @@
       const grandTotal = grandCONV + grandDISM + grandACQ + grandXFER + grandPEND;
       const topItems = Object.entries(chargeMap)
         .map(([charge, c]) => ({ charge, total: c.CONV + c.DISM + c.ACQ + c.XFER + c.PEND, ...c }))
-        .sort((a, b) => b.total - a.total)
-        .reverse();
+        .sort((a, b) => b.total - a.total);
 
       return { topItems, grandTotal, grandCONV, grandDISM, grandACQ, grandXFER, grandPEND, rawSubtypes };
     }
@@ -540,6 +676,7 @@
 
     function updateStats(mode, processed) {
       document.getElementById('stat-total').textContent = formatNum(processed.grandTotal);
+      document.getElementById('stat-total').style.color = '#3b82f6';
 
       if (mode === 'caseload') {
         const { grandTERM, grandACT, grandIN, grandTotal } = processed;
@@ -738,115 +875,53 @@
     }
 
     async function renderDemoChart() {
-      document.getElementById('panel-subtitle').textContent = `Demographics — by agency & race · ${DEMO_DATASET.label}`;
       document.getElementById('source-link').href = `https://data.austintexas.gov/d/${DEMO_DATASET.id}`;
       document.getElementById('source-link').textContent = `${DEMO_DATASET.label} — Demographics`;
-
       showNote('note-demo');
-      document.getElementById('stats').style.display = 'none';
 
-      const [agencies, { race, gender }] = await Promise.all([
-        fetchByAgency(DEMO_DATASET.id),
-        fetchDemo(DEMO_DATASET.id),
-      ]);
-
+      const { race, gender } = await fetchDemo(DEMO_DATASET.id);
       document.getElementById('loading').style.display = 'none';
 
-      // ── Agency stacked bar ────────────────────────────────────────────────
-      const agencyContainer = document.getElementById('chart-container-agency');
-      agencyContainer.style.display = 'block';
-      agencyContainer.style.height = (agencies.length * 36 + 100) + 'px';
-
-      if (agencyChartInstance) { agencyChartInstance.destroy(); agencyChartInstance = null; }
-
-      agencyChartInstance = new Chart(document.getElementById('agencyChart'), {
-        type: 'bar',
-        data: {
-          labels: agencies.map(a => a.agency),
-          datasets: [
-            {
-              label: 'Race recorded',
-              data: agencies.map(a => a.hasRace),
-              backgroundColor: 'rgba(59,130,246,0.8)',
-              borderColor: 'rgba(59,130,246,1)',
-              borderWidth: 1,
-              borderSkipped: false,
-            },
-            {
-              label: 'Race not recorded',
-              data: agencies.map(a => a.total - a.hasRace),
-              backgroundColor: 'rgba(100,116,139,0.45)',
-              borderColor: 'rgba(100,116,139,0.7)',
-              borderWidth: 1,
-              borderSkipped: false,
-            },
-          ],
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              stacked: true,
-              ticks: { color: mutedTick, font: { size: 11 }, callback: v => formatNum(v) },
-              grid: { color: gridColor },
-              border: { color: gridColor },
-            },
-            y: {
-              stacked: true,
-              ticks: { color: tickColor, font: { size: 11 }, autoSkip: false },
-              grid: { display: false },
-              border: { color: gridColor },
-            },
-          },
-          plugins: {
-            legend: {
-              position: 'top', align: 'start',
-              labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 16 },
-            },
-            tooltip: {
-              callbacks: {
-                title: items => items[0].label,
-                afterBody: items => {
-                  const a = agencies[items[0].dataIndex];
-                  const p = a.total > 0 ? Math.round(a.hasRace / a.total * 100) : 0;
-                  return [`Total: ${a.total.toLocaleString()}`, `Race recorded: ${p}%`];
-                },
-              },
-            },
-          },
-        },
-      });
-
-      // ── Race breakdown bar ────────────────────────────────────────────────
+      // ── Race breakdown (only cases where race was recorded) ───────────────
       const raceMerged = {};
       for (const r of race) {
-        let label = (r.race || 'Not recorded').trim();
-        if (!label) label = 'Not recorded';
+        let label = (r.race || '').trim();
+        if (!label) continue;
         if (label === 'Black or African American') label = 'Black';
         raceMerged[label] = (raceMerged[label] || 0) + (parseInt(r.cnt, 10) || 0);
       }
       const raceEntries = Object.entries(raceMerged).sort((a, b) => b[1] - a[1]);
       const raceTotal = raceEntries.reduce((s, [, n]) => s + n, 0);
 
+      // ── Gender stats (same race-recorded subset) ──────────────────────────
+      const gTotal = gender.reduce((s, g) => s + (parseInt(g.cnt, 10) || 0), 0);
+      const gMap = {};
+      for (const g of gender) gMap[(g.defendant_gender || '').toLowerCase()] = parseInt(g.cnt, 10) || 0;
+      const mPct = gTotal > 0 ? Math.round((gMap['male'] || 0) / gTotal * 100) : '?';
+      const fPct = gTotal > 0 ? Math.round((gMap['female'] || 0) / gTotal * 100) : '?';
+
+      document.getElementById('panel-subtitle').textContent =
+        `Cases with race recorded — ${DEMO_DATASET.label}`;
+
+      document.getElementById('stat-total').textContent = formatNum(raceTotal);
+      document.getElementById('stat-total').style.color = '#3b82f6';
+      setStatCell(1, mPct + '%', 'Male', '#60a5fa');
+      setStatCell(2, fPct + '%', 'Female', '#f472b6');
+      setStatCell(3, raceEntries[0]?.[0] ?? '—', 'Largest group', '#a78bfa');
+      document.getElementById('stat-l3').style.fontSize = '0.6rem';
+      document.getElementById('stat-s3').style.fontSize = raceEntries[0]?.[0]?.length > 8 ? '0.85rem' : '';
+      document.getElementById('stats').style.display = 'flex';
+
       const container = document.getElementById('chart-container');
       container.style.display = 'block';
-      container.style.height = (raceEntries.length * 38 + 100) + 'px';
-
-      const gTotal = gender.reduce((s, g) => s + (parseInt(g.cnt, 10) || 0), 0);
-      const malePct = gender.find(g => (g.defendant_gender || '').toLowerCase() === 'male');
-      const mPct = malePct ? Math.round(parseInt(malePct.cnt, 10) / gTotal * 100) : '?';
-      document.getElementById('panel-subtitle').textContent =
-        `Demographics — ${DEMO_DATASET.label} · ${mPct}% male defendants`;
+      container.style.height = (raceEntries.length * 38 + 80) + 'px';
 
       destroyChart();
 
       const RACE_COLORS = [
-        'rgba(100,116,139,0.6)',
-        'rgba(59,130,246,0.8)', 'rgba(34,197,94,0.8)', 'rgba(245,158,11,0.8)',
-        'rgba(239,68,68,0.8)',  'rgba(167,139,250,0.8)', 'rgba(45,212,191,0.8)',
-        'rgba(251,146,60,0.8)', 'rgba(100,116,139,0.7)'
+        'rgba(59,130,246,0.8)', 'rgba(239,68,68,0.8)',  'rgba(34,197,94,0.8)',
+        'rgba(245,158,11,0.8)', 'rgba(167,139,250,0.8)', 'rgba(45,212,191,0.8)',
+        'rgba(251,146,60,0.8)', 'rgba(100,116,139,0.6)',
       ];
 
       chartInstance = new Chart(document.getElementById('myChart'), {
@@ -857,7 +932,7 @@
             label: 'Cases',
             data: raceEntries.map(([, n]) => n),
             backgroundColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length]),
-            borderColor: raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length].replace(/[\d.]+\)$/, '1)')),
+            borderColor:     raceEntries.map((_, i) => RACE_COLORS[i % RACE_COLORS.length].replace(/[\d.]+\)$/, '1)')),
             borderWidth: 1,
             borderSkipped: false,
           }],
@@ -882,7 +957,7 @@
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: item => `${item.raw.toLocaleString()} cases (${pct(item.raw, raceTotal)} of total)`,
+                label: item => `${item.raw.toLocaleString()} cases (${pct(item.raw, raceTotal)})`,
               },
             },
           },
@@ -958,7 +1033,6 @@
 
     const ACTIVE_CLASSES = {
       municipal: 'active',
-      dacc26:    'active',
       dacc:      'active',
       propb:     'active-amber',
       multiyear: 'active-purple',
@@ -984,7 +1058,7 @@
       document.getElementById('chart-container-agency').style.display = 'none';
       if (agencyChartInstance) { agencyChartInstance.destroy(); agencyChartInstance = null; }
       document.getElementById('stats').style.display = 'none';
-      for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-demo']) {
+      for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-dacc', 'note-demo']) {
         document.getElementById(nid).style.display = 'none';
       }
 
@@ -993,6 +1067,8 @@
           await renderMultiYearChart();
         } else if (viewKey === 'demo') {
           await renderDemoChart();
+        } else if (viewKey === 'dacc') {
+          await renderDACCChart();
         } else if (viewKey === 'propb') {
           const ds = DATASETS['propb'];
           const rows = await fetchGrouped(ds.id, ds.chargeField, ds.statusField);
@@ -1007,7 +1083,21 @@
       }
     }
 
-    switchView('municipal');
+    // Load pre-fetched cache from data.json (generated daily by CI).
+    // Populates the same `cache` keys the fetch helpers already check,
+    // so all tabs render instantly without hitting Socrata live.
+    fetch('data.json')
+      .then(r => r.ok ? r.json() : null)
+      .then(json => {
+        if (json?.cache) {
+          Object.assign(cache, json.cache);
+          const d = new Date(json.generatedAt);
+          document.getElementById('panel-subtitle').textContent =
+            'Data as of ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+      })
+      .catch(() => {})
+      .finally(() => switchView('municipal'));
   </script>
 
 </body>

@@ -779,7 +779,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
                 font-family: sans-serif; text-align: center;">
         <b style="font-size: 15px;">🏕️ Homeless-Related 311 Complaints</b><br/>
         <span id="map-summary" style="font-size: 12px; color: #555;"></span>
-        <span style="font-size: 11px; color: #888;">{total_matched - total:,} additional matched reports excluded — no coordinates provided by filer</span>
+        {"" if total_matched == total else f'<span style="font-size: 11px; color: #888;">{total_matched - total:,} matched reports excluded — no coordinates provided by filer</span>'}
         <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
             <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
