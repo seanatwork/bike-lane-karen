@@ -163,16 +163,57 @@ def _fetch_code(service_code: str, days_back: int) -> list:
     return all_records
 
 
-def fetch_all_traffic_complaints(days_back: int = 90) -> list:
+def fetch_all_traffic_complaints(days_back: int = 90, use_cache: bool = True) -> list:
+    """Fetch complaints across all traffic/infrastructure service codes with optional caching."""
+    from open311_cache import init_cache, get_cached_records, cache_records, get_last_fetch_date
+
+    CATEGORY = "traffic"
+
+    # Initialize cache if using
+    if use_cache:
+        init_cache()
+        cached_records = get_cached_records(CATEGORY, service_codes=list(SERVICE_CODES.keys()))
+        cached_ids = {r.get("service_request_id") for r in cached_records}
+        logger.info(f"Loaded {len(cached_records)} cached traffic records")
+
+        # Check if cache is fresh (less than 6 days old)
+        last_fetch = get_last_fetch_date(CATEGORY)
+        if last_fetch:
+            cache_age = _utc_now() - last_fetch
+            if cache_age < timedelta(days=6) and len(cached_records) > 0:
+                logger.info(f"Cache is fresh ({cache_age.days} days old), using cached data")
+                return cached_records
+    else:
+        cached_records = []
+        cached_ids = set()
+
     all_records = []
+    seen_ids = cached_ids.copy()
+    new_records = []
+
     for code in SERVICE_CODES:
         try:
             records = _fetch_code(code, days_back)
-            all_records.extend(records)
-            logger.debug(f"{code}: {len(records)} records")
+            # Filter out already-cached records
+            unique_records = [r for r in records if r.get("service_request_id") not in seen_ids]
+            for r in unique_records:
+                seen_ids.add(r.get("service_request_id"))
+                new_records.append(r)
+            all_records.extend(unique_records)
+            logger.debug(f"{code}: {len(unique_records)} new records")
         except Exception as e:
             logger.warning(f"Failed to fetch {code}: {e}")
         time.sleep(1.0 if API_KEY else 2.0)
+
+    # Combine with cached records
+    if use_cache and cached_records:
+        all_records = cached_records + [r for r in all_records if r.get("service_request_id") not in cached_ids]
+
+    # Cache new records
+    if use_cache and new_records:
+        cache_records(CATEGORY, new_records)
+        logger.info(f"Cached {len(new_records)} new traffic records")
+
     return all_records
 
 

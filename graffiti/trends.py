@@ -7,7 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from graffiti.graffiti_bot import _fetch_graffiti
+from graffiti.graffiti_bot import fetch_graffiti_monthly
 
 
 def _format_central_time() -> str:
@@ -266,7 +266,11 @@ def _render_html(data: dict, fetched_at: str) -> str:
 def generate_graffiti_trends(
     days_back: int = LOOKBACK_DAYS,
 ) -> tuple[Optional[io.BytesIO], str]:
-    records = _fetch_graffiti(days_back)
+    # Fetch month by month — the Open311 API returns records oldest-first, so a
+    # single 365-day request only returns the oldest ~90 days before hitting the
+    # pagination cap. Month-by-month ensures every period is fully covered.
+    months_back = max(1, days_back // 30) + 1
+    records = fetch_graffiti_monthly(months_back)
     if not records:
         return None, f"🎨 No graffiti data found for last {days_back} days."
 

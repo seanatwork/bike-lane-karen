@@ -113,24 +113,73 @@ def _fetch_code(service_code: str, days_back: int) -> list:
     return all_records
 
 
-def fetch_bicycle_reports(days_back: int = 90) -> dict:
-    """Fetch 311 reports across all cycling-relevant service codes.
+def fetch_bicycle_reports(days_back: int = 90, use_cache: bool = True) -> dict:
+    """Fetch 311 reports across all cycling-relevant service codes with optional caching.
 
     All records from these codes are included — no keyword filtering.
+
+    Args:
+        days_back: Number of days to fetch
+        use_cache: Whether to use SQLite caching (default True)
     """
+    from open311_cache import init_cache, get_cached_records, cache_records, get_last_fetch_date
+
+    CATEGORY = "bicycle"
+
+    # Initialize cache if using
+    if use_cache:
+        init_cache()
+        cached_records = get_cached_records(CATEGORY, service_codes=list(SERVICE_CODES.keys()))
+        cached_ids = {r.get("service_request_id") for r in cached_records}
+        logger.info(f"Loaded {len(cached_records)} cached bicycle records")
+
+        # Check if cache is fresh (less than 6 days old)
+        last_fetch = get_last_fetch_date(CATEGORY)
+        if last_fetch:
+            cache_age = _utc_now() - last_fetch
+            if cache_age < timedelta(days=6) and len(cached_records) > 0:
+                logger.info(f"Cache is fresh ({cache_age.days} days old), using cached data")
+                return {
+                    "records": cached_records,
+                    "total_fetched": len(cached_records),
+                    "days_back": days_back,
+                    "by_code": {},  # Not tracked for cached data
+                    "fetched_at": _utc_now().strftime("%Y-%m-%d %H:%M UTC"),
+                    "cached": True,
+                }
+    else:
+        cached_records = []
+        cached_ids = set()
+
     all_records: list = []
+    seen_ids: set = cached_ids.copy()
+    new_records: list = []
     by_code: dict = {}
 
     for code, label in SERVICE_CODES.items():
         try:
             records = _fetch_code(code, days_back)
-            by_code[code] = {"label": label, "fetched": len(records)}
-            all_records.extend(records)
-            logger.debug(f"{code}: {len(records)} records")
+            # Filter out already-cached records
+            unique_records = [r for r in records if r.get("service_request_id") not in seen_ids]
+            for r in unique_records:
+                seen_ids.add(r.get("service_request_id"))
+                new_records.append(r)
+            by_code[code] = {"label": label, "fetched": len(unique_records), "total": len(records)}
+            all_records.extend(unique_records)
+            logger.debug(f"{code}: {len(unique_records)} new records")
         except Exception as e:
             logger.warning(f"Failed to fetch {code}: {e}")
             by_code[code] = {"label": label, "fetched": 0, "error": str(e)}
         time.sleep(3.0 if not API_KEY else 1.0)
+
+    # Combine with cached records
+    if use_cache and cached_records:
+        all_records = cached_records + [r for r in all_records if r.get("service_request_id") not in cached_ids]
+
+    # Cache new records
+    if use_cache and new_records:
+        cache_records(CATEGORY, new_records)
+        logger.info(f"Cached {len(new_records)} new bicycle records")
 
     return {
         "records": all_records,
@@ -138,6 +187,7 @@ def fetch_bicycle_reports(days_back: int = 90) -> dict:
         "days_back": days_back,
         "by_code": by_code,
         "fetched_at": _utc_now().strftime("%Y-%m-%d %H:%M UTC"),
+        "cached": False,
     }
 
 

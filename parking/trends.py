@@ -24,7 +24,7 @@ def _format_central_time() -> str:
     tz_abbr = "CDT" if is_dst else "CST"
     return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
 
-from parking.parking_bot import get_all_citations, _extract_violation_type, _extract_street
+from parking.parking_bot import fetch_parking_monthly, _extract_violation_type, _extract_street
 
 logger = logging.getLogger(__name__)
 
@@ -415,7 +415,11 @@ def generate_parking_trends(days_back: int = LOOKBACK_DAYS) -> tuple[Optional[io
     Returns (BytesIO buffer, summary string) — matches the signature used by
     scripts/generate_map.py for consistency.
     """
-    records = get_all_citations(days_back=days_back)
+    # Fetch month by month — the Open311 API returns records oldest-first, so a
+    # single 365-day request only returns the oldest ~90 days before hitting the
+    # pagination cap. Month-by-month ensures every period is fully covered.
+    months_back = max(1, days_back // 30) + 1
+    records = fetch_parking_monthly(months_back)
     if not records:
         return None, f"🅿️ No parking complaint data found for last {days_back} days."
 

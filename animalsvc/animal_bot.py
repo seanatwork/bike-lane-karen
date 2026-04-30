@@ -148,16 +148,56 @@ def _fetch_code(service_code: str, days_back: int, limit: int = 100) -> list:
     return records
 
 
-def fetch_all_animal_complaints(days_back: int = 90, limit_per_code: int = 100) -> list:
-    """Fetch complaints across all animal service codes."""
+def fetch_all_animal_complaints(days_back: int = 90, limit_per_code: int = 100, use_cache: bool = True) -> list:
+    """Fetch complaints across all animal service codes with optional caching."""
+    from open311_cache import init_cache, get_cached_records, cache_records, get_last_fetch_date
+
+    CATEGORY = "animal"
+
+    # Initialize cache if using
+    if use_cache:
+        init_cache()
+        cached_records = get_cached_records(CATEGORY, service_codes=list(SERVICE_CODES.keys()))
+        cached_ids = {r.get("service_request_id") for r in cached_records}
+        logger.info(f"Loaded {len(cached_records)} cached animal records")
+
+        # Check if cache is fresh (less than 6 days old)
+        last_fetch = get_last_fetch_date(CATEGORY)
+        if last_fetch:
+            cache_age = _utc_now() - last_fetch
+            if cache_age < timedelta(days=6) and len(cached_records) > 0:
+                logger.info(f"Cache is fresh ({cache_age.days} days old), using cached data")
+                return cached_records
+    else:
+        cached_records = []
+        cached_ids = set()
+
     all_records = []
+    seen_ids = cached_ids.copy()
+    new_records = []
+
     for code in SERVICE_CODES:
         try:
             records = _fetch_code(code, days_back, limit_per_code)
-            all_records.extend(records)
-            logger.debug(f"{code}: {len(records)} records")
+            # Filter out already-cached records
+            unique_records = [r for r in records if r.get("service_request_id") not in seen_ids]
+            for r in unique_records:
+                seen_ids.add(r.get("service_request_id"))
+                new_records.append(r)
+            all_records.extend(unique_records)
+            logger.debug(f"{code}: {len(unique_records)} new records")
         except Exception as e:
             logger.warning(f"Failed to fetch {code}: {e}")
+
+    # Combine with cached records
+    if use_cache and cached_records:
+        all_records = cached_records + [r for r in all_records if r.get("service_request_id") not in cached_ids]
+
+    # Cache new records
+    if use_cache and new_records:
+        cache_records(CATEGORY, new_records)
+        logger.info(f"Cached {len(new_records)} new animal records")
+
     return all_records
 
 

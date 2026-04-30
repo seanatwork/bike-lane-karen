@@ -43,15 +43,11 @@ def _get_session() -> requests.Session:
 
 
 def _build_params(where: str, order: str, limit: int) -> dict:
-    params = {
+    return {
         "$where": where,
         "$order": order,
         "$limit": limit,
     }
-    app_token = os.getenv("AUSTINAPIKEY")
-    if app_token and not app_token.startswith("your_"):
-        params["$$app_token"] = app_token
-    return params
 
 
 def _make_request(params: dict, retries: int = 0) -> list:

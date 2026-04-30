@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from noisecomplaints.noise_bot import SERVICE_CODES, _get_session, _isoformat_z, _utc_now
+from noisecomplaints.noise_bot import SERVICE_CODES, fetch_noise_monthly
 
 
 def _format_central_time() -> str:
@@ -395,18 +395,23 @@ def _render_html(data: dict, fetched_at: str) -> str:
 def generate_noise_trends(
     days_back: int = LOOKBACK_DAYS,
 ) -> tuple[Optional[io.BytesIO], str]:
-    records_by_code = {}
-    for code in SERVICE_CODES:
-        try:
-            records_by_code[code] = _fetch_code_paginated(code, days_back)
-            logger.info(f"noise trends {code}: {len(records_by_code[code])} records")
-        except Exception as e:
-            logger.warning(f"noise trends failed for {code}: {e}")
-            records_by_code[code] = []
+    # Fetch month by month — the Open311 API returns records oldest-first, so a
+    # single 365-day request only returns the oldest ~90 days before hitting the
+    # pagination cap. Month-by-month ensures every period is fully covered.
+    months_back = max(1, days_back // 30) + 1
+    all_records = fetch_noise_monthly(months_back)
 
-    total = sum(len(v) for v in records_by_code.values())
-    if total == 0:
+    if not all_records:
         return None, f"🔊 No noise data found for last {days_back} days."
+
+    # Group records by service code for aggregation
+    records_by_code = {code: [] for code in SERVICE_CODES}
+    for r in all_records:
+        code = r.get("_service_code")
+        if code in records_by_code:
+            records_by_code[code].append(r)
+
+    logger.info(f"noise trends: {len(all_records)} total records across {len([v for v in records_by_code.values() if v])} codes")
 
     data = _aggregate(records_by_code)
     fetched_at = _format_central_time()
