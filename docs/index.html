@@ -207,22 +207,13 @@
     footer a:hover { color: var(--text-footer-hover); }
 
     .more-btn {
-      background: var(--bg-card);
-      border: 1px dashed var(--border-hover);
       cursor: pointer;
       text-align: left;
       outline: none;
       -webkit-appearance: none;
       appearance: none;
     }
-    .more-btn:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-cta-hover);
-      transform: translateY(-2px);
-    }
     .more-btn:focus-visible { box-shadow: 0 0 0 2px var(--border-cta-hover); }
-    .more-btn .icon  { color: var(--text-tag); }
-    .more-btn .label { color: var(--text-tag); }
 
     #more-grid { margin-top: 1.25rem; }
     #more-grid[hidden] { display: none; }
@@ -312,7 +303,7 @@
       <span class="desc">Bar of the month · coyote sightings · live data</span>
     </a>
     <button class="card more-btn" id="more-btn" onclick="toggleMore()" aria-expanded="false" type="button">
-      <span class="icon" id="more-icon">···</span>
+      <span class="icon" id="more-icon">→</span>
       <span class="label" id="more-label">More…</span>
       <span class="desc">Noise · Water · Bicycle · Child Care · Restaurants</span>
     </button>
@@ -379,7 +370,7 @@
       const open  = grid.hidden;
       grid.hidden = !open;
       btn.setAttribute("aria-expanded", String(open));
-      document.getElementById("more-icon").textContent  = open ? "···" : "···";
+      document.getElementById("more-icon").textContent  = open ? "↓" : "→";
       document.getElementById("more-label").textContent = open ? "Less" : "More…";
     }
 
