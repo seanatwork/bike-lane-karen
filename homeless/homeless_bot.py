@@ -728,7 +728,8 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         popup_html = f"""
         <div style="font-family:sans-serif;max-width:260px;">
             <b style="color:#7c3aed;">🧹 City Cleanup Site</b><br/>
-            {f"<b>{site['name']}</b>" if site['name'] else ""}
+            {f"<b>{site['name']}</b><br/>" if site['name'] else ""}
+            <a href="https://www.google.com/maps/d/viewer?mid=152l2HDPGqXzchnKl8V_dWPSb82ciYQs" target="_blank" style="font-size:12px;">View all cleanup sites →</a>
         </div>"""
         folium.Marker(
             location=[site["lat"], site["lon"]],
