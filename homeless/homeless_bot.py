@@ -34,6 +34,7 @@ import io
 logger = logging.getLogger(__name__)
 
 OPEN311_BASE_URL = "https://311.austintexas.gov/open311/v2"
+CLEANUP_KML_URL = "https://www.google.com/maps/d/kml?mid=152l2HDPGqXzchnKl8V_dWPSb82ciYQs&forcekml=1"
 TIMEOUT = 45
 MAX_RETRIES = 3
 RETRY_DELAY = 1.0
@@ -632,6 +633,43 @@ def fetch_encampment_with_coords(days_back: int = 30) -> dict:
     }
 
 
+def fetch_cleanup_sites() -> list[dict]:
+    """Fetch city cleanup site locations from the Google My Maps KML export.
+
+    Returns a list of {"name", "lat", "lon"} dicts. Returns [] on any error
+    so a fetch failure never blocks map generation.
+    """
+    import xml.etree.ElementTree as ET
+    try:
+        resp = requests.get(CLEANUP_KML_URL, timeout=20, headers={"User-Agent": "austin311bot/cleanup-overlay"})
+        resp.raise_for_status()
+        root = ET.fromstring(resp.content)
+        ns = "http://www.opengis.net/kml/2.2"
+        sites = []
+        for pm in root.iter(f"{{{ns}}}Placemark"):
+            coords_el = pm.find(f".//{{{ns}}}Point/{{{ns}}}coordinates")
+            if coords_el is None:
+                continue
+            parts = coords_el.text.strip().split(",")
+            if len(parts) < 2:
+                continue
+            try:
+                lon, lat = float(parts[0]), float(parts[1])
+            except ValueError:
+                continue
+            name_el = pm.find(f"{{{ns}}}name")
+            sites.append({
+                "name": (name_el.text or "").strip() if name_el is not None else "",
+                "lat": lat,
+                "lon": lon,
+            })
+        logger.info(f"Fetched {len(sites)} cleanup sites from KML")
+        return sites
+    except Exception as e:
+        logger.warning(f"Could not fetch cleanup sites KML: {e}")
+        return []
+
+
 def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str]:
     """Generate an interactive HTML map of encampment reports.
     
@@ -682,6 +720,24 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
 
     # Create map centered on Austin
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+
+    # Cleanup sites overlay (fetched from Google My Maps KML)
+    cleanup_sites = fetch_cleanup_sites()
+    fg_cleanup = folium.FeatureGroup(name="cleanup_sites", show=True, overlay=True)
+    for site in cleanup_sites:
+        popup_html = f"""
+        <div style="font-family:sans-serif;max-width:260px;">
+            <b style="color:#7c3aed;">🧹 City Cleanup Site</b><br/>
+            {f"<b>{site['name']}</b>" if site['name'] else ""}
+        </div>"""
+        folium.Marker(
+            location=[site["lat"], site["lon"]],
+            popup=folium.Popup(popup_html, max_width=260),
+            icon=folium.Icon(color="purple", icon="trash", prefix="glyphicon"),
+            tooltip=site["name"] or "City Cleanup Site",
+        ).add_to(fg_cleanup)
+    fg_cleanup.add_to(m)
+    cleanup_var = fg_cleanup.get_name()
 
     # Six FeatureGroups: open/closed × 30/60/90-day buckets
     # Bucket meaning: "30" = 0-30 days old, "60" = 31-60 days, "90" = 61-90 days
@@ -787,6 +843,8 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             <span style="margin: 0 4px; color: #ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
+            <span style="margin: 0 4px; color: #ccc;">|</span>
+            <button id="btn-cleanup" onclick="toggleCleanup()" class="fbtn active" style="background:#7c3aed;border-color:#7c3aed;">🧹 Cleanup Sites ({len(cleanup_sites)})</button>
         </div>
     </div>
     <style>
@@ -801,8 +859,10 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         var currentDays = 30;
         var showOpen = true;
         var showClosed = true;
+        var showCleanup = true;
         var layerMap = null;
         var leafletMap = null;
+        var cleanupLayer = null;
         var bucketCounts = {counts_js};
 
         function updateSummary() {{
@@ -817,6 +877,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         function initLayers() {{
             layerMap = {layer_map_js};
             leafletMap = {map_var};
+            cleanupLayer = {cleanup_var};
             updateLayers();
             updateSummary();
         }}
@@ -836,6 +897,13 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
                     if (leafletMap.hasLayer(layer)) leafletMap.removeLayer(layer);
                 }}
             }});
+            if (cleanupLayer) {{
+                if (showCleanup) {{
+                    if (!leafletMap.hasLayer(cleanupLayer)) leafletMap.addLayer(cleanupLayer);
+                }} else {{
+                    if (leafletMap.hasLayer(cleanupLayer)) leafletMap.removeLayer(cleanupLayer);
+                }}
+            }}
         }}
 
         function setDayFilter(days) {{
@@ -854,6 +922,15 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             document.getElementById('btn-' + status).classList.toggle('active');
             updateLayers();
             updateSummary();
+        }}
+
+        function toggleCleanup() {{
+            showCleanup = !showCleanup;
+            var btn = document.getElementById('btn-cleanup');
+            btn.style.background = showCleanup ? '#7c3aed' : '';
+            btn.style.borderColor = showCleanup ? '#7c3aed' : '';
+            btn.style.color = showCleanup ? 'white' : '';
+            updateLayers();
         }}
 
         document.addEventListener('DOMContentLoaded', function() {{
