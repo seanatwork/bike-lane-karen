@@ -32,6 +32,8 @@ RETRYABLE_ERRORS = (
     requests.exceptions.ConnectionError,
 )
 
+API_KEY = os.getenv("AUSTINAPIKEY")
+
 _session: Optional[requests.Session] = None
 
 
@@ -39,10 +41,13 @@ def _get_session() -> requests.Session:
     global _session
     if _session is None:
         _session = requests.Session()
-        _session.headers.update({
+        headers = {
             "Accept": "application/json",
             "User-Agent": "austin311bot/0.1 (Open311 noise queries)",
-        })
+        }
+        if API_KEY:
+            headers["X-Api-Key"] = API_KEY
+        _session.headers.update(headers)
     return _session
 
 
