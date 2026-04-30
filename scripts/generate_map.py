@@ -139,6 +139,16 @@ def generate_animal_map(days_back: int = 90) -> tuple:
     return generate_animal_map(days_back)
 
 
+def generate_budget_page(days_back: int = 365) -> tuple:
+    """Generate Austin budget page."""
+    from scripts.generate_budget import main as generate_budget_main
+    try:
+        generate_budget_main()
+        return True, "Budget page generated successfully"
+    except Exception as e:
+        return None, f"Budget generation failed: {e}"
+
+
 def generate_homeless_trends_page(days_back: int = 365) -> tuple:
     """Generate homeless 311 trends page."""
     from homeless.trends import generate_homeless_trends
@@ -162,6 +172,7 @@ CATEGORY_MAPS = {
     "childcare": (generate_childcare_map, "childcare/index.html"),
     "animal": (generate_animal_map, "animal/index.html"),
     "homeless-trends": (generate_homeless_trends_page, "homeless/trends/index.html"),
+    "budget": (generate_budget_page, "budget/index.html"),
 }
 
 
