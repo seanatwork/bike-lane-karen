@@ -94,5 +94,3 @@ jobs:
           git pull --rebase origin main
           git push
 
-      - name: Sync to unofficial repo
-        run: bash sync-to-unofficial.sh
