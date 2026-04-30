@@ -144,34 +144,19 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 
 **Files:**
 - `scripts/generate_map.py` — generic map generator that accepts category as CLI argument
-  - Usage: `python scripts/generate_map.py bicycle|graffiti|homeless|traffic|parking|crime`
-- `.github/workflows/deploy-map.yml` — GitHub Actions cron for homeless map (daily noon UTC)
-- `.github/workflows/generate-bicycle-map.yml` — GitHub Actions cron for bicycle map (daily noon UTC)
-- `.github/workflows/generate-graffiti-map.yml` — GitHub Actions cron for graffiti map (daily noon UTC)
-- `.github/workflows/generate-traffic-map.yml` — GitHub Actions cron for traffic map (daily noon UTC)
-- `.github/workflows/generate-parking-map.yml` — GitHub Actions cron for parking map (daily noon UTC)
-- `.github/workflows/generate-crime-map.yml` — GitHub Actions cron for crime map (daily noon UTC)
-- `.github/workflows/generate-noise-map.yml` — GitHub Actions cron for noise map (daily noon UTC)
-- `.github/workflows/generate-parks-map.yml` — GitHub Actions cron for parks map (daily noon UTC)
-- `.github/workflows/generate-water-map.yml` — GitHub Actions cron for water map (daily noon UTC)
-- `.github/workflows/generate-childcare-map.yml` — GitHub Actions cron for childcare map (weekly, Mondays)
-- `.github/workflows/generate-animal-map.yml` — GitHub Actions cron for animal map (daily noon UTC)
-- `.github/workflows/generate-budget.yml` — GitHub Actions cron for budget page (quarterly: 15th of Jan/Apr/Jul/Oct)
-- `.github/workflows/generate-graffiti-trends.yml` — GitHub Actions cron for graffiti trends (weekly Monday 13:00 UTC)
-- `.github/workflows/generate-crime-trends.yml` — GitHub Actions cron for crime trends (weekly Monday 13:00 UTC)
-- `.github/workflows/generate-noise-trends.yml` — GitHub Actions cron for noise trends (weekly Monday 13:00 UTC)
-- `.github/workflows/generate-parking-trends.yml` — GitHub Actions cron for parking trends (weekly Monday 13:00 UTC)
+  - Usage: `python scripts/generate_map.py bicycle|graffiti|homeless|traffic|parking|crime|...`
 - `docs/*/index.html` — pre-generated Folium HTML maps (committed to repo)
 
-**✅ Workflows Re-enabled with Caching (2026-04-29):** Open311 workflows now use GitHub Actions caching to minimize API calls:
-- **3 consolidated workflows** replace 17 individual workflows:
-  - `generate-all-open311-maps.yml` — Weekly batch for all Open311 maps (bicycle, graffiti, noise, parking, parks, traffic, animal)
-  - `generate-all-open311-trends.yml` — Weekly batch for all Open311 trends (graffiti, noise, homeless)
-  - `generate-all-socrata.yml` — Daily batch for Socrata-based maps/trends (crime, water, childcare, budget)
-- **Caching:** `open311_cache.py` provides SQLite caching with GitHub Actions cache persistence
-  - First run: Normal API calls (populates cache)
-  - Subsequent runs: Loads cached data, only fetches new records (2-3 min vs 10 min)
-- Individual workflow files deprecated but kept for reference (can be deleted after consolidation testing)
+**✅ Consolidated Workflows (as of 2026-04-30):** 4 batch workflows cover all map/trend generation:
+- `generate-daily-open311-maps.yml` — Daily noon UTC: bicycle, traffic, animal, homeless maps
+- `generate-all-open311-maps.yml` — Weekly: bicycle, graffiti, noise, parking, parks, traffic, animal maps (full refresh)
+- `generate-all-open311-trends.yml` — Weekly Monday 13:00 UTC: graffiti, noise, homeless, parking trends
+- `generate-all-socrata.yml` — Daily: crime map, crime trends, water, childcare, budget (Socrata-based)
+- `deploy.yml` — Fly.io bot deploy (separate from map generation)
+
+**Caching:** `open311_cache.py` provides SQLite caching with GitHub Actions cache persistence
+- First run: Normal API calls (populates cache)
+- Subsequent runs: Loads cached data, only fetches new records (2-3 min vs 10 min)
 
 **Service Code Discovery (2026-04-29):**
 Analysis of 1,000+ recent requests found homeless-related keywords across these codes:
