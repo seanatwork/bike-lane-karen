@@ -467,32 +467,6 @@ def generate_bicycle_map(days_back: int = 90) -> tuple:
                 b = str(bucket_days)
                 type_bucket_counts["all"][b][s]  += 1
                 type_bucket_counts[slug][b][s]   += 1
-    avg_resolution = round(sum(resolution_days) / len(resolution_days), 1) if resolution_days else None
-    top_streets = sorted(street_counts.items(), key=lambda x: -x[1])[:5]
-    oldest_open = None
-    if open_tickets:
-        def req_date(r):
-            try:
-                return datetime.fromisoformat((r.get("requested_datetime") or "").replace("Z", "+00:00"))
-            except ValueError:
-                return now
-        oldest = min(open_tickets, key=req_date)
-        oldest_dt = req_date(oldest)
-        oldest_open = {
-            "id": oldest.get("service_request_id"),
-            "address": oldest.get("address"),
-            "days_ago": (now - oldest_dt).days,
-        }
-    return {
-        "total": len(complaints),
-        "open": len(open_tickets),
-        "closed": len(complaints) - len(open_tickets),
-        "avg_resolution_days": avg_resolution,
-        "top_streets": top_streets,
-        "oldest_open": oldest_open,
-        "days_back": days_back,
-    }
-
 
     counts_js = str(type_bucket_counts).replace("'", '"')
 
