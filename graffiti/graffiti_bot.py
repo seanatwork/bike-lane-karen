@@ -540,14 +540,12 @@ def generate_graffiti_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], st
     layer_map_js = "{" + ", ".join(
         f'"{k}": {fg_objects[k].get_name()}' for k in fg_objects
     ) + "}"
-    fetched_at = _format_central_time()
     panel_html = f"""
     <div id="map-panel" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
                 background: white; padding: 10px 16px; border-radius: 6px;
                 box-shadow: 0 2px 6px rgba(0,0,0,0.3); z-index: 9999;
                 font-family: sans-serif; text-align: center;">
         <b style="font-size: 15px;">🎨 Austin Graffiti Abatement 311 Reports</b><br/>
-        <span style="font-size: 11px; color: #888;">Last ran: {fetched_at}</span><br/>
         <span id="map-summary" style="font-size: 12px; color: #555;"></span>
         <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
