@@ -33,11 +33,6 @@ def fetch_grouped(ds_id: str, charge_field: str, status_field: str) -> list:
     })
 
 
-def fetch_total(ds_id: str) -> int:
-    rows = get(ds_id, {"$select": "count(*) as n"})
-    return int(rows[0].get("n", 0))
-
-
 def fetch_demo(ds_id: str) -> dict:
     """Fetch race and gender counts — only cases where race IS recorded."""
     where = "race IS NOT NULL"
@@ -54,6 +49,16 @@ def fetch_demo(ds_id: str) -> dict:
         "$order":  "cnt DESC",
     })
     return {"race": race, "gender": gender}
+
+
+def fetch_monthly_trend() -> dict:
+    """Fetch Municipal Court monthly filing counts for FY2025 and FY2026."""
+    sel = "date_trunc_ym(offense_date) as month,count(*) as cnt"
+    grp = "month"
+    ord_ = "month"
+    fy25_rows = get("t47c-f82f", {"$select": sel, "$group": grp, "$order": ord_, "$limit": 20})
+    fy26_rows = get("tuwa-vk6q", {"$select": sel, "$group": grp, "$order": ord_, "$limit": 20})
+    return {"fy25Rows": fy25_rows, "fy26Rows": fy26_rows}
 
 
 def fetch_dacc_comparison() -> dict:
@@ -79,14 +84,6 @@ def main():
         ("qc59-phn7", "charge_description",         "disposition"),
     ]
 
-    MULTIYEAR_IDS = [
-        "26w4-part", "56au-zawf",
-        "7njn-cb55", "4tje-ntwx",
-        "q4t4-skuc", "mv2b-q2wb",
-        "t47c-f82f", "emdh-pf9u",
-        "tuwa-vk6q", "88wy-rigr",
-    ]
-
     DEMO_ID = "tuwa-vk6q"
 
     cache = {}
@@ -97,15 +94,8 @@ def main():
         print(f"  {key}")
         cache[key] = fetch_grouped(ds_id, charge_field, status_field)
 
-    print("Fetching totals for multi-year chart...")
-    seen = set()
-    for ds_id in MULTIYEAR_IDS:
-        if ds_id in seen:
-            continue
-        seen.add(ds_id)
-        key = f"total:{ds_id}"
-        print(f"  {key}")
-        cache[key] = fetch_total(ds_id)
+    print("Fetching monthly trend (FY2025 + FY2026 Municipal Court)...")
+    cache["monthly-trend"] = fetch_monthly_trend()
 
     print("Fetching DACC year-over-year comparison...")
     cache["dacc-comparison"] = fetch_dacc_comparison()

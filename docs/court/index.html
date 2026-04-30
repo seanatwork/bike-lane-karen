@@ -194,8 +194,8 @@
       <button class="fbtn" id="btn-propb" onclick="switchView('propb')">
         ⛺ Prop B — Outcomes
       </button>
-      <button class="fbtn" id="btn-multiyear" onclick="switchView('multiyear')">
-        📊 Multi-Year
+      <button class="fbtn" id="btn-monthly" onclick="switchView('monthly')">
+        📅 Monthly Trend
       </button>
       <button class="fbtn" id="btn-demo" onclick="switchView('demo')">
         👥 Demographics
@@ -259,12 +259,13 @@
       <div id="propb-dispo-detail"></div>
     </div>
 
-    <!-- Multi-year note -->
-    <div id="note-multiyear" class="note-box purple">
-      <strong>Multi-year case volume (FY2022–FY2026):</strong>
-      Shows total cases filed per fiscal year for both Austin Municipal Court and Downtown Community Court (DACC).
-      FY2026 is in progress (Oct 2025–present) so its bar will be lower than complete years.
-      Data does not include verdict or dismissal information — only case volume.
+    <!-- Monthly trend note -->
+    <div id="note-monthly" class="note-box purple">
+      <strong>Municipal Court monthly filings (Oct 2024–present):</strong>
+      <span style="display:inline-block;width:10px;height:10px;background:rgba(100,116,139,0.6);border-radius:2px;margin:0 3px 0 6px;vertical-align:middle;"></span>FY2025 &nbsp;
+      <span style="display:inline-block;width:10px;height:10px;background:rgba(59,130,246,0.85);border-radius:2px;margin:0 3px 0 4px;vertical-align:middle;"></span>FY2026.
+      The current fiscal year (FY2026) runs Oct 2025–Sep 2026 so its months are incomplete until the year closes.
+      Counts reflect cases filed, not verdicts or dispositions.
     </div>
 
     <!-- DACC year-over-year note -->
@@ -324,15 +325,6 @@
         mode: 'disposition'
       }
     };
-
-    // Multi-year dataset IDs: [fy_label, municipal_id, dacc_id]
-    const MULTIYEAR_FY = [
-      { fy: 'FY2022', muni: '26w4-part', dacc: '56au-zawf' },
-      { fy: 'FY2023', muni: '7njn-cb55', dacc: '4tje-ntwx' },
-      { fy: 'FY2024', muni: 'q4t4-skuc', dacc: 'mv2b-q2wb' },
-      { fy: 'FY2025', muni: 't47c-f82f', dacc: 'emdh-pf9u' },
-      { fy: 'FY2026', muni: 'tuwa-vk6q', dacc: '88wy-rigr' },
-    ];
 
     // Demographics: municipal court FY2026 is richest dataset
     const DEMO_DATASET = { id: 'tuwa-vk6q', label: 'Municipal Court FY2026' };
@@ -409,18 +401,6 @@
       const rows = await res.json();
       cache[key] = rows;
       return rows;
-    }
-
-    async function fetchTotal(dsId) {
-      const key = `total:${dsId}`;
-      if (cache[key]) return cache[key];
-      const url = `https://data.austintexas.gov/resource/${dsId}.json?$select=count(*) as n`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const rows = await res.json();
-      const n = parseInt(rows[0]?.n || '0', 10);
-      cache[key] = n;
-      return n;
     }
 
     // For demographics: fetch race+gender counts — only cases where race IS recorded
@@ -794,30 +774,67 @@
       });
     }
 
-    async function renderMultiYearChart() {
-      document.getElementById('panel-subtitle').textContent = 'Total cases filed per fiscal year — Municipal Court & DACC';
+    async function fetchMonthlyTrend() {
+      const key = 'monthly-trend';
+      if (cache[key]) return cache[key];
+      const sel = encodeURIComponent('date_trunc_ym(offense_date) as month,count(*) as cnt');
+      const grp = encodeURIComponent('month');
+      const ord = encodeURIComponent('month');
+      const [fy25Rows, fy26Rows] = await Promise.all([
+        fetch(`https://data.austintexas.gov/resource/t47c-f82f.json?$select=${sel}&$group=${grp}&$order=${ord}&$limit=20`).then(r => r.json()),
+        fetch(`https://data.austintexas.gov/resource/tuwa-vk6q.json?$select=${sel}&$group=${grp}&$order=${ord}&$limit=20`).then(r => r.json()),
+      ]);
+      const result = { fy25Rows, fy26Rows };
+      cache[key] = result;
+      return result;
+    }
+
+    async function renderMonthlyTrendChart() {
       document.getElementById('source-link').href = 'https://data.austintexas.gov/browse?q=municipal+court+caseload';
-      document.getElementById('source-link').textContent = 'Austin Municipal Court & DACC Caseloads FY2022–FY2026';
+      document.getElementById('source-link').textContent = 'Austin Municipal Court Caseloads FY2025–FY2026';
+      showNote('note-monthly');
 
-      showNote('note-multiyear');
-      document.getElementById('stats').style.display = 'none';
+      const { fy25Rows, fy26Rows } = await fetchMonthlyTrend();
+      document.getElementById('loading').style.display = 'none';
 
-      // Fetch all years in parallel
-      const totals = await Promise.all(
-        MULTIYEAR_FY.map(async ({ fy, muni, dacc }) => {
-          const [m, d] = await Promise.all([fetchTotal(muni), fetchTotal(dacc)]);
-          return { fy, muni: m, dacc: d };
-        })
-      );
+      // Parse "2024-10-01T00:00:00.000" → "2024-10"
+      const parseMonth = row => (row.month || '').slice(0, 7);
 
-      const labels = totals.map(t => t.fy);
-      const muniData = totals.map(t => t.muni);
-      const daccData = totals.map(t => t.dacc);
+      const monthMap = {};
+      for (const row of [...fy25Rows, ...fy26Rows]) {
+        const m = parseMonth(row);
+        if (!m) continue;
+        monthMap[m] = (monthMap[m] || 0) + (parseInt(row.cnt, 10) || 0);
+      }
+
+      const sorted = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b));
+      const months = sorted.map(([m]) => m);
+      const counts = sorted.map(([, n]) => n);
+      const labels = sorted.map(([m]) => {
+        const [y, mo] = m.split('-');
+        return new Date(+y, +mo - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      });
+
+      const fy26Total = sorted.filter(([m]) => m >= '2025-10').reduce((s, [, n]) => s + n, 0);
+      const maxVal = Math.max(...counts);
+      const maxIdx = counts.indexOf(maxVal);
+      const lastCount = counts[counts.length - 1] || 0;
+      const prevCount = counts[counts.length - 2] || 0;
+      const momPct = prevCount > 0 ? Math.round((lastCount - prevCount) / prevCount * 100) : 0;
+
+      document.getElementById('panel-subtitle').textContent =
+        'Municipal Court monthly filings — Oct 2024 to present';
+      document.getElementById('stat-total').textContent = formatNum(fy26Total);
+      document.getElementById('stat-total').style.color = '#3b82f6';
+      setStatCell(1, formatNum(maxVal), 'Peak Month Cases', '#f59e0b');
+      setStatCell(2, labels[maxIdx] || '—', 'Peak Month', '#f59e0b');
+      setStatCell(3, (momPct >= 0 ? '+' : '') + momPct + '%', 'Month-over-Month',
+                  momPct > 5 ? '#ef4444' : momPct < -5 ? '#22c55e' : '#f59e0b');
+      document.getElementById('stats').style.display = 'flex';
 
       const container = document.getElementById('chart-container');
       container.style.display = 'block';
       container.style.height = '320px';
-      document.getElementById('loading').style.display = 'none';
 
       destroyChart();
 
@@ -825,22 +842,13 @@
         type: 'bar',
         data: {
           labels,
-          datasets: [
-            {
-              label: 'Municipal Court',
-              data: muniData,
-              backgroundColor: 'rgba(59,130,246,0.75)',
-              borderColor: 'rgba(59,130,246,1)',
-              borderWidth: 1
-            },
-            {
-              label: 'DACC',
-              data: daccData,
-              backgroundColor: 'rgba(167,139,250,0.75)',
-              borderColor: 'rgba(167,139,250,1)',
-              borderWidth: 1
-            }
-          ]
+          datasets: [{
+            label: 'Cases Filed',
+            data: counts,
+            backgroundColor: months.map(m => m >= '2025-10' ? 'rgba(59,130,246,0.8)' : 'rgba(100,116,139,0.45)'),
+            borderColor:     months.map(m => m >= '2025-10' ? 'rgba(59,130,246,1)'   : 'rgba(100,116,139,0.7)'),
+            borderWidth: 1
+          }]
         },
         options: {
           responsive: true,
@@ -858,15 +866,10 @@
             }
           },
           plugins: {
-            legend: {
-              position: 'top',
-              labels: { color: legColor, font: { size: 12 }, boxWidth: 14, padding: 16 }
-            },
+            legend: { display: false },
             tooltip: {
               callbacks: {
-                label(item) {
-                  return `${item.dataset.label}: ${item.raw.toLocaleString()} cases`;
-                }
+                label: item => `${item.raw.toLocaleString()} cases filed`
               }
             }
           }
@@ -987,7 +990,7 @@
     }
 
     function showNote(id) {
-      for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-demo']) {
+      for (const nid of ['note-caseload', 'note-propb', 'note-monthly', 'note-demo']) {
         document.getElementById(nid).style.display = nid === id ? 'block' : 'none';
       }
     }
@@ -1035,7 +1038,7 @@
       municipal: 'active',
       dacc:      'active',
       propb:     'active-amber',
-      multiyear: 'active-purple',
+      monthly:   'active-purple',
       demo:      'active-teal',
     };
 
@@ -1058,13 +1061,13 @@
       document.getElementById('chart-container-agency').style.display = 'none';
       if (agencyChartInstance) { agencyChartInstance.destroy(); agencyChartInstance = null; }
       document.getElementById('stats').style.display = 'none';
-      for (const nid of ['note-caseload', 'note-propb', 'note-multiyear', 'note-dacc', 'note-demo']) {
+      for (const nid of ['note-caseload', 'note-propb', 'note-monthly', 'note-dacc', 'note-demo']) {
         document.getElementById(nid).style.display = 'none';
       }
 
       try {
-        if (viewKey === 'multiyear') {
-          await renderMultiYearChart();
+        if (viewKey === 'monthly') {
+          await renderMonthlyTrendChart();
         } else if (viewKey === 'demo') {
           await renderDemoChart();
         } else if (viewKey === 'dacc') {
