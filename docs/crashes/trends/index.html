@@ -379,7 +379,9 @@
       const maxBikeSerious = Math.max(...bikeMonths.map(m => m.serious), 1);
       const bikeMonthHtml = bikeMonths.map(m => {
         const crashPct   = Math.round(m.cnt     / maxBikeCnt     * 100);
-        const seriousPct = Math.min(Math.round(m.serious / maxBikeSerious * 100), crashPct);
+        // Scale serious/fatal overlay relative to total crash count (maxBikeCnt)
+        // so it visually represents the subset of crashes.
+        const seriousPct = Math.round(m.serious / maxBikeCnt * 100);
         const sideNote = m.deaths > 0
           ? `${m.deaths} fatal`
           : (m.serious > 0 ? `${m.serious} serious` : "—");
