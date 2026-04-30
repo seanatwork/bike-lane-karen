@@ -179,6 +179,7 @@ def get_all_citations(days_back: int = 90) -> list:
                     if detail.get(field):
                         r[field] = detail[field]
 
+    return all_records
 
 
 def fetch_parking_monthly(months_back: int = 12, use_cache: bool = True) -> list:

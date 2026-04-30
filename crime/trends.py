@@ -149,7 +149,11 @@ def _rolling_avg(counts: list, window: int = 3) -> list:
     return result
 
 
-def _aggregate(monthly_rows: list, type_rows: list, location_rows: list) -> dict:
+def _aggregate(monthly_rows: list, type_rows: list, location_rows: list, days_back: int = LOOKBACK_DAYS) -> dict:
+    now = datetime.now(timezone.utc)
+    cutoff_month = (now - timedelta(days=days_back)).strftime("%Y-%m")
+    current_month = now.strftime("%Y-%m")
+
     # Monthly trend
     months, monthly_totals = [], []
     for r in sorted(monthly_rows, key=lambda x: x.get("month", "")):
@@ -157,6 +161,16 @@ def _aggregate(monthly_rows: list, type_rows: list, location_rows: list) -> dict
         if month:
             months.append(month)
             monthly_totals.append(int(r.get("cnt", 0)))
+
+    # Drop the first month if the lookback cutoff falls mid-month (partial data)
+    if months and months[0] == cutoff_month:
+        months = months[1:]
+        monthly_totals = monthly_totals[1:]
+
+    # Drop the current month — it's always incomplete until the month ends
+    if months and months[-1] == current_month:
+        months = months[:-1]
+        monthly_totals = monthly_totals[:-1]
 
     total = sum(monthly_totals)
     avg_per_month = round(total / max(1, len(months)), 1)
@@ -604,7 +618,7 @@ def generate_crime_trends(
     if not monthly_rows:
         return None, f"🚔 No crime data found for last {days_back} days."
 
-    data = _aggregate(monthly_rows, type_rows, location_rows)
+    data = _aggregate(monthly_rows, type_rows, location_rows, days_back)
     fetched_at = _format_central_time()
     html = _render_html(data, fetched_at)
 
