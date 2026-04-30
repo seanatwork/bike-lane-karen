@@ -205,6 +205,22 @@
 
     footer a { color: var(--text-footer-a); text-decoration: none; }
     footer a:hover { color: var(--text-footer-hover); }
+
+    .more-btn {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-hover);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      width: 100%;
+    }
+    .more-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-cta-hover);
+    }
+    .more-btn .label { color: var(--text-tag); }
+
+    #more-grid { margin-top: 1.25rem; }
   </style>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
@@ -270,6 +286,34 @@
       </a>
       <a class="trends-pill" href="crime/trends/">📈 Trends</a>
     </div>
+    <a class="card" href="parks/">
+      <span class="icon">🏞️</span>
+      <span class="label">Parks</span>
+      <span class="desc">Park maintenance requests — updated daily</span>
+    </a>
+    <a class="card" href="animal/">
+      <span class="icon">🐾</span>
+      <span class="label">Animal Services</span>
+      <span class="desc">Loose animals, bites &amp; wildlife reports — updated daily</span>
+    </a>
+    <a class="card" href="court/">
+      <span class="icon">⚖️</span>
+      <span class="label">Courts</span>
+      <span class="desc">Municipal &amp; community court caseloads — live data</span>
+    </a>
+    <a class="card" href="fun/" style="border-color:#fde68a;background:var(--bg-card);">
+      <span class="icon">🎉</span>
+      <span class="label" style="color:#d97706;">Fun Data!</span>
+      <span class="desc">Bar of the month · coyote sightings · live data</span>
+    </a>
+    <button class="card more-btn" id="more-btn" onclick="toggleMore()" aria-expanded="false">
+      <span class="icon">＋</span>
+      <span class="label">More…</span>
+      <span class="desc">Noise, Water, Bicycle, Child Care, Restaurants</span>
+    </button>
+  </div>
+
+  <div class="grid" id="more-grid" hidden>
     <div class="card-group">
       <a class="card" href="noise/">
         <span class="icon">🔊</span>
@@ -278,45 +322,25 @@
       </a>
       <a class="trends-pill" href="noise/trends/">📈 Trends</a>
     </div>
-    <a class="card" href="parks/">
-      <span class="icon">🏞️</span>
-      <span class="label">Parks</span>
-      <span class="desc">Park maintenance requests — updated daily</span>
-    </a>
     <a class="card" href="water/">
       <span class="icon">💧</span>
       <span class="label">Water</span>
       <span class="desc">Water conservation violation reports — updated daily</span>
-    </a>
-    <a class="card" href="childcare/">
-      <span class="icon">🧒</span>
-      <span class="label">Child Care</span>
-      <span class="desc">Childcare facility compliance — updated weekly</span>
-    </a>
-    <a class="card" href="animal/">
-      <span class="icon">🐾</span>
-      <span class="label">Animal Services</span>
-      <span class="desc">Loose animals, bites &amp; wildlife reports — updated daily</span>
-    </a>
-    <a class="card" href="restaurants/">
-      <span class="icon">🍽️</span>
-      <span class="label">Restaurants</span>
-      <span class="desc">Health inspection scores — search by name &amp; live data</span>
-    </a>
-    <a class="card" href="court/">
-      <span class="icon">⚖️</span>
-      <span class="label">Courts</span>
-      <span class="desc">Municipal &amp; community court caseloads — live data</span>
     </a>
     <a class="card" href="bicycle/">
       <span class="icon">🚲</span>
       <span class="label">Bicycle</span>
       <span class="desc">Bicycle infrastructure requests — updated daily</span>
     </a>
-    <a class="card" href="fun/" style="border-color:#fde68a;background:var(--bg-card);">
-      <span class="icon">🎉</span>
-      <span class="label" style="color:#d97706;">Fun Data!</span>
-      <span class="desc">Bar of the month · coyote sightings · live data</span>
+    <a class="card" href="childcare/">
+      <span class="icon">🧒</span>
+      <span class="label">Child Care</span>
+      <span class="desc">Childcare facility compliance — updated weekly</span>
+    </a>
+    <a class="card" href="restaurants/">
+      <span class="icon">🍽️</span>
+      <span class="label">Restaurants</span>
+      <span class="desc">Health inspection scores — search by name &amp; live data</span>
     </a>
   </div>
 
@@ -344,6 +368,16 @@
   </footer>
 
   <script>
+    function toggleMore() {
+      const grid = document.getElementById("more-grid");
+      const btn  = document.getElementById("more-btn");
+      const open = grid.hidden;
+      grid.hidden = !open;
+      btn.setAttribute("aria-expanded", open);
+      btn.querySelector(".icon").textContent  = open ? "－" : "＋";
+      btn.querySelector(".label").textContent = open ? "Less" : "More…";
+    }
+
     const btn = document.getElementById("theme-toggle");
     const html = document.documentElement;
     const dark = localStorage.getItem("theme") === "dark";
