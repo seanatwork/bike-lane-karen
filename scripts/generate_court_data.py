@@ -52,8 +52,12 @@ def fetch_demo(ds_id: str) -> dict:
 
 
 def fetch_monthly_trend() -> dict:
-    """Fetch Municipal Court monthly filing counts for FY2025 and FY2026."""
-    sel = "date_trunc_ym(offense_date) as month,count(*) as cnt"
+    """Fetch Municipal Court monthly filing counts for FY2025 and FY2026.
+
+    offense_date is stored as text ("YYYY-MM-DD"), so date functions fail;
+    substring(offense_date, 1, 7) extracts the "YYYY-MM" prefix instead.
+    """
+    sel = "substring(offense_date,1,7) as month,count(*) as cnt"
     grp = "month"
     ord_ = "month"
     fy25_rows = get("t47c-f82f", {"$select": sel, "$group": grp, "$order": ord_, "$limit": 20})
