@@ -11,8 +11,18 @@ import io
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+
+def _format_central_time() -> str:
+    """Return current time formatted in US Central Time (CDT/CST)."""
+    utc_now = datetime.now(timezone.utc)
+    month = utc_now.month
+    is_dst = 3 <= month <= 11
+    offset_hours = -5 if is_dst else -6
+    central_now = utc_now + timedelta(hours=offset_hours)
+    tz_abbr = "CDT" if is_dst else "CST"
+    return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
 
 from parking.parking_bot import get_all_citations, _extract_violation_type, _extract_street
 
@@ -410,7 +420,7 @@ def generate_parking_trends(days_back: int = LOOKBACK_DAYS) -> tuple[Optional[io
         return None, f"🅿️ No parking complaint data found for last {days_back} days."
 
     data = _aggregate(records)
-    fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    fetched_at = _format_central_time()
     html = _render_html(data, fetched_at)
 
     buf = io.BytesIO(html.encode("utf-8"))

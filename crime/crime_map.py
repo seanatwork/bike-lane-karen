@@ -56,7 +56,7 @@ def _fetch_crime_counts(days_back: int) -> dict:
         "$group": "council_district",
         "$limit": 20,
     }
-    app_token = os.getenv("AUSTIN_APP_TOKEN", "")
+    app_token = os.getenv("AUSTINAPIKEY", "")
     if app_token:
         params["$$app_token"] = app_token
 
@@ -94,7 +94,7 @@ def _fetch_crime_breakdown(days_back: int) -> dict:
         "$order": "cnt DESC",
         "$limit": 500,
     }
-    app_token = os.getenv("AUSTIN_APP_TOKEN", "")
+    app_token = os.getenv("AUSTINAPIKEY", "")
     if app_token:
         params["$$app_token"] = app_token
 

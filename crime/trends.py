@@ -10,6 +10,17 @@ from typing import Optional
 
 import requests
 
+
+def _format_central_time() -> str:
+    """Return current time formatted in US Central Time (CDT/CST)."""
+    utc_now = datetime.now(timezone.utc)
+    month = utc_now.month
+    is_dst = 3 <= month <= 11
+    offset_hours = -5 if is_dst else -6
+    central_now = utc_now + timedelta(hours=offset_hours)
+    tz_abbr = "CDT" if is_dst else "CST"
+    return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
+
 logger = logging.getLogger(__name__)
 
 SOCRATA_BASE = "https://data.austintexas.gov/resource"
@@ -23,7 +34,7 @@ def _get_session() -> requests.Session:
     global _session
     if _session is None:
         _session = requests.Session()
-        token = os.getenv("AUSTIN_APP_TOKEN", "")
+        token = os.getenv("AUSTINAPIKEY", "")
         headers = {"Accept": "application/json", "User-Agent": "austin311bot/0.1 (crime trends)"}
         if token:
             headers["X-App-Token"] = token
@@ -594,7 +605,7 @@ def generate_crime_trends(
         return None, f"🚔 No crime data found for last {days_back} days."
 
     data = _aggregate(monthly_rows, type_rows, location_rows)
-    fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    fetched_at = _format_central_time()
     html = _render_html(data, fetched_at)
 
     buf = io.BytesIO(html.encode("utf-8"))

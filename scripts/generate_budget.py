@@ -138,7 +138,7 @@ def categorize_expense(code: str, name: str) -> str:
 
 def fetch_rows():
     headers = {}
-    token = os.getenv("AUSTIN_APP_TOKEN")
+    token = os.getenv("AUSTINAPIKEY")
     if token:
         headers["X-App-Token"] = token
 

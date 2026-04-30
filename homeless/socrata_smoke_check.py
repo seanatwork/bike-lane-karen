@@ -51,7 +51,7 @@ def _get_session() -> requests.Session:
 
 def _get_app_token() -> str:
     """Get app token from environment if available."""
-    return os.getenv("AUSTIN_APP_TOKEN", "")
+    return os.getenv("AUSTINAPIKEY", "")
 
 
 def _make_request(url: str, params: dict, retries: int = 0) -> dict:

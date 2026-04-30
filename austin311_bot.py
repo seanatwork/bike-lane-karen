@@ -863,7 +863,7 @@ def _get_traffic_session():
     global _TRAFFIC_SESSION
     if _TRAFFIC_SESSION is None:
         _TRAFFIC_SESSION = requests.Session()
-        app_token = os.getenv("AUSTIN_APP_TOKEN")
+        app_token = os.getenv("AUSTINAPIKEY")
         if app_token:
             _TRAFFIC_SESSION.headers.update({"X-App-Token": app_token})
     return _TRAFFIC_SESSION
@@ -1864,7 +1864,7 @@ def _submit_311_report(user_data: dict) -> dict:
     else:
         payload["address_string"] = user_data.get("rpt_address", "")
 
-    app_token = os.getenv("AUSTIN_APP_TOKEN")
+    app_token = os.getenv("AUSTINAPIKEY")
     if app_token:
         payload["api_key"] = app_token
 
@@ -1914,7 +1914,7 @@ def _get_crime_stats(start_date: str, end_date: str = None) -> dict:
         where += f" AND occ_date <= '{end_date}'"
 
     params = {"$where": where, "$limit": 5000}
-    app_token = os.getenv("AUSTIN_APP_TOKEN", "")
+    app_token = os.getenv("AUSTINAPIKEY", "")
     headers = {"X-App-Token": app_token} if app_token else {}
 
     try:
@@ -2302,7 +2302,7 @@ async def safety_district_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         from datetime import datetime, timedelta, timezone
         start_date = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
         url = "https://data.austintexas.gov/resource/fdj4-gpfu.json"
-        app_token = os.getenv("AUSTIN_APP_TOKEN", "")
+        app_token = os.getenv("AUSTINAPIKEY", "")
         headers = {"X-App-Token": app_token} if app_token else {}
 
         # Fetch district data and citywide data in parallel via two requests
@@ -2469,7 +2469,7 @@ def _get_homeless_budget() -> dict:
     url = "https://data.austintexas.gov/resource/yeeq-kk6v.json"
     all_depts = _HOMELESS_DIRECT_DEPTS + [n for n, _ in _HOMELESS_DOWNSTREAM_DEPTS]
     dept_list = ",".join(f"'{d}'" for d in all_depts)
-    app_token = os.getenv("AUSTIN_APP_TOKEN")
+    app_token = os.getenv("AUSTINAPIKEY")
     headers = {"X-App-Token": app_token} if app_token else {}
     try:
         resp = requests.get(url, params={
@@ -2823,7 +2823,7 @@ def _get_hate_crimes() -> dict:
         "$limit":  5000,
         "$select": "date_of_incident,bias,race_ethnicity_of_offenders,offense_s,zip_code",
     }
-    app_token = os.getenv("AUSTIN_APP_TOKEN")
+    app_token = os.getenv("AUSTINAPIKEY")
     headers = {"X-App-Token": app_token} if app_token else {}
     try:
         resp = requests.get(url, params=params, headers=headers, timeout=15)
@@ -2945,7 +2945,7 @@ def _get_water_session():
     global _WATER_SESSION
     if _WATER_SESSION is None:
         _WATER_SESSION = requests.Session()
-        app_token = os.getenv("AUSTIN_APP_TOKEN")
+        app_token = os.getenv("AUSTINAPIKEY")
         if app_token:
             _WATER_SESSION.headers.update({"X-App-Token": app_token})
     return _WATER_SESSION
@@ -3102,7 +3102,7 @@ def _get_permits_session():
     global _PERMITS_SESSION
     if _PERMITS_SESSION is None:
         _PERMITS_SESSION = requests.Session()
-        app_token = os.getenv("AUSTIN_APP_TOKEN")
+        app_token = os.getenv("AUSTINAPIKEY")
         if app_token:
             _PERMITS_SESSION.headers.update({"X-App-Token": app_token})
     return _PERMITS_SESSION

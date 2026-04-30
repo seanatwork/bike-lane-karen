@@ -1,6 +1,9 @@
 /311_Service_Requests_-_Austin_Transportation_and_Public_Works_20260322.csv
 311_categories.db
 
+# Cache directory for GitHub Actions caching
+.cache/
+
 # Environment files
 .env
 .env.local

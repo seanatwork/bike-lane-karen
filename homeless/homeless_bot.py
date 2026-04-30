@@ -39,9 +39,26 @@ MAX_RETRIES = 3
 RETRY_DELAY = 1.0
 MAX_PAGES = 10  # up to 1,000 records per code
 
-API_KEY = os.getenv("AUSTIN_APP_TOKEN")
+API_KEY = os.getenv("AUSTINAPIKEY")
 
 # Service codes to search and their department labels
+# 
+# DISCOVERY NOTES (2026-04-29):
+# Analysis of recent requests found homeless-related keywords across these codes:
+# - PRGRDISS: Park Maintenance (tent, homeless) ✓ included
+# - OBSTMIDB: Obstruction in ROW (homeless, tent) ✓ included
+# - SBDEBROW: Debris in Street (homeless) ✓ included
+# - DRCHANEL: Drainage/Creek (homeless, tent) ✓ included
+# - APDNONNO: Non Emergency Noise Complaint (homeless) ← NOT INCLUDED (may add noise)
+# - HHSGRAFF: Graffiti Abatement (homeless, tent) ← NOT INCLUDED (graffiti-focused)
+# - SBPOTREP: Pothole Repair (tent) ← NOT INCLUDED (minimal matches, off-topic)
+#
+# The "Homeless - Violet Kiosk and Storage Carts" and "Homelessness Matters" categories
+# from the 311 dataset appear to use the same service codes as Park Maintenance
+# and other general codes, NOT unique homeless-specific codes.
+#
+# Recommendation: Keep current 5 codes. Adding APDNONNO may increase false positives
+# from general noise complaints not related to encampments.
 SERVICE_CODES = {
     "PRGRDISS": "Parks — Grounds Maintenance",
     "ATCOCIRW": "TPW — Right of Way",
@@ -236,39 +253,96 @@ def _fetch_code(service_code: str, days_back: int, max_pages: int = MAX_PAGES) -
     return all_records
 
 
-def fetch_encampment_reports_monthly(months_back: int = 12) -> list:
-    """Fetch keyword-matched encampment reports one calendar month at a time.
+def fetch_encampment_reports_monthly(months_back: int = 12, use_cache: bool = True) -> list:
+    """Fetch keyword-matched encampment reports with optional caching.
+
+    With caching enabled (default), this will:
+    1. Load cached records from SQLite
+    2. Only fetch new records from Open311 API
+    3. Cache new records for future runs
 
     The Open311 API returns records in chronological order (oldest first), so a
     single 365-day request only returns the oldest ~90 days before hitting the
     per-page cap. Fetching month by month ensures every period is fully covered.
 
-    Returns a flat list of matched records across all months and all codes.
+    Args:
+        months_back: Number of months to fetch
+        use_cache: Whether to use SQLite caching (default True)
+
+    Returns:
+        A flat list of matched records across all months and all codes.
     """
+    from open311_cache import init_cache, get_cached_records, cache_records, get_last_fetch_date
+
+    CATEGORY = "homeless"
+
+    # Initialize cache if using
+    if use_cache:
+        init_cache()
+        cached_records = get_cached_records(CATEGORY, service_codes=list(SERVICE_CODES.keys()))
+        cached_ids = {r.get("service_request_id") for r in cached_records}
+        logger.info(f"Loaded {len(cached_records)} cached records")
+
+        # Check if we have recent cache
+        last_fetch = get_last_fetch_date(CATEGORY)
+        if last_fetch:
+            logger.info(f"Last fetch was at {last_fetch}")
+            # If cache is less than 6 days old and we have data, use it
+            cache_age = _utc_now() - last_fetch
+            if cache_age < timedelta(days=6) and len(cached_records) > 0:
+                logger.info(f"Cache is fresh ({cache_age.days} days old), returning cached data")
+                return cached_records
+    else:
+        cached_records = []
+        cached_ids = set()
+
     now = _utc_now()
     all_matched: list = []
-    seen_ids: set = set()
+    seen_ids: set = cached_ids.copy()  # Start with cached IDs to avoid duplicates
+    new_records: list = []
 
-    for month_offset in range(months_back):
-        # Build [start, end) for this calendar month
-        target = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        for _ in range(month_offset):
-            target = (target - timedelta(days=1)).replace(
-                day=1, hour=0, minute=0, second=0, microsecond=0
-            )
-        month_start = target
-        if month_offset == 0:
+    # Calculate how far back we need to fetch
+    # If we have cache, only fetch from last fetch date
+    if use_cache and cached_records:
+        last_fetch = get_last_fetch_date(CATEGORY)
+        if last_fetch:
+            # Fetch from 1 day before last fetch to catch any missed records
+            fetch_start = last_fetch - timedelta(days=1)
+        else:
+            fetch_start = now - timedelta(days=30 * months_back)
+    else:
+        fetch_start = now - timedelta(days=30 * months_back)
+
+    logger.info(f"Fetching records from {fetch_start} to {now}")
+
+    # Calculate months to fetch
+    current_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start_month = fetch_start.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    months_to_fetch = []
+    while start_month <= current_month:
+        months_to_fetch.append(start_month)
+        if start_month.month == 12:
+            start_month = start_month.replace(year=start_month.year + 1, month=1)
+        else:
+            start_month = start_month.replace(month=start_month.month + 1)
+
+    logger.info(f"Will fetch {len(months_to_fetch)} months of data")
+
+    for month_start in reversed(months_to_fetch):  # Newest first
+        # Determine month end
+        if month_start.year == now.year and month_start.month == now.month:
             month_end = now
         else:
-            # First day of next month relative to target
-            if target.month == 12:
-                month_end = target.replace(year=target.year + 1, month=1)
+            if month_start.month == 12:
+                month_end = month_start.replace(year=month_start.year + 1, month=1)
             else:
-                month_end = target.replace(month=target.month + 1)
+                month_end = month_start.replace(month=month_start.month + 1)
 
         for code in SERVICE_CODES:
             try:
                 page = 1
+                monthly_records = 0
                 while page <= MAX_PAGES:
                     params = {
                         "service_code": code,
@@ -288,13 +362,32 @@ def fetch_encampment_reports_monthly(months_back: int = 12) -> list:
                             r["_service_code"]  = code
                             if _is_encampment_report(r):
                                 all_matched.append(r)
+                                new_records.append(r)
+                                monthly_records += 1
                     if len(records) < 100:
                         break
                     page += 1
                     time.sleep(1.0 if API_KEY else 2.0)
+                if monthly_records > 0:
+                    logger.info(f"  {code} {month_start.strftime('%Y-%m')}: {monthly_records} new matches")
             except Exception as e:
                 logger.warning(f"Monthly fetch failed {code} {month_start.strftime('%Y-%m')}: {e}")
         time.sleep(2.0 if API_KEY else 4.0)
+
+    # Cache new records
+    if use_cache and new_records:
+        cache_records(CATEGORY, new_records)
+        logger.info(f"Cached {len(new_records)} new records")
+
+    # Return combined cached + new (if we had partial cache)
+    if use_cache and cached_records:
+        # Combine and remove duplicates
+        combined = {r.get("service_request_id"): r for r in cached_records}
+        for r in all_matched:
+            combined[r.get("service_request_id")] = r
+        result = list(combined.values())
+        logger.info(f"Returning {len(result)} total records ({len(cached_records)} cached + {len(new_records)} new)")
+        return result
 
     return all_matched
 

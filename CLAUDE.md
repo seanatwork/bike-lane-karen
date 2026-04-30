@@ -50,7 +50,7 @@ Auto-deploys to Fly.io on push to `main` via `.github/workflows/deploy.yml`. The
 - `parks/` — Open311 park maintenance reports with drill-down by park name
 - `waterconservation/` — Socrata water conservation violations (`/waterviolations`)
 - `childcare/` — Socrata childcare facility inspections (`/childcare`)
-- `homeless/` — Open311 encampment/unhoused 311 reports across 6 service codes (PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL, NOISECMP); supports stats, open locations, and a Folium-generated map (`/homeless`)
+- `homeless/` — Open311 encampment/unhoused 311 reports across 5 service codes (PRGRDISS, ATCOCIRW, OBSTMIDB, SBDEBROW, DRCHANEL); supports stats, open locations, and a Folium-generated map (`/homeless`)
 - Crime/safety — Socrata datasets `fdj4-gpfu` (APD crime) and `i7fg-wrk5` (NIBRS homicides), handled directly in `austin311_bot.py`
 
 ## Data Sources
@@ -62,13 +62,52 @@ Auto-deploys to Fly.io on push to `main` via `.github/workflows/deploy.yml`. The
 
 Query patterns: ISO8601 dates with `Z` suffix, `per_page`/`page` pagination, `$where` SoQL filtering (Socrata).
 
+## Caching System
+
+**`open311_cache.py`** — Shared SQLite-based caching layer for Open311 API data.
+
+**Purpose:** Reduce API calls and workflow runtime by storing fetched records.
+
+**How it works:**
+1. First run: Fetches all data from Open311 API, populates SQLite cache
+2. Subsequent runs: Loads cached data, only fetches new records since last fetch
+3. Cache persists via GitHub Actions cache (7-day retention, free)
+
+**Usage in workflows:**
+```yaml
+- name: Restore Open311 cache
+  uses: actions/cache@v4
+  with:
+    path: .cache/open311_cache.db
+    key: open311-maps-${{ github.run_id }}
+    restore-keys: open311-
+
+# ... run generation scripts ...
+
+- name: Save Open311 cache
+  uses: actions/cache@v4
+  if: always()
+  with:
+    path: .cache/open311_cache.db
+    key: open311-maps-${{ github.run_id }}-${{ github.run_attempt }}
+```
+
+**API:**
+- `init_cache()` — Create cache tables
+- `get_cached_records(category, since, service_codes)` — Retrieve cached data
+- `cache_records(category, records)` — Store new records
+- `get_last_fetch_date(category)` — Get most recent cached record date
+- `should_refresh_cache(category, max_age_hours)` — Check if refresh needed
+
+**Cache location:** `.cache/open311_cache.db` (gitignored, excluded from repo)
+
 ## Key Conventions
 
 - Each service module uses a module-level `_session` singleton for HTTP connection reuse.
 - All network calls use retry logic with exponential backoff (up to 3 retries, starting at 2s).
 - Telegram messages over 4KB are split via `_send_chunked()` in `austin311_bot.py`.
 - All bot output is Markdown-formatted.
-- Environment variables: `TELEGRAM_BOT_TOKEN` (required), `AUSTIN_APP_TOKEN` (optional, raises Open311 rate limits), `GOOGLE_MAPS_API_KEY` (optional, for `/directory`).
+- Environment variables: `TELEGRAM_BOT_TOKEN` (required), `AUSTINAPIKEY` (optional, raises Open311 rate limits), `GOOGLE_MAPS_API_KEY` (optional, for `/directory`).
 
 ## Open311 API — Known Pagination Gotcha
 
@@ -124,6 +163,27 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 - `.github/workflows/generate-parking-trends.yml` — GitHub Actions cron for parking trends (weekly Monday 13:00 UTC)
 - `docs/*/index.html` — pre-generated Folium HTML maps (committed to repo)
 
+**✅ Workflows Re-enabled with Caching (2026-04-29):** Open311 workflows now use GitHub Actions caching to minimize API calls:
+- **3 consolidated workflows** replace 17 individual workflows:
+  - `generate-all-open311-maps.yml` — Weekly batch for all Open311 maps (bicycle, graffiti, noise, parking, parks, traffic, animal)
+  - `generate-all-open311-trends.yml` — Weekly batch for all Open311 trends (graffiti, noise, homeless)
+  - `generate-all-socrata.yml` — Daily batch for Socrata-based maps/trends (crime, water, childcare, budget)
+- **Caching:** `open311_cache.py` provides SQLite caching with GitHub Actions cache persistence
+  - First run: Normal API calls (populates cache)
+  - Subsequent runs: Loads cached data, only fetches new records (2-3 min vs 10 min)
+- Individual workflow files deprecated but kept for reference (can be deleted after consolidation testing)
+
+**Service Code Discovery (2026-04-29):**
+Analysis of 1,000+ recent requests found homeless-related keywords across these codes:
+- ✓ PRGRDISS (Park Maintenance) — has tent, homeless keywords
+- ✓ OBSTMIDB (Obstruction in ROW) — has homeless, tent keywords
+- ✓ SBDEBROW (Debris in Street) — has homeless keywords  
+- ✓ DRCHANEL (Drainage/Creek) — has homeless, tent keywords
+- ✗ APDNONNO (Non Emergency Noise Complaint) — has homeless but not included (adds noise complaints unrelated to encampments)
+- ✗ HHSGRAFF (Graffiti Abatement) — has homeless, tent but graffiti-focused
+
+The "Homeless - Violet Kiosk and Storage Carts" and "Homelessness Matters" categories from the 311 dataset use the same service codes as general maintenance (Park Maintenance, etc.), NOT unique homeless-specific codes. The current 5 codes are optimal.
+
 **Map features (all maps follow the same pattern):**
 - 90 days of data fetched; user can filter to 30d / 60d / 90d via buttons
 - Open / Closed status toggles
@@ -137,7 +197,7 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 3. GitHub Pages serves the updated `docs/` folder automatically
 
 **Notes:**
-- `AUSTIN_APP_TOKEN` must be set as a GitHub Actions secret for rate limit headroom
+- `AUSTINAPIKEY` must be set as a GitHub Actions secret for rate limit headroom
 - 429 rate limit errors during local runs are normal without the token; CI has the secret
 - `.venv/` is the working virtualenv (system Python is externally managed)
 

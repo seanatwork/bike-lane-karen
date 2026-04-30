@@ -32,7 +32,7 @@ python austin311_bot.py
 | Variable | Required | Description |
 |---|---|---|
 | `TELEGRAM_BOT_TOKEN` | Yes | From [@BotFather](https://t.me/BotFather) |
-| `AUSTIN_APP_TOKEN` | No | Austin Open Data token (higher rate limits) |
+| `AUSTINAPIKEY` | No | Austin Open Data token (higher rate limits) |
 
 ## Data Sources
 

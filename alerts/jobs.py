@@ -37,7 +37,7 @@ DISTRICT_LABELS = {str(i): f"District {i}" for i in range(1, 11)}
 
 
 def _headers() -> dict:
-    token = os.getenv("AUSTIN_APP_TOKEN", "")
+    token = os.getenv("AUSTINAPIKEY", "")
     return {"X-App-Token": token} if token else {}
 
 

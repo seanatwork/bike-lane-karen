@@ -7,13 +7,35 @@ Run locally:
     python scripts/generate_map.py graffiti
     python scripts/generate_map.py homeless
 
-Run in CI (GitHub Actions) with AUSTIN_APP_TOKEN set for higher rate limits.
+Run in CI (GitHub Actions) with AUSTINAPIKEY set for higher rate limits.
 """
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
+
+
+def format_central_time() -> str:
+    """Return current time formatted in US Central Time (CDT/CST)."""
+    from datetime import datetime, timezone
+    import time
+    
+    # Get current UTC time
+    utc_now = datetime.now(timezone.utc)
+    
+    # Convert to Central Time (UTC-5 for CDT, UTC-6 for CST)
+    # Check if DST is in effect (rough approximation: March to November)
+    month = utc_now.month
+    is_dst = 3 <= month <= 11  # Simplified DST check
+    offset_hours = -5 if is_dst else -6
+    
+    # Calculate Central Time
+    from datetime import timedelta
+    central_now = utc_now + timedelta(hours=offset_hours)
+    
+    tz_abbr = "CDT" if is_dst else "CST"
+    return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
 
 
 GA_SNIPPET = """<!-- Google tag (gtag.js) -->
@@ -170,7 +192,7 @@ def main():
         print(f"Map generation failed: {summary}")
         sys.exit(1)
 
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now_str = format_central_time()
     last_ran_span = (
         f'<span style="font-size: 11px; color: #888;">Last ran: {now_str}</span><br/>\n        '
     )

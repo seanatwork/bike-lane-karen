@@ -11,8 +11,22 @@ Secondary layer: how many of those tickets are closed with the HSO boilerplate.
 
 import io
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict
+
+
+def _format_central_time() -> str:
+    """Return current time formatted in US Central Time (CDT/CST)."""
+    utc_now = datetime.now(timezone.utc)
+    
+    # Check if DST is in effect (simplified: March to November)
+    month = utc_now.month
+    is_dst = 3 <= month <= 11
+    offset_hours = -5 if is_dst else -6
+    
+    central_now = utc_now + timedelta(hours=offset_hours)
+    tz_abbr = "CDT" if is_dst else "CST"
+    return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
 
 
 HSO_BOILERPLATE = (
@@ -182,7 +196,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
       </svg>"""
 
     deflection_pct_str = f"{deflection_rate}%" if deflection_rate else "the majority"
-    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    now_str = _format_central_time()
 
     html = f"""<!DOCTYPE html>
 <html lang="en">

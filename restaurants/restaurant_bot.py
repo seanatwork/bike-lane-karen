@@ -48,7 +48,7 @@ def _build_params(where: str, order: str, limit: int) -> dict:
         "$order": order,
         "$limit": limit,
     }
-    app_token = os.getenv("AUSTIN_APP_TOKEN")
+    app_token = os.getenv("AUSTINAPIKEY")
     if app_token and not app_token.startswith("your_"):
         params["$$app_token"] = app_token
     return params
