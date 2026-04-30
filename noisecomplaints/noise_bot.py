@@ -75,6 +75,12 @@ def _make_request(params: dict, retries: int = 0) -> list:
     url = f"{OPEN311_BASE_URL}/requests.json"
     try:
         resp = session.get(url, params=params, timeout=TIMEOUT)
+        if resp.status_code == 429 and retries < MAX_RETRIES:
+            retry_after = int(resp.headers.get("Retry-After", 0))
+            delay = min(max(retry_after, 15 * (2 ** retries)), 60)
+            logger.warning(f"Rate limited (429), retrying in {delay:.0f}s ({retries+1}/{MAX_RETRIES})")
+            time.sleep(delay)
+            return _make_request(params, retries + 1)
         resp.raise_for_status()
         data = resp.json()
         return data if isinstance(data, list) else []
