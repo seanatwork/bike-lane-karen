@@ -68,6 +68,17 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _format_central_time() -> str:
+    """Return current time formatted in US Central Time (CDT/CST)."""
+    utc_now = datetime.now(timezone.utc)
+    month = utc_now.month
+    is_dst = 3 <= month <= 11
+    offset_hours = -5 if is_dst else -6
+    central_now = utc_now + timedelta(hours=offset_hours)
+    tz_abbr = "CDT" if is_dst else "CST"
+    return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
+
+
 def _isoformat_z(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
@@ -456,6 +467,33 @@ def generate_bicycle_map(days_back: int = 90) -> tuple:
                 b = str(bucket_days)
                 type_bucket_counts["all"][b][s]  += 1
                 type_bucket_counts[slug][b][s]   += 1
+    avg_resolution = round(sum(resolution_days) / len(resolution_days), 1) if resolution_days else None
+    top_streets = sorted(street_counts.items(), key=lambda x: -x[1])[:5]
+    oldest_open = None
+    if open_tickets:
+        def req_date(r):
+            try:
+                return datetime.fromisoformat((r.get("requested_datetime") or "").replace("Z", "+00:00"))
+            except ValueError:
+                return now
+        oldest = min(open_tickets, key=req_date)
+        oldest_dt = req_date(oldest)
+        oldest_open = {
+            "id": oldest.get("service_request_id"),
+            "address": oldest.get("address"),
+            "days_ago": (now - oldest_dt).days,
+        }
+    return {
+        "total": len(complaints),
+        "open": len(open_tickets),
+        "closed": len(complaints) - len(open_tickets),
+        "avg_resolution_days": avg_resolution,
+        "top_streets": top_streets,
+        "oldest_open": oldest_open,
+        "days_back": days_back,
+    }
+
+
     counts_js = str(type_bucket_counts).replace("'", '"')
 
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
@@ -545,13 +583,15 @@ def generate_bicycle_map(days_back: int = 90) -> tuple:
 
     map_var      = m.get_name()
     layer_map_js = "{" + ", ".join(f'"{k}": {fg_objects[k].get_name()}' for k in fg_objects) + "}"
+    fetched_at = _format_central_time()
 
     panel_html = f"""
     <div id="map-panel" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);
                 background:white;padding:10px 16px;border-radius:6px;
                 box-shadow:0 2px 6px rgba(0,0,0,0.3);z-index:9999;
                 font-family:sans-serif;text-align:center;">
-        <b style="font-size:15px;">🚴 Austin Cycling 311 Reports</b><br/>
+        <b style="font-size:15px;">� Austin Bicycle Issues 311 Map</b><br/>
+        <span style="font-size:11px;color:#888;">Last ran: {fetched_at}</span><br/>
         <span id="map-summary" style="font-size:12px;color:#555;"></span>
         <div style="display:flex;justify-content:center;gap:4px;margin-top:7px;">
             <button id="btn-30" onclick="setDayFilter(30)" class="fbtn">30d</button>
