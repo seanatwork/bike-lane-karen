@@ -206,10 +206,44 @@
       return (s || "").replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
     }
 
+    // ── cache ──────────────────────────────────────────────────────────────────
+
+    function cache_records(key, data, ttl_hours = 12) {
+      try {
+        const payload = {
+          timestamp: Date.now(),
+          ttl: ttl_hours * 3600 * 1000,
+          data: data
+        };
+        localStorage.setItem(`cache_${key}`, JSON.stringify(payload));
+      } catch (e) {
+        console.warn("Cache save failed", e);
+      }
+    }
+
+    function get_cached_records(key) {
+      try {
+        const item = localStorage.getItem(`cache_${key}`);
+        if (!item) return null;
+        const payload = JSON.parse(item);
+        if (Date.now() - payload.timestamp > payload.ttl) return null;
+        return payload.data;
+      } catch (e) {
+        return null;
+      }
+    }
+
     // ── Bar of the Month ──────────────────────────────────────────────────────
 
     async function loadBars() {
       const el = document.getElementById("bar-content");
+      
+      // Try cache first
+      const cached = get_cached_records("bars");
+      if (cached) {
+        renderBars(cached.top10, cached.top5movers, cached.curDate, cached.prevDate, true);
+      }
+
       try {
         const TABC = "https://data.texas.gov/resource/g5bj-yb6k.json";
 
@@ -279,13 +313,18 @@
         movers.sort((a, b) => b.delta - a.delta);
         const top5movers = movers.slice(0, 5);
 
-        renderBars(top10, top5movers, curDate, prevDate);
+        // Save to cache
+        cache_records("bars", { top10, top5movers, curDate, prevDate }, 12);
+
+        renderBars(top10, top5movers, curDate, prevDate, false);
       } catch (err) {
-        el.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
+        if (!cached) {
+          el.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
+        }
       }
     }
 
-    function renderBars(top10, movers, curDate, prevDate) {
+    function renderBars(top10, movers, curDate, prevDate, isCached) {
       const el = document.getElementById("bar-content");
       if (!top10.length) { el.innerHTML = `<div class="error">No data available.</div>`; return; }
 
@@ -314,9 +353,11 @@
         </div>`
       ).join("") : `<div style="font-size:12px;color:var(--text-muted);">No significant movers this month.</div>`;
 
+      const cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
+
       el.innerHTML = `
         <div class="winner">
-          <div class="winner-crown">🏆 Bar of the Month — ${curLabel}</div>
+          <div class="winner-crown">🏆 Bar of the Month — ${curLabel}${cacheNote}</div>
           <div class="winner-name">${winner.name}</div>
           <div class="winner-addr">${winner.address}</div>
           <div class="winner-sales">${fmtDollars(winner.sales)}</div>
@@ -335,6 +376,12 @@
 
     async function loadCoyotes() {
       const el = document.getElementById("coyote-content");
+      
+      const cached = get_cached_records("coyotes");
+      if (cached) {
+        renderCoyotes(cached, true);
+      }
+
       try {
         const now   = new Date();
         const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
@@ -350,19 +397,23 @@
         const records = await res.json();
         if (!Array.isArray(records)) throw new Error("Unexpected response format");
 
-        renderCoyotes(records);
+        // Save to cache (6 hours)
+        cache_records("coyotes", records, 6);
+
+        renderCoyotes(records, false);
       } catch (err) {
-        // CORS or network failure — show graceful message
-        document.getElementById("coyote-content").innerHTML =
-          `<div class="error">Couldn't load live data: ${err.message}<br/>
-          <span style="color:var(--text-muted);font-size:11px;">
-            The Open311 API may not support browser requests.
-            Try the <a href="https://austin311bot.netlify.app" target="_blank" style="color:var(--text-sub);">Telegram bot</a> for coyote data.
-          </span></div>`;
+        if (!cached) {
+          document.getElementById("coyote-content").innerHTML =
+            `<div class="error">Couldn't load live data: ${err.message}<br/>
+            <span style="color:var(--text-muted);font-size:11px;">
+              The Open311 API may not support browser requests.
+              Try the <a href="https://austin311bot.netlify.app" target="_blank" style="color:var(--text-sub);">Telegram bot</a> for coyote data.
+            </span></div>`;
+        }
       }
     }
 
-    function renderCoyotes(records) {
+    function renderCoyotes(records, isCached) {
       const el = document.getElementById("coyote-content");
       if (!records.length) {
         el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No coyote complaints found in the last year. 🤔</div>`;
@@ -406,11 +457,13 @@
         </div>`;
       }).join("");
 
+      const cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);font-weight:normal;margin-left:4px;">(cached)</span>' : '';
+
       el.innerHTML = `
         <div class="stat-row">
           <div class="stat-box">
             <div class="stat-val">${total}</div>
-            <div class="stat-label">Last 12 months</div>
+            <div class="stat-label">Last 12 months${cacheNote}</div>
           </div>
           <div class="stat-box">
             <div class="stat-val">${pupping}</div>

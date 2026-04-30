@@ -141,10 +141,12 @@ def generate_animal_map(days_back: int = 90) -> tuple:
 
 def generate_budget_page(days_back: int = 365) -> tuple:
     """Generate Austin budget page."""
-    from scripts.generate_budget import main as generate_budget_main
+    import io
+    from scripts.generate_budget import main as generate_budget_main, OUT_PATH
     try:
         generate_budget_main()
-        return True, "Budget page generated successfully"
+        buf = io.BytesIO(OUT_PATH.read_bytes())
+        return buf, "Budget page generated successfully"
     except Exception as e:
         return None, f"Budget generation failed: {e}"
 
