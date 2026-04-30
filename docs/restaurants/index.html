@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Austin Restaurant Health Inspections</title>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-TS158R7XSN');
+  </script>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #f8fafc;
+      --bg-card:      #ffffff;
+      --bg-card-hover:#f1f5f9;
+      --bg-input:     #ffffff;
+      --border:       #e2e8f0;
+      --border-hover: #94a3b8;
+      --border-focus: #3b82f6;
+      --text:         #1e293b;
+      --text-head:    #0f172a;
+      --text-sub:     #64748b;
+      --text-muted:   #94a3b8;
+      --grade-a:      #16a34a;
+      --grade-b:      #2563eb;
+      --grade-c:      #ca8a04;
+      --grade-d:      #ea580c;
+      --grade-f:      #dc2626;
+    }
+    html.dark {
+      --bg:           #0f1117;
+      --bg-card:      #1e2230;
+      --bg-card-hover:#252b3b;
+      --bg-input:     #161a24;
+      --border:       #2d3348;
+      --border-hover: #4a5568;
+      --border-focus: #60a5fa;
+      --text:         #e2e8f0;
+      --text-head:    #f8fafc;
+      --text-sub:     #94a3b8;
+      --text-muted:   #64748b;
+      --grade-a:      #4ade80;
+      --grade-b:      #60a5fa;
+      --grade-c:      #facc15;
+      --grade-d:      #fb923c;
+      --grade-f:      #f87171;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem 3rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    #theme-toggle {
+      position: fixed; top: 14px; right: 16px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px; font-size: 0.75rem;
+      color: var(--text-sub); cursor: pointer; user-select: none;
+    }
+    #theme-toggle:hover { color: var(--text); border-color: var(--border-hover); }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--text); }
+
+    header { margin-bottom: 1.5rem; }
+    header h1 {
+      font-size: 1.8rem; font-weight: 700;
+      letter-spacing: -0.5px; color: var(--text-head);
+    }
+    header p {
+      margin-top: 0.4rem; color: var(--text-sub);
+      font-size: 0.95rem;
+    }
+
+    .search-row {
+      display: flex; gap: 8px; margin-bottom: 1.5rem;
+    }
+    #search {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 0.95rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    #search:focus { border-color: var(--border-focus); }
+    #search::placeholder { color: var(--text-muted); }
+    #clear-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0 14px;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      cursor: pointer;
+      display: none;
+    }
+    #clear-btn:hover { color: var(--text); border-color: var(--border-hover); }
+    #clear-btn.show { display: inline-block; }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-sub);
+      margin-bottom: 0.75rem;
+    }
+
+    .status-msg {
+      padding: 1.25rem;
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 0.9rem;
+    }
+
+    .results { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    .item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.9rem 1rem;
+      display: flex;
+      gap: 0.9rem;
+      align-items: flex-start;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .item:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
+
+    .rank {
+      flex-shrink: 0;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      width: 1.4rem;
+      text-align: right;
+      padding-top: 0.1rem;
+    }
+
+    .grade-badge {
+      flex-shrink: 0;
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.05rem;
+      color: #fff;
+      flex-direction: column;
+      line-height: 1;
+    }
+    .grade-badge .score-num {
+      font-size: 0.7rem;
+      font-weight: 500;
+      opacity: 0.92;
+      margin-top: 2px;
+    }
+    .grade-A { background: var(--grade-a); }
+    .grade-B { background: var(--grade-b); }
+    .grade-C { background: var(--grade-c); }
+    .grade-D { background: var(--grade-d); }
+    .grade-F { background: var(--grade-f); }
+    .grade-unknown { background: var(--text-muted); }
+
+    .info { flex: 1; min-width: 0; }
+    .info .name {
+      font-weight: 600; color: var(--text-head);
+      font-size: 0.98rem;
+      margin-bottom: 0.15rem;
+    }
+    .info .addr {
+      font-size: 0.83rem; color: var(--text-sub);
+      margin-bottom: 0.25rem;
+    }
+    .info .meta {
+      font-size: 0.78rem; color: var(--text-muted);
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <button id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
+
+  <div class="container">
+    <a class="back-link" href="../">← Back to Austin 311</a>
+
+    <header>
+      <h1>🍽️ Restaurant Health Inspections</h1>
+      <p>Search Austin restaurant inspection scores, or browse the worst-rated.</p>
+    </header>
+
+    <div class="search-row">
+      <input id="search" type="text" placeholder="Search by name or address (e.g. Torchy's, or 6th St)" autocomplete="off" />
+      <button id="clear-btn" type="button">Clear</button>
+    </div>
+
+    <div id="section-label" class="section-label">🚨 10 Worst-Rated Restaurants</div>
+    <div id="status" class="status-msg">Loading…</div>
+    <div id="results" class="results"></div>
+
+    <footer>
+      Data: <a href="https://data.austintexas.gov/d/ecmv-9xxi" target="_blank" rel="noopener">Austin Restaurant Inspections</a>
+      &nbsp;·&nbsp;
+      <a href="https://t.me/austin311bot" target="_blank" rel="noopener">@austin311bot</a>
+    </footer>
+  </div>
+
+  <script>
+    const SOCRATA_URL = "https://data.austintexas.gov/resource/ecmv-9xxi.json";
+    const STREET_RE = /\b(st|ave|avenue|rd|road|dr|drive|blvd|boulevard|ln|lane|way|court|ct|pl|place|sq|square)\b/i;
+
+    const searchEl = document.getElementById("search");
+    const clearBtn = document.getElementById("clear-btn");
+    const sectionLabel = document.getElementById("section-label");
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+
+    function isAddress(term) {
+      return /\d/.test(term) && STREET_RE.test(term);
+    }
+
+    function escapeSoql(s) {
+      // Strip quotes and escape single quotes for SoQL literal
+      return s.replace(/['"]/g, "").replace(/'/g, "''");
+    }
+
+    function scoreToGrade(score) {
+      const s = parseFloat(score);
+      if (isNaN(s)) return "?";
+      if (s >= 95) return "A";
+      if (s >= 90) return "B";
+      if (s >= 85) return "C";
+      if (s >= 75) return "D";
+      return "F";
+    }
+
+    function formatDate(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso.slice(0, 10);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function escHtml(s) {
+      if (s == null) return "";
+      return String(s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function renderItem(r, rank) {
+      const score = r.score;
+      const grade = scoreToGrade(score);
+      const scoreNum = score != null && !isNaN(parseFloat(score))
+        ? Math.round(parseFloat(score)) : "—";
+      const gradeClass = grade === "?" ? "grade-unknown" : `grade-${grade}`;
+      const rankHtml = rank != null ? `<div class="rank">${rank}</div>` : "";
+      return `
+        <div class="item">
+          ${rankHtml}
+          <div class="grade-badge ${gradeClass}">
+            <div>${grade}</div>
+            <div class="score-num">${scoreNum}</div>
+          </div>
+          <div class="info">
+            <div class="name">${escHtml(r.restaurant_name || "Unknown")}</div>
+            <div class="addr">📍 ${escHtml(r.address || "Address not available")}</div>
+            <div class="meta">📅 ${formatDate(r.inspection_date)} · ${escHtml(r.process_description || "Inspection")}</div>
+          </div>
+        </div>`;
+    }
+
+    function dedupeMostRecent(records) {
+      const seen = new Map();
+      for (const r of records) {
+        const key = `${(r.restaurant_name || "").toLowerCase()}|${(r.address || "").toLowerCase()}`;
+        const date = r.inspection_date || "";
+        const existing = seen.get(key);
+        if (!existing || date > (existing.inspection_date || "")) {
+          seen.set(key, r);
+        }
+      }
+      return Array.from(seen.values());
+    }
+
+    async function fetchSocrata(params) {
+      const url = `${SOCRATA_URL}?${new URLSearchParams(params).toString()}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Socrata error ${res.status}`);
+      return res.json();
+    }
+
+    async function loadWorst() {
+      sectionLabel.textContent = "🚨 10 Worst-Rated Restaurants";
+      statusEl.textContent = "Loading worst-rated restaurants…";
+      statusEl.style.display = "";
+      resultsEl.innerHTML = "";
+      try {
+        // Fetch a wider pool to dedupe by restaurant
+        const records = await fetchSocrata({
+          $where: "score is not null",
+          $order: "score ASC",
+          $limit: "200",
+        });
+        const unique = dedupeMostRecent(records)
+          .sort((a, b) => parseFloat(a.score || 999) - parseFloat(b.score || 999))
+          .slice(0, 10);
+        if (unique.length === 0) {
+          statusEl.textContent = "No results found.";
+          return;
+        }
+        statusEl.style.display = "none";
+        resultsEl.innerHTML = unique.map((r, i) => renderItem(r, i + 1)).join("");
+      } catch (e) {
+        statusEl.textContent = `Failed to load: ${e.message}`;
+      }
+    }
+
+    async function runSearch(term) {
+      const clean = term.trim();
+      if (!clean) { loadWorst(); return; }
+
+      sectionLabel.textContent = `🔎 Results for "${clean}"`;
+      statusEl.textContent = "Searching…";
+      statusEl.style.display = "";
+      resultsEl.innerHTML = "";
+
+      try {
+        let where;
+        if (isAddress(clean)) {
+          const street = escapeSoql(clean.split(",")[0].trim());
+          where = `upper(address) like upper('%${street}%')`;
+        } else {
+          const name = escapeSoql(clean.replace(/[^\w\s]/g, "").trim());
+          where = `upper(restaurant_name) like upper('%${name}%')`;
+        }
+        const records = await fetchSocrata({
+          $where: where,
+          $order: "inspection_date DESC",
+          $limit: "100",
+        });
+        const unique = dedupeMostRecent(records);
+        if (unique.length === 0) {
+          statusEl.innerHTML = `No restaurants found matching <strong>${escHtml(clean)}</strong>.<br><br>Try a more general term, check spelling, or try the other format (name vs. address).`;
+          return;
+        }
+        statusEl.style.display = "none";
+        // Sort matches by name (alphabetical) so users can find theirs easily
+        unique.sort((a, b) => (a.restaurant_name || "").localeCompare(b.restaurant_name || ""));
+        const header = `<div class="section-label" style="margin-bottom:0.5rem;color:var(--text-muted);font-weight:500;text-transform:none;letter-spacing:normal;font-size:0.82rem;">${unique.length} match${unique.length === 1 ? "" : "es"}</div>`;
+        resultsEl.innerHTML = header + unique.map(r => renderItem(r, null)).join("");
+      } catch (e) {
+        statusEl.textContent = `Search failed: ${e.message}`;
+      }
+    }
+
+    let searchTimer = null;
+    searchEl.addEventListener("input", () => {
+      const v = searchEl.value;
+      clearBtn.classList.toggle("show", v.length > 0);
+      clearTimeout(searchTimer);
+      if (v.trim().length === 0) {
+        loadWorst();
+        return;
+      }
+      if (v.trim().length < 2) return;
+      searchTimer = setTimeout(() => runSearch(v), 300);
+    });
+
+    searchEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        clearTimeout(searchTimer);
+        runSearch(searchEl.value);
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      searchEl.value = "";
+      clearBtn.classList.remove("show");
+      searchEl.focus();
+      loadWorst();
+    });
+
+    // Theme toggle
+    const btn = document.getElementById("theme-toggle");
+    const html = document.documentElement;
+    if (localStorage.getItem("theme") === "dark") {
+      html.classList.add("dark");
+      btn.textContent = "☀️ Light";
+    } else {
+      btn.textContent = "🌙 Dark";
+    }
+    btn.addEventListener("click", () => {
+      const isDark = html.classList.toggle("dark");
+      btn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+
+    loadWorst();
+  </script>
+</body>
+</html>
