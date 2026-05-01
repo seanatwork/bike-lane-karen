@@ -599,37 +599,46 @@ def format_encampment_locations(data: dict) -> str:
 # INTERACTIVE MAP GENERATION
 # =============================================================================
 
-def fetch_encampment_with_coords(days_back: int = 30) -> dict:
-    """Fetch all encampment reports and filter to those with valid coordinates.
-    
-    Returns both open AND closed requests with location data for mapping.
+def fetch_encampment_with_coords(days_back: int = 90) -> dict:
+    """Fetch encampment reports with valid coordinates, using the cache.
+
+    Pulls from fetch_encampment_reports_monthly (cache-backed) and filters
+    to the requested time window in Python, so the map generator never hits
+    the Open311 API directly when the cache is warm.
     """
-    result = fetch_encampment_reports(days_back)
-    records = result["records"]
-    
-    # Filter to records with valid coordinates
+    # months_back=4 ensures coverage on a cold cache; warm cache returns everything
+    all_matched = fetch_encampment_reports_monthly(months_back=4)
+
+    cutoff = _utc_now() - timedelta(days=days_back)
     located = []
-    for r in records:
+    in_window = 0
+    for r in all_matched:
+        try:
+            dt = datetime.fromisoformat(r.get("requested_datetime", "").replace("Z", "+00:00"))
+            if dt < cutoff:
+                continue
+        except Exception:
+            pass
+        in_window += 1
         lat = r.get("lat")
         lon = r.get("long")
         if lat and lon:
             try:
                 lat_f = float(lat)
                 lon_f = float(lon)
-                # Basic validation: should be in Austin area
                 if 30.0 <= lat_f <= 30.5 and -98.0 <= lon_f <= -97.5:
                     r["_lat"] = lat_f
                     r["_lon"] = lon_f
                     located.append(r)
             except (ValueError, TypeError):
                 pass
-    
+
     return {
         "records": located,
         "total": len(located),
-        "total_matched": len(records),
+        "total_matched": in_window,
         "days_back": days_back,
-        "fetched_at": result["fetched_at"],
+        "fetched_at": _utc_now().isoformat(),
     }
 
 
@@ -845,7 +854,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
             <span style="margin: 0 4px; color: #ccc;">|</span>
-            <button id="btn-cleanup" onclick="toggleCleanup()" class="fbtn active" style="background:#7c3aed;border-color:#7c3aed;">🧹 Cleanup Sites ({len(cleanup_sites)})</button>
+            <button id="btn-cleanup" onclick="toggleCleanup()" class="fbtn" style="background:#7c3aed;border-color:#7c3aed;color:white;">🧹 Cleanup Sites ({len(cleanup_sites)})</button>
         </div>
     </div>
     <style>
