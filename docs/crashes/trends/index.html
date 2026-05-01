@@ -215,8 +215,8 @@
             fetch(`${BASE}?$select=sum(motor_vehicle_death_count) as mv,sum(pedestrian_death_count) as ped,sum(motorcycle_death_count) as moto,sum(bicycle_death_count) as bike,sum(micromobility_death_count) as micro&$where=${enc(where90())}&$limit=1`).then(r=>r.json()),
             // latest record date (to show actual data lag)
             fetch(`${BASE}?$select=max(crash_timestamp_ct) as latest&$limit=1`).then(r=>r.json()),
-            // bicycle-involved crash totals (90 days)
-            fetch(`${BASE}?$select=count(*) as total,sum(bicycle_death_count) as deaths,sum(bicycle_serious_injury_count) as serious&$where=${enc(where90("units_involved like '%Bicycle%'"))}&$limit=1`).then(r=>r.json()),
+            // bicycle-involved crash totals (last 12 complete months, matches monthly chart)
+            fetch(`${BASE}?$select=count(*) as total,sum(bicycle_death_count) as deaths,sum(bicycle_serious_injury_count) as serious&$where=${enc(`crash_timestamp_ct >= '${monthRangeStart}' AND crash_timestamp_ct < '${monthRangeEnd}' AND units_involved like '%Bicycle%'`)}&$limit=1`).then(r=>r.json()),
             // bicycle monthly trend (last 12 complete months)
             fetch(`${BASE}?$select=date_extract_y(crash_timestamp_ct) as yr,date_extract_m(crash_timestamp_ct) as mo,count(*) as cnt,sum(bicycle_death_count) as deaths,sum(bicycle_serious_injury_count) as serious&$where=${enc(`crash_timestamp_ct >= '${monthRangeStart}' AND crash_timestamp_ct < '${monthRangeEnd}' AND units_involved like '%Bicycle%'`)}&$group=yr,mo&$order=yr ASC,mo ASC&$limit=12`).then(r=>r.json()),
           ]);
@@ -470,7 +470,7 @@
 
         <div class="chart-card">
           <div class="chart-title">🚲 Bicycle Crashes</div>
-          <div class="chart-sub">${daysLabel} · crashes where a bicycle was involved</div>
+          <div class="chart-sub">Last 12 complete months · crashes where a bicycle was involved</div>
           ${bikeStatsHtml}
           <div style="margin-top:16px;">
             <div style="font-size:13px;font-weight:700;color:var(--text-head);margin-bottom:3px;">Monthly trend</div>
