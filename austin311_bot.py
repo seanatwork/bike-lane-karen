@@ -5,7 +5,7 @@ Austin 311 Multi-Service Bot
 One bot for all Austin 311 services:
 - 🎨 Graffiti: Analysis, hotspots, remediation tracking
 - 🚴 Bicycle: Lane complaints and infrastructure issues
-- 🍽️ Restaurants: Inspection scores and search
+# - 🍽️ Restaurants: Inspection scores and search
 - 🅿️ Parking: Open311 enforcement (coming soon)
 
 Deploy with TELEGRAM_BOT_TOKEN environment variable.
@@ -133,15 +133,15 @@ from parks.parks_bot import (
 )
 
 
-# Restaurant inspections service
-from restaurants.restaurant_bot import (
-    search_restaurants,
-    get_lowest_scoring,
-    get_grade_distribution,
-    format_search_results,
-    format_low_scores,
-    format_grade_distribution,
-)
+# Restaurant inspections service (disabled)
+# from restaurants.restaurant_bot import (
+#     search_restaurants,
+#     get_lowest_scoring,
+#     get_grade_distribution,
+#     format_search_results,
+#     format_low_scores,
+#     format_grade_distribution,
+# )
 
 
 logging.basicConfig(
@@ -256,7 +256,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
         [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
-        [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
+        # [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
@@ -285,10 +285,6 @@ _HELP_TEXT = """📡 *Austin 311 Bot*
 
 💰 *City Budget:*
 /budget — Homelessness services · NGO grants · pension & benefits
-
-🍽️ *Restaurants:*
-/rest — Worst scores · grade report
-/rest <name or address> — Search by name or address
 
 _If you subscribe to alerts, we store your Telegram user ID, chat ID, and council district or approximate location only. No messages or addresses are saved. /deletedata removes everything._
 
@@ -329,13 +325,13 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         ]
         text = "*🚴 Bicycle Complaints*\nRecent complaints and statistics from Open311."
 
-    elif service == "restaurants":
-        keyboard = [
-            [InlineKeyboardButton("💩 Worst Scores", callback_data="restaurants_lowscores"),
-             InlineKeyboardButton("📊 Grade Report", callback_data="restaurants_grades")],
-            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
-        ]
-        text = "*🍽️ Restaurant Inspections*\nSearch by name/address or see worst scores.\n\nTo search, type: `/rest <name>`"
+    # elif service == "restaurants":  # disabled
+    #     keyboard = [
+    #         [InlineKeyboardButton("💩 Worst Scores", callback_data="restaurants_lowscores"),
+    #          InlineKeyboardButton("📊 Grade Report", callback_data="restaurants_grades")],
+    #         [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
+    #     ]
+    #     text = "*🍽️ Restaurant Inspections*\nSearch by name/address or see worst scores.\n\nTo search, type: `/rest <name>`"
 
     elif service == "animal":
         keyboard = [
@@ -461,7 +457,7 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
         [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
         [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
-        [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
+        # [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
@@ -595,55 +591,54 @@ async def ticket_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 # =============================================================================
-# RESTAURANT HANDLERS
+# RESTAURANT HANDLERS (disabled)
 # =============================================================================
 
-
-async def restaurants_lowscores_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Fetching worst inspection scores...")
-    try:
-        restaurants = await asyncio.to_thread(lambda: get_lowest_scoring(10))
-        await _send_chunked(query, format_low_scores(restaurants))
-    except Exception as e:
-        logger.error(f"restaurants lowscores: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
-
-async def restaurants_grades_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Loading grade report... (first load may take ~15s while fetching a full year of data)")
-    try:
-        data = await asyncio.to_thread(get_grade_distribution)
-        await _send_chunked(query, format_grade_distribution(data))
-    except Exception as e:
-        logger.error(f"restaurants grades: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
-
-@rate_limited
-async def restaurant_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if context.args:
-        search_term = " ".join(context.args)
-        await update.message.reply_text(f"🔍 Searching for: {search_term}...")
-        try:
-            results = await asyncio.to_thread(lambda: search_restaurants(search_term))
-            await _send_chunked(update.message, format_search_results(results, search_term))
-        except Exception as e:
-            logger.error(f"restaurant search cmd: {e}")
-            await update.message.reply_text(f"❌ Error: {e}")
-        return
-    keyboard = [
-        [InlineKeyboardButton("💩 Worst Scores", callback_data="restaurants_lowscores"),
-         InlineKeyboardButton("📊 Grade Report", callback_data="restaurants_grades")],
-    ]
-    await update.message.reply_text(
-        "*🍽️ Restaurant Inspections*\nChoose a view, or type `/rest <name>` to search:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
+# async def restaurants_lowscores_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     query = update.callback_query
+#     await query.answer()
+#     await query.edit_message_text("⏳ Fetching worst inspection scores...")
+#     try:
+#         restaurants = await asyncio.to_thread(lambda: get_lowest_scoring(10))
+#         await _send_chunked(query, format_low_scores(restaurants))
+#     except Exception as e:
+#         logger.error(f"restaurants lowscores: {e}")
+#         await query.edit_message_text(f"❌ Error: {e}")
+#
+#
+# async def restaurants_grades_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     query = update.callback_query
+#     await query.answer()
+#     await query.edit_message_text("⏳ Loading grade report... (first load may take ~15s while fetching a full year of data)")
+#     try:
+#         data = await asyncio.to_thread(get_grade_distribution)
+#         await _send_chunked(query, format_grade_distribution(data))
+#     except Exception as e:
+#         logger.error(f"restaurants grades: {e}")
+#         await query.edit_message_text(f"❌ Error: {e}")
+#
+#
+# @rate_limited
+# async def restaurant_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+#     if context.args:
+#         search_term = " ".join(context.args)
+#         await update.message.reply_text(f"🔍 Searching for: {search_term}...")
+#         try:
+#             results = await asyncio.to_thread(lambda: search_restaurants(search_term))
+#             await _send_chunked(update.message, format_search_results(results, search_term))
+#         except Exception as e:
+#             logger.error(f"restaurant search cmd: {e}")
+#             await update.message.reply_text(f"❌ Error: {e}")
+#         return
+#     keyboard = [
+#         [InlineKeyboardButton("💩 Worst Scores", callback_data="restaurants_lowscores"),
+#          InlineKeyboardButton("📊 Grade Report", callback_data="restaurants_grades")],
+#     ]
+#     await update.message.reply_text(
+#         "*🍽️ Restaurant Inspections*\nChoose a view, or type `/rest <name>` to search:",
+#         parse_mode="Markdown",
+#         reply_markup=InlineKeyboardMarkup(keyboard),
+#     )
 
 
 # =============================================================================
@@ -3487,7 +3482,7 @@ def create_application() -> Application:
             BotCommand("crime",       "APD incident stats — map · trends · homicides"),
             BotCommand("safety",      "Crime by district — compare to city average"),
             BotCommand("budget",      "City budget — homelessness services · spending"),
-            BotCommand("rest",        "Restaurant inspections — worst scores · search"),
+            # BotCommand("rest",        "Restaurant inspections — worst scores · search"),
             BotCommand("help",        "All commands"),
             BotCommand("start",       "Main menu"),
         ])
@@ -3504,9 +3499,9 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(alerts_menu_cb,  pattern="^alerts_menu$"))
     app.add_handler(CallbackQueryHandler(about_cb,        pattern="^about$"))
 
-    # Restaurant inline
-    app.add_handler(CallbackQueryHandler(restaurants_lowscores_cb, pattern="^restaurants_lowscores"))
-    app.add_handler(CallbackQueryHandler(restaurants_grades_cb, pattern="^restaurants_grades"))
+    # Restaurant inline (disabled)
+    # app.add_handler(CallbackQueryHandler(restaurants_lowscores_cb, pattern="^restaurants_lowscores"))
+    # app.add_handler(CallbackQueryHandler(restaurants_grades_cb, pattern="^restaurants_grades"))
 
     # Crime slash command + inline
     app.add_handler(CommandHandler("crime", crime_command))
@@ -3522,8 +3517,8 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
     app.add_handler(CommandHandler("budget", homeless_command))
 
-    # Restaurant slash command
-    app.add_handler(CommandHandler("rest", restaurant_command))
+    # Restaurant slash command (disabled)
+    # app.add_handler(CommandHandler("rest", restaurant_command))
 
     # Alert subscription handlers
     alerts_db.init_db()
