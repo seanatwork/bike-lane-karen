@@ -606,8 +606,8 @@ def fetch_encampment_with_coords(days_back: int = 90) -> dict:
     to the requested time window in Python, so the map generator never hits
     the Open311 API directly when the cache is warm.
     """
-    # months_back=4 ensures coverage on a cold cache; warm cache returns everything
-    all_matched = fetch_encampment_reports_monthly(months_back=4)
+    # months_back=6 ensures coverage on a cold cache; warm cache returns everything
+    all_matched = fetch_encampment_reports_monthly(months_back=6)
 
     cutoff = _utc_now() - timedelta(days=days_back)
     located = []
@@ -679,7 +679,7 @@ def fetch_cleanup_sites() -> list[dict]:
         return []
 
 
-def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str]:
+def generate_encampment_map(days_back: int = 180) -> tuple[Optional[io.BytesIO], str]:
     """Generate an interactive HTML map of encampment reports.
     
     Returns:
@@ -714,17 +714,17 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
             return days_back
 
     # Pre-compute counts per bucket for dynamic title updates
-    bucket_counts = {"30": {"open": 0, "closed": 0}, "60": {"open": 0, "closed": 0}, "90": {"open": 0, "closed": 0}}
+    bucket_counts = {"30": {"open": 0, "closed": 0}, "90": {"open": 0, "closed": 0}, "180": {"open": 0, "closed": 0}}
     for r in records:
         age = _age_days(r)
         status = (r.get("status") or "").lower()
         s = status if status in ("open", "closed") else "closed"
         if age <= 30:
             bucket_counts["30"][s] += 1
-        if age <= 60:
-            bucket_counts["60"][s] += 1
         if age <= 90:
             bucket_counts["90"][s] += 1
+        if age <= 180:
+            bucket_counts["180"][s] += 1
     counts_js = str(bucket_counts).replace("'", '"')
 
     # Create map centered on Austin
@@ -749,15 +749,13 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
     fg_cleanup.add_to(m)
     cleanup_var = fg_cleanup.get_name()
 
-    # Six FeatureGroups: open/closed × 30/60/90-day buckets
-    # Bucket meaning: "30" = 0-30 days old, "60" = 31-60 days, "90" = 61-90 days
-    # Default view: show only last-30-day layers
+    # Six FeatureGroups: open/closed × 1-month/3-month/6-month buckets
     fg_clusters = {}
     fg_objects = {}  # name → FeatureGroup (to get JS var names later)
     for status_key in ("open", "closed"):
-        for bucket in ("30", "60", "90"):
+        for bucket in ("30", "90", "180"):
             name = f"{status_key}_{bucket}"
-            show = (bucket == "30")
+            show = (bucket == "180")
             fg = folium.FeatureGroup(name=name, show=show, overlay=True)
             cluster = MarkerCluster().add_to(fg)
             fg.add_to(m)
@@ -781,10 +779,10 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         age = _age_days(r)
         if age <= 30:
             bucket = "30"
-        elif age <= 60:
-            bucket = "60"
-        else:
+        elif age <= 90:
             bucket = "90"
+        else:
+            bucket = "180"
 
         cluster_key = f"{status}_{bucket}"
         if cluster_key not in fg_clusters:
@@ -847,9 +845,9 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         <span id="map-summary" style="font-size: 12px; color: #555;"></span>
         {"" if total_matched == total else f'<span style="font-size: 11px; color: #888;">{total_matched - total:,} matched reports excluded — no coordinates provided by filer</span>'}
         <div style="display: flex; justify-content: center; gap: 4px; margin-top: 7px;">
-            <button id="btn-30" onclick="setDayFilter(30)" class="fbtn active">30d</button>
-            <button id="btn-60" onclick="setDayFilter(60)" class="fbtn">60d</button>
-            <button id="btn-90" onclick="setDayFilter(90)" class="fbtn">90d</button>
+            <button id="btn-30" onclick="setDayFilter(30)" class="fbtn">1 mo</button>
+            <button id="btn-90" onclick="setDayFilter(90)" class="fbtn">3 mo</button>
+            <button id="btn-180" onclick="setDayFilter(180)" class="fbtn active">6 mo</button>
             <span style="margin: 0 4px; color: #ccc;">|</span>
             <button id="btn-open" onclick="toggleStatus('open')" class="fbtn active">🔴 Open</button>
             <button id="btn-closed" onclick="toggleStatus('closed')" class="fbtn active">🟢 Closed</button>
@@ -866,7 +864,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         .fbtn:hover:not(.active) {{ background: #e0e7ff; }}
     </style>
     <script>
-        var currentDays = 30;
+        var currentDays = 180;
         var showOpen = true;
         var showClosed = true;
         var showCleanup = true;
@@ -875,13 +873,15 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
         var cleanupLayer = null;
         var bucketCounts = {counts_js};
 
+        var dayLabels = {{"30": "1 month", "90": "3 months", "180": "6 months"}};
+
         function updateSummary() {{
             var d = String(currentDays);
             var counts = bucketCounts[d] || {{}};
             var o = showOpen ? (counts.open || 0) : 0;
             var c = showClosed ? (counts.closed || 0) : 0;
             document.getElementById('map-summary').textContent =
-                'Last ' + d + ' days · ' + (o + c) + ' total · ' + o + ' open · ' + c + ' closed';
+                'Last ' + (dayLabels[d] || d + ' days') + ' · ' + (o + c) + ' total · ' + o + ' open · ' + c + ' closed';
         }}
 
         function initLayers() {{
@@ -918,7 +918,7 @@ def generate_encampment_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], 
 
         function setDayFilter(days) {{
             currentDays = days;
-            [30, 60, 90].forEach(function(d) {{
+            [30, 90, 180].forEach(function(d) {{
                 var btn = document.getElementById('btn-' + d);
                 if (btn) btn.classList.toggle('active', d === days);
             }});
