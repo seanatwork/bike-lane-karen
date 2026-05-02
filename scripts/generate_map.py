@@ -61,7 +61,7 @@ def generate_graffiti_map(days_back: int = 90) -> tuple:
     return generate_graffiti_map(days_back)
 
 
-def generate_homeless_map(days_back: int = 90) -> tuple:
+def generate_homeless_map(days_back: int = 180) -> tuple:
     """Generate homeless encampment map."""
     from homeless.homeless_bot import generate_encampment_map
     return generate_encampment_map(days_back)
