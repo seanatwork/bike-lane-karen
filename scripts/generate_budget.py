@@ -235,6 +235,8 @@ def generate_html(fy, quarter, depts, dept_cats):
     js_breakdown = json.dumps(breakdown_map, indent=6)
     js_cat_meta  = json.dumps(CATEGORY_META)
 
+    chart_height = max(540, 50 * len(depts))
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -328,7 +330,7 @@ def generate_html(fy, quarter, depts, dept_cats):
     .chart-block {{ background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }}
     .chart-title {{ font-size: 13px; font-weight: 600; color: var(--chart-title); margin-bottom: 4px; }}
     .chart-sub   {{ font-size: 11px; color: var(--chart-sub); margin-bottom: 10px; }}
-    .chart-container {{ position: relative; height: 480px; }}
+    .chart-container {{ position: relative; }}
     .legend {{ display: flex; flex-wrap: wrap; gap: 8px 16px; margin-bottom: 10px; }}
     .legend-item {{ display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--legend-color); }}
     .legend-dot {{ width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }}
@@ -357,7 +359,7 @@ def generate_html(fy, quarter, depts, dept_cats):
     footer {{ text-align: center; padding: 14px 16px; font-size: 0.74rem; color: var(--footer-color); border-top: 1px solid var(--footer-border); }}
     footer a {{ color: var(--text-sub); text-decoration: none; }}
     footer a:hover {{ color: var(--text); }}
-    @media (max-width: 520px) {{ .stat-value {{ font-size: 1rem; }} .chart-container {{ height: 560px; }} }}
+    @media (max-width: 520px) {{ .stat-value {{ font-size: 1rem; }} }}
 
     /* ── drill-down panel ── */
     #drill-panel {{
@@ -447,7 +449,7 @@ def generate_html(fy, quarter, depts, dept_cats):
         <span class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span>Courts &amp; Justice</span>
         <span class="legend-item"><span class="legend-dot" style="background:#64748b;"></span>Admin &amp; Other</span>
       </div>
-      <div class="chart-container"><canvas id="deptChart"></canvas></div>
+      <div class="chart-container" style="height: {chart_height}px;"><canvas id="deptChart"></canvas></div>
       <div id="drill-hint" style="margin-top:8px;">👆 Click any bar to see how that department spends its budget</div>
     </div>
 
@@ -578,6 +580,11 @@ def generate_html(fy, quarter, depts, dept_cats):
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {{ mode: "y", intersect: false, axis: "y" }},
+        onHover: (evt, elements) => {{
+          const t = evt.native && evt.native.target;
+          if (t) t.style.cursor = elements.length ? "pointer" : "default";
+        }},
         onClick(evt, elements) {{
           if (elements.length) openDrill(DEPTS[elements[0].index].name);
         }},
