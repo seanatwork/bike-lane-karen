@@ -6,7 +6,9 @@ load it on startup and skip all live Socrata fetches.
 """
 
 import json
+import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,11 +20,35 @@ OUT  = Path("docs/court/data.json")
 SESSION = requests.Session()
 SESSION.headers.update({"Accept": "application/json", "User-Agent": "austin311bot/court-cache"})
 
+MAX_RETRIES = 3
+RETRY_DELAY = 5.0  # seconds
 
-def get(dataset_id: str, params: dict) -> list:
-    resp = SESSION.get(f"{BASE}/{dataset_id}.json", params=params, timeout=30)
-    resp.raise_for_status()
-    return resp.json()
+def get(dataset_id: str, params: dict, retries: int = 0) -> list:
+    url = f"{BASE}/{dataset_id}.json"
+    
+    # Use app token if available
+    app_token = os.getenv("AUSTINAPIKEY")
+    if app_token:
+        params = params.copy()
+        params["$$app_token"] = app_token
+
+    try:
+        print(f"  GET {dataset_id} (attempt={retries+1})...")
+        resp = SESSION.get(url, params=params, timeout=60)
+        resp.raise_for_status()
+        return resp.json()
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+        if retries < MAX_RETRIES:
+            print(f"    Timeout/Connection error: {e}. Retrying in {RETRY_DELAY}s...")
+            time.sleep(RETRY_DELAY)
+            return get(dataset_id, params, retries + 1)
+        raise
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code >= 500 and retries < MAX_RETRIES:
+            print(f"    Server error {e.response.status_code}. Retrying in {RETRY_DELAY}s...")
+            time.sleep(RETRY_DELAY)
+            return get(dataset_id, params, retries + 1)
+        raise
 
 
 def fetch_grouped(ds_id: str, charge_field: str, status_field: str) -> list:

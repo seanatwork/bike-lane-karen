@@ -60,6 +60,8 @@ jobs:
       - name: Generate court data cache
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'court')
         run: python scripts/generate_court_data.py
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
 
       - name: Commit and push all Socrata updates
         run: |

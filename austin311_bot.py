@@ -254,8 +254,8 @@ async def _send_chunked(target, text: str, parse_mode: str = "Markdown", reply_m
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
-        [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
+        # [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
+        # [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
         # [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
@@ -278,13 +278,6 @@ _HELP_TEXT = """📡 *Austin 311 Bot*
 /myalerts — View and manage your active alerts
 /unsubscribe — Cancel all alerts
 /deletedata — Remove all your stored data
-
-🚔 *Police & Crime:*
-/crime — APD incident stats (citywide)
-/safety — Crime by district · comparison to city average
-
-💰 *City Budget:*
-/budget — Homelessness services · NGO grants · pension & benefits
 
 _If you subscribe to alerts, we store your Telegram user ID, chat ID, and council district or approximate location only. No messages or addresses are saved. /deletedata removes everything._
 
@@ -391,30 +384,30 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         ]
         text = "*Parks Maintenance*\nTrack unresolved complaints by park. Useful for choosing where to go."
 
-    elif service == "police":
-        keyboard = [
-            [InlineKeyboardButton("🚔 Crime Stats", callback_data="police_crime"),
-             InlineKeyboardButton("🛡️ Safety by District", callback_data="police_safety")],
-            [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
-        ]
-        text = "*🚔 Police & Crime*\nAPD incident stats and safety by district."
+    # elif service == "police":  # disabled
+    #     keyboard = [
+    #         [InlineKeyboardButton("🚔 Crime Stats", callback_data="police_crime"),
+    #          InlineKeyboardButton("🛡️ Safety by District", callback_data="police_safety")],
+    #         [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
+    #     ]
+    #     text = "*🚔 Police & Crime*\nAPD incident stats and safety by district."
 
-    elif service == "budget":
-        await query.edit_message_text("⏳ Fetching budget insights...")
-        try:
-            data = await asyncio.to_thread(_get_homeless_budget)
-            msg = _format_homeless_budget(data)
-        except Exception as e:
-            logger.error(f"service_budget: {e}")
-            await query.edit_message_text(f"❌ Error fetching budget data: {e}")
-            return
-        back = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]]
-        await query.edit_message_text(
-            msg, parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(back),
-            disable_web_page_preview=True,
-        )
-        return
+    # elif service == "budget":  # disabled
+    #     await query.edit_message_text("⏳ Fetching budget insights...")
+    #     try:
+    #         data = await asyncio.to_thread(_get_homeless_budget)
+    #         msg = _format_homeless_budget(data)
+    #     except Exception as e:
+    #         logger.error(f"service_budget: {e}")
+    #         await query.edit_message_text(f"❌ Error fetching budget data: {e}")
+    #         return
+    #     back = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]]
+    #     await query.edit_message_text(
+    #         msg, parse_mode="Markdown",
+    #         reply_markup=InlineKeyboardMarkup(back),
+    #         disable_web_page_preview=True,
+    #     )
+    #     return
 
     elif service == "water":
         await query.edit_message_text("⏳ Fetching water quality data...")
@@ -455,8 +448,8 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     keyboard = [
         [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
-        [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
+        # [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
+        # [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
         # [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
@@ -3479,9 +3472,9 @@ def create_application() -> Application:
             BotCommand("myalerts",    "View and manage your active alerts"),
             BotCommand("unsubscribe", "Cancel all alerts"),
             BotCommand("deletedata",  "Remove all your stored alert data"),
-            BotCommand("crime",       "APD incident stats — map · trends · homicides"),
-            BotCommand("safety",      "Crime by district — compare to city average"),
-            BotCommand("budget",      "City budget — homelessness services · spending"),
+            # BotCommand("crime",       "APD incident stats — map · trends · homicides"),
+            # BotCommand("safety",      "Crime by district — compare to city average"),
+            # BotCommand("budget",      "City budget — homelessness services · spending"),
             # BotCommand("rest",        "Restaurant inspections — worst scores · search"),
             BotCommand("help",        "All commands"),
             BotCommand("start",       "Main menu"),
@@ -3503,19 +3496,21 @@ def create_application() -> Application:
     # app.add_handler(CallbackQueryHandler(restaurants_lowscores_cb, pattern="^restaurants_lowscores"))
     # app.add_handler(CallbackQueryHandler(restaurants_grades_cb, pattern="^restaurants_grades"))
 
-    # Crime slash command + inline
-    app.add_handler(CommandHandler("crime", crime_command))
-    app.add_handler(CallbackQueryHandler(crime_compare_cb, pattern="^crime_compare_"))
-    app.add_handler(CallbackQueryHandler(crime_homicides_cb, pattern="^crime_homicides"))
+    # Crime slash command + inline (disabled)
+    # app.add_handler(CommandHandler("crime", crime_command))
+    # app.add_handler(CallbackQueryHandler(crime_compare_cb, pattern="^crime_compare_"))
+    # app.add_handler(CallbackQueryHandler(crime_homicides_cb, pattern="^crime_homicides"))
 
-    # Safety slash command + inline
-    app.add_handler(CommandHandler("safety", safety_command))
-    app.add_handler(CallbackQueryHandler(safety_district_cb, pattern="^safety_district_"))
+    # Safety slash command + inline (disabled)
+    # app.add_handler(CommandHandler("safety", safety_command))
+    # app.add_handler(CallbackQueryHandler(safety_district_cb, pattern="^safety_district_"))
 
-    # Police & Crime menu inline
-    app.add_handler(CallbackQueryHandler(police_crime_cb, pattern="^police_crime$"))
-    app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
-    app.add_handler(CommandHandler("budget", homeless_command))
+    # Police & Crime menu inline (disabled)
+    # app.add_handler(CallbackQueryHandler(police_crime_cb, pattern="^police_crime$"))
+    # app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
+
+    # Budget slash command (disabled)
+    # app.add_handler(CommandHandler("budget", homeless_command))
 
     # Restaurant slash command (disabled)
     # app.add_handler(CommandHandler("rest", restaurant_command))
