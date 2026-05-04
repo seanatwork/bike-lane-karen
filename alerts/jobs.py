@@ -4,6 +4,8 @@ import json
 import logging
 import math
 import os
+import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -227,6 +229,163 @@ def _fetch_311_recent(start: datetime) -> list[dict]:
         return []
 
 
+# Markdown legacy: escape chars that would break formatting in interpolated strings.
+_MD_ESCAPE_RE = re.compile(r'([\\*_`\[])')
+
+def _md_escape(s: str) -> str:
+    if not s:
+        return ""
+    return _MD_ESCAPE_RE.sub(r'\\\1', s)
+
+
+# Skip the language-preference question (matches animal map convention)
+_SKIP_DETAILS_RE = re.compile(r'preferred language|language for contact', re.IGNORECASE)
+
+
+def _fetch_ticket_page_details(req_id: str) -> list[str]:
+    """Scrape the Additional Details form answers from the 311 ticket page."""
+    try:
+        from bs4 import BeautifulSoup
+        url = f"https://311.austintexas.gov/tickets/{req_id}"
+        resp = requests.get(
+            url,
+            headers={"User-Agent": "austin311bot/0.1 (alerts)"},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        details: list[str] = []
+        for dt in soup.find_all("dt"):
+            if "Additional Details" in dt.get_text():
+                sibling = dt.find_next_sibling()
+                while sibling and sibling.name == "dd":
+                    text = sibling.get_text(" ", strip=True)
+                    if text and not _SKIP_DETAILS_RE.search(text):
+                        details.append(text)
+                    sibling = sibling.find_next_sibling()
+                break
+        return details
+    except Exception:
+        return []
+
+
+def _fetch_all_ticket_details(req_ids: list[str], max_workers: int = 10) -> dict[str, list[str]]:
+    """Fetch additional details for multiple tickets in parallel."""
+    results: dict[str, list[str]] = {}
+    if not req_ids:
+        return results
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_id = {executor.submit(_fetch_ticket_page_details, rid): rid for rid in req_ids}
+        for future in as_completed(future_to_id):
+            rid = future_to_id[future]
+            try:
+                results[rid] = future.result()
+            except Exception:
+                results[rid] = []
+    return results
+
+
+def _format_311_card(r: dict, details: list[str]) -> str:
+    """Render one 311 report as a Markdown block matching the map popup."""
+    svc = r.get("service_name") or "Unknown"
+    icon = _service_icon(svc)
+    req_id = r.get("service_request_id") or ""
+    status_raw = (r.get("status") or "").lower()
+    status_emoji = "🔴" if status_raw == "open" else "🟢"
+    status_label = "Open" if status_raw == "open" else "Closed"
+
+    filed = (r.get("requested_datetime") or "").split("T")[0]
+    updated = (r.get("updated_datetime") or "").split("T")[0]
+    address = (r.get("address") or "").strip()
+    description = (r.get("description") or "").strip()
+    status_notes = (r.get("status_notes") or "").strip()
+
+    try:
+        lat = float(r["lat"]); lon = float(r["long"])
+    except Exception:
+        lat = lon = None
+
+    # Header line: icon + bold service name + ticket link
+    if req_id:
+        ticket_url = f"https://311.austintexas.gov/tickets/{req_id}"
+        header = f"{icon} *{_md_escape(svc)}* · [#{_md_escape(str(req_id))}]({ticket_url})"
+    else:
+        header = f"{icon} *{_md_escape(svc)}*"
+
+    lines = [header]
+
+    # Status / dates
+    meta = f"{status_emoji} {status_label}"
+    if filed:
+        meta += f" · Filed {filed}"
+    if updated and updated != filed:
+        meta += f" · Updated {updated}"
+    lines.append(meta)
+
+    # Address with Google Maps link
+    if address and lat is not None and lon is not None:
+        maps_url = f"https://www.google.com/maps/search/?api=1&query={lat},{lon}"
+        lines.append(f"📍 [{_md_escape(address)}]({maps_url})")
+    elif address:
+        lines.append(f"📍 {_md_escape(address)}")
+
+    # Description (or resolution notes for closed tickets)
+    if description:
+        body = description if len(description) <= 240 else description[:240].rstrip() + "…"
+        lines.append(f"_{_md_escape(body)}_")
+    elif status_notes:
+        label = "Resolution" if status_raw == "closed" else "Notes"
+        body = status_notes if len(status_notes) <= 240 else status_notes[:240].rstrip() + "…"
+        lines.append(f"_{label}: {_md_escape(body)}_")
+
+    # Additional Details scraped from the ticket page
+    if details:
+        shown = details[:4]
+        for d in shown:
+            d_short = d if len(d) <= 160 else d[:160].rstrip() + "…"
+            lines.append(f"  • {_md_escape(d_short)}")
+
+    return "\n".join(lines)
+
+
+def _format_nearby_message(
+    yesterday: datetime,
+    radius: float,
+    nearby: list[dict],
+    ticket_details: dict[str, list[str]],
+    max_show: int = 10,
+) -> str:
+    radius_label = f"{radius:.2g} mi"
+    total = len(nearby)
+
+    # Newest first
+    nearby_sorted = sorted(
+        nearby,
+        key=lambda r: r.get("requested_datetime") or "",
+        reverse=True,
+    )
+    shown = nearby_sorted[:max_show]
+    cards = [
+        _format_311_card(r, ticket_details.get(r.get("service_request_id") or "", []))
+        for r in shown
+    ]
+    body = "\n\n".join(cards)
+
+    overflow = total - len(shown)
+    overflow_line = f"\n\n_…and {overflow} more nearby_" if overflow > 0 else ""
+
+    return (
+        f"📍 *Nearby 311 Reports — {yesterday.strftime('%b %-d')}*\n"
+        f"_Within {radius_label} of your location_\n\n"
+        f"*{total}* new request{'s' if total != 1 else ''}:\n\n"
+        f"{body}"
+        f"{overflow_line}\n\n"
+        f"[View all maps →](https://austin311.com)\n"
+        f"_/myalerts to manage_"
+    )
+
+
 async def nearby_311_job(context) -> None:
     """Send daily digest of 311 requests near each subscriber's location."""
     db.prune_sent_log()
@@ -240,12 +399,10 @@ async def nearby_311_job(context) -> None:
 
     # Fetch once, filter per subscription
     all_requests = _fetch_311_recent(yesterday)
-    # Keep only requests with valid lat/long
-    geotagged = [
-        r for r in all_requests
-        if r.get("lat") and r.get("long")
-    ]
+    geotagged = [r for r in all_requests if r.get("lat") and r.get("long")]
 
+    # First pass: validate subs, compute nearby reports, mark sent
+    pending: list[tuple[int, int, float, list[dict]]] = []
     for sub in subs:
         sub_id  = sub["id"]
         chat_id = sub["chat_id"]
@@ -253,7 +410,6 @@ async def nearby_311_job(context) -> None:
             continue
         if db.already_sent(sub_id, today_str):
             continue
-
         try:
             p = json.loads(sub["params"])
             center_lat = float(p["lat"])
@@ -267,38 +423,31 @@ async def nearby_311_job(context) -> None:
             if _haversine_miles(center_lat, center_lon,
                                 float(r["lat"]), float(r["long"])) <= radius
         ]
-
         db.mark_sent(sub_id, today_str)
         if not nearby:
             continue
+        pending.append((sub_id, chat_id, radius, nearby))
 
-        # Group by service name
-        by_service: dict[str, int] = {}
-        for r in nearby:
-            svc = r.get("service_name", "Unknown")
-            by_service[svc] = by_service.get(svc, 0) + 1
-        top = sorted(by_service.items(), key=lambda x: -x[1])[:8]
+    if not pending:
+        return
 
-        radius_label = f"{radius:.2g} mi"
-        lines = "\n".join(
-            f"  {_service_icon(svc)} {svc}: {cnt}"
-            for svc, cnt in top
-        )
-        others = len(nearby) - sum(cnt for _, cnt in top)
-        if others > 0:
-            lines += f"\n  📋 Other: {others}"
+    # Collect unique req_ids across all subs (capped per-sub to what we'll show)
+    unique_ids: set[str] = set()
+    for _, _, _, nearby in pending:
+        for r in sorted(nearby, key=lambda x: x.get("requested_datetime") or "", reverse=True)[:10]:
+            rid = r.get("service_request_id")
+            if rid:
+                unique_ids.add(rid)
 
-        msg = (
-            f"📍 *Nearby 311 Reports — {yesterday.strftime('%b %-d')}*\n"
-            f"_Within {radius_label} of your location_\n\n"
-            f"*{len(nearby)}* new request{'s' if len(nearby) != 1 else ''}:\n"
-            f"{lines}\n\n"
-            f"[View all maps →](https://austin311.com)\n"
-            f"_/myalerts to manage_"
-        )
+    ticket_details = _fetch_all_ticket_details(list(unique_ids))
+
+    for sub_id, chat_id, radius, nearby in pending:
+        msg = _format_nearby_message(yesterday, radius, nearby, ticket_details)
         try:
-            await context.bot.send_message(chat_id=chat_id, text=msg,
-                parse_mode="Markdown", disable_web_page_preview=True)
+            await context.bot.send_message(
+                chat_id=chat_id, text=msg,
+                parse_mode="Markdown", disable_web_page_preview=True,
+            )
         except Exception as e:
             logger.error(f"nearby_311 send sub={sub_id}: {e}")
 

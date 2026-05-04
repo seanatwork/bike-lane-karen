@@ -17,13 +17,13 @@ import logging
 import re
 import time
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, WebAppInfo
 
 load_dotenv()
 
 from alerts import db as alerts_db
 from alerts.handlers import register_alert_handlers
-from alerts.jobs import crime_daily_job, district_digest_job, nearby_311_job, animal_nearby_job, crash_nearby_job
+from alerts.jobs import nearby_311_job, animal_nearby_job, crash_nearby_job
 
 from telegram.ext import (
     Application,
@@ -131,17 +131,6 @@ from parks.parks_bot import (
     format_unified_overview,
     build_park_name_keyboard,
 )
-
-
-# Restaurant inspections service (disabled)
-# from restaurants.restaurant_bot import (
-#     search_restaurants,
-#     get_lowest_scoring,
-#     get_grade_distribution,
-#     format_search_results,
-#     format_low_scores,
-#     format_grade_distribution,
-# )
 
 
 logging.basicConfig(
@@ -252,11 +241,17 @@ async def _send_chunked(target, text: str, parse_mode: str = "Markdown", reply_m
 
 @rate_limited
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # Deep-link payload from t.me/austin311bot?start=<payload> arrives as context.args[0].
+    if context.args:
+        payload = context.args[0]
+        if payload.startswith("sub_"):
+            from alerts.handlers import start_subscribe_with_location
+            handled = await start_subscribe_with_location(update, context, payload)
+            if handled:
+                return
+
     keyboard = [
         [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
-        # [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        # [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
-        # [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await update.message.reply_text(
@@ -270,8 +265,6 @@ _HELP_TEXT = """📡 *Austin 311 Bot*
 
 🔔 *Alerts:*
 /subscribe — Push alerts for your area:
-  · Daily crime report (by district)
-  · Weekly district crime digest
   · Nearby 311 reports
   · Animal incidents (loose dogs, bites, coyotes)
   · Crashes near you
@@ -317,14 +310,6 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
         ]
         text = "*🚴 Bicycle Complaints*\nRecent complaints and statistics from Open311."
-
-    # elif service == "restaurants":  # disabled
-    #     keyboard = [
-    #         [InlineKeyboardButton("💩 Worst Scores", callback_data="restaurants_lowscores"),
-    #          InlineKeyboardButton("📊 Grade Report", callback_data="restaurants_grades")],
-    #         [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
-    #     ]
-    #     text = "*🍽️ Restaurant Inspections*\nSearch by name/address or see worst scores.\n\nTo search, type: `/rest <name>`"
 
     elif service == "animal":
         keyboard = [
@@ -384,31 +369,6 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         ]
         text = "*Parks Maintenance*\nTrack unresolved complaints by park. Useful for choosing where to go."
 
-    # elif service == "police":  # disabled
-    #     keyboard = [
-    #         [InlineKeyboardButton("🚔 Crime Stats", callback_data="police_crime"),
-    #          InlineKeyboardButton("🛡️ Safety by District", callback_data="police_safety")],
-    #         [InlineKeyboardButton("🔙 Back", callback_data="back_to_main")],
-    #     ]
-    #     text = "*🚔 Police & Crime*\nAPD incident stats and safety by district."
-
-    # elif service == "budget":  # disabled
-    #     await query.edit_message_text("⏳ Fetching budget insights...")
-    #     try:
-    #         data = await asyncio.to_thread(_get_homeless_budget)
-    #         msg = _format_homeless_budget(data)
-    #     except Exception as e:
-    #         logger.error(f"service_budget: {e}")
-    #         await query.edit_message_text(f"❌ Error fetching budget data: {e}")
-    #         return
-    #     back = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]]
-    #     await query.edit_message_text(
-    #         msg, parse_mode="Markdown",
-    #         reply_markup=InlineKeyboardMarkup(back),
-    #         disable_web_page_preview=True,
-    #     )
-    #     return
-
     elif service == "water":
         await query.edit_message_text("⏳ Fetching water quality data...")
         try:
@@ -448,9 +408,6 @@ async def back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await query.answer()
     keyboard = [
         [InlineKeyboardButton("🔔 Alerts & Subscriptions", callback_data="alerts_menu")],
-        # [InlineKeyboardButton("🚔 Police & Crime", callback_data="service_police")],
-        # [InlineKeyboardButton("💰🏦 City Budget", callback_data="service_budget")],
-        # [InlineKeyboardButton("🍽️ Restaurants", callback_data="service_restaurants")],
         [InlineKeyboardButton("ℹ️ About", callback_data="about")],
     ]
     await query.edit_message_text(
@@ -472,7 +429,7 @@ async def alerts_menu_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         [InlineKeyboardButton("🔙 Back",                 callback_data="back_to_main")],
     ]
     await query.edit_message_text(
-        "🔔 *Alerts & Subscriptions*\n\nGet push notifications for crime, 311 reports, animal incidents, and crashes near you.",
+        "🔔 *Alerts & Subscriptions*\n\nGet push notifications for 311 reports, animal incidents, crashes, and crime reports near you.",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -497,8 +454,8 @@ async def about_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 @rate_limited
 async def graffiti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("🗺️ Open Map", url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/"),
-         InlineKeyboardButton("📈 Trends", url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/trends/")],
+        [InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/")),
+         InlineKeyboardButton("📈 Trends", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/trends/"))],
     ]
     await update.message.reply_text(
         "🎨 *Graffiti Abatement Reports*\n\nMap and monthly trends for graffiti abatement requests citywide. Filter by status (open/closed) and time window (30d/60d/90d).",
@@ -541,7 +498,7 @@ async def bicycle_ticket_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 @rate_limited
 async def bicycle_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [[InlineKeyboardButton("🗺️ Open Map", url="https://seanatwork.github.io/austin311bot-unofficial/bicycle/")]]
+    keyboard = [[InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/bicycle/"))]]
     await update.message.reply_text(
         "🚴 *Bicycle Infrastructure Reports*\n\n"
         "https://seanatwork.github.io/austin311bot-unofficial/bicycle/\n\n"
@@ -581,57 +538,6 @@ async def ticket_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     except Exception as e:
         logger.error(f"ticket cmd: {e}")
         await update.message.reply_text(f"❌ Error: {e}")
-
-
-# =============================================================================
-# RESTAURANT HANDLERS (disabled)
-# =============================================================================
-
-# async def restaurants_lowscores_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     query = update.callback_query
-#     await query.answer()
-#     await query.edit_message_text("⏳ Fetching worst inspection scores...")
-#     try:
-#         restaurants = await asyncio.to_thread(lambda: get_lowest_scoring(10))
-#         await _send_chunked(query, format_low_scores(restaurants))
-#     except Exception as e:
-#         logger.error(f"restaurants lowscores: {e}")
-#         await query.edit_message_text(f"❌ Error: {e}")
-#
-#
-# async def restaurants_grades_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     query = update.callback_query
-#     await query.answer()
-#     await query.edit_message_text("⏳ Loading grade report... (first load may take ~15s while fetching a full year of data)")
-#     try:
-#         data = await asyncio.to_thread(get_grade_distribution)
-#         await _send_chunked(query, format_grade_distribution(data))
-#     except Exception as e:
-#         logger.error(f"restaurants grades: {e}")
-#         await query.edit_message_text(f"❌ Error: {e}")
-#
-#
-# @rate_limited
-# async def restaurant_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-#     if context.args:
-#         search_term = " ".join(context.args)
-#         await update.message.reply_text(f"🔍 Searching for: {search_term}...")
-#         try:
-#             results = await asyncio.to_thread(lambda: search_restaurants(search_term))
-#             await _send_chunked(update.message, format_search_results(results, search_term))
-#         except Exception as e:
-#             logger.error(f"restaurant search cmd: {e}")
-#             await update.message.reply_text(f"❌ Error: {e}")
-#         return
-#     keyboard = [
-#         [InlineKeyboardButton("💩 Worst Scores", callback_data="restaurants_lowscores"),
-#          InlineKeyboardButton("📊 Grade Report", callback_data="restaurants_grades")],
-#     ]
-#     await update.message.reply_text(
-#         "*🍽️ Restaurant Inspections*\nChoose a view, or type `/rest <name>` to search:",
-#         parse_mode="Markdown",
-#         reply_markup=InlineKeyboardMarkup(keyboard),
-#     )
 
 
 # =============================================================================
@@ -1212,8 +1118,8 @@ async def noise_night_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 @rate_limited
 async def noisecomplaints_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("🗺️ Open Map", url="https://seanatwork.github.io/austin311bot-unofficial/noise/"),
-         InlineKeyboardButton("📈 Trends", url="https://seanatwork.github.io/austin311bot-unofficial/noise/trends/")],
+        [InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/noise/")),
+         InlineKeyboardButton("📈 Trends", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/noise/trends/"))],
         [InlineKeyboardButton("🗺️ Hotspots", callback_data="noise_hotspots"),
          InlineKeyboardButton("🕐 Peak Times", callback_data="noise_peak")],
         [InlineKeyboardButton("📋 Resolution by Type", callback_data="noise_resolution"),
@@ -1866,821 +1772,6 @@ def _submit_311_report(user_data: dict) -> dict:
 
 
 # =============================================================================
-# CRIME DATA COMMAND (APD Crime Reports)
-# =============================================================================
-
-
-# Human-readable labels for raw APD crime_type values that are ambiguous or jargon-heavy.
-# "Family Disturbance" = non-violent domestic dispute (officers keep the peace).
-# "Family Violence"    = physical assault between family members / intimate partners (DV).
-_CRIME_TYPE_LABELS: dict[str, str] = {
-    "Family Disturbance":          "Family Disturbance (non-violent domestic dispute)",
-    "Family Violence":             "Family/Domestic Violence (physical assault)",
-    "Auto Theft":                  "Auto Theft (vehicle stolen)",
-    "Burglary of Vehicle":         "Burglary of Vehicle (break-in, not stolen)",
-    "Criminal Mischief":           "Criminal Mischief (vandalism/property damage)",
-    "Disturbance - Other":         "Disturbance (non-family, non-violent)",
-    "Assault W/Injury-Fv":         "Assault with Injury — Domestic Violence",
-    "Assault W/Injury":            "Assault with Injury (non-domestic)",
-    "Terroristic Threat-Family":   "Terroristic Threat — Domestic",
-    "Harassment":                  "Harassment",
-}
-
-
-def _crime_label(raw: str) -> str:
-    """Return a clearer display label for a raw APD crime_type string."""
-    return _CRIME_TYPE_LABELS.get(raw, raw)
-
-
-def _get_crime_stats(start_date: str, end_date: str = None) -> dict:
-    """Query APD Crime Reports API between two dates (YYYY-MM-DD)."""
-    from datetime import datetime, timezone
-    url = "https://data.austintexas.gov/resource/fdj4-gpfu.json"
-
-    where = f"occ_date >= '{start_date}'"
-    if end_date:
-        where += f" AND occ_date <= '{end_date}'"
-
-    params = {"$where": where, "$limit": 5000}
-    app_token = os.getenv("AUSTINAPIKEY", "")
-    headers = {"X-App-Token": app_token} if app_token else {}
-
-    try:
-        resp = requests.get(url, params=params, headers=headers, timeout=30)
-        if resp.status_code == 200:
-            data = resp.json()
-            crime_types = {}
-            cleared = 0
-            for incident in data:
-                ct = incident.get("crime_type", "Unknown")
-                crime_types[ct] = crime_types.get(ct, 0) + 1
-                if incident.get("clearance_status") == "C":
-                    cleared += 1
-            top_crimes = sorted(crime_types.items(), key=lambda x: -x[1])[:5]
-            return {"total": len(data), "cleared": cleared, "top_crimes": top_crimes}
-    except Exception as e:
-        logger.error(f"crime stats: {e}")
-
-    return {"total": 0, "cleared": 0, "top_crimes": []}
-
-
-# Austin city population estimates by year (US Census / City of Austin projections)
-AUSTIN_POPULATION = {
-    2014: 912_791,
-    2015: 931_830,
-    2016: 950_715,
-    2017: 964_177,
-    2018: 978_908,
-    2019: 994_137,
-    2020: 961_855,   # Census count (undercounting noted by city)
-    2021: 974_447,
-    2022: 979_882,
-    2023: 985_000,
-    2024: 995_000,
-    2025: 1_005_000,
-    2026: 1_015_000,
-}
-
-
-def _austin_population(year: int) -> int | None:
-    """Return the best population estimate for a given year."""
-    if year in AUSTIN_POPULATION:
-        return AUSTIN_POPULATION[year]
-    # Clamp to known range rather than extrapolate wildly
-    if year < min(AUSTIN_POPULATION):
-        return AUSTIN_POPULATION[min(AUSTIN_POPULATION)]
-    if year > max(AUSTIN_POPULATION):
-        return AUSTIN_POPULATION[max(AUSTIN_POPULATION)]
-    return None
-
-
-def _format_crime_stats(stats: dict, label: str) -> str:
-    total = stats['total']
-    clearance_pct = round(stats['cleared'] / total * 100) if total else 0
-    msg = f"*{label}*\n"
-    msg += f"📊 *{total}* total incidents\n"
-    msg += f"✅ {clearance_pct}% cleared\n"
-    if stats['top_crimes']:
-        msg += "*Top Crime Types:*\n"
-        for crime, count in stats['top_crimes']:
-            pct = round(count / total * 100) if total else 0
-            msg += f"• {_crime_label(crime)}: {count} ({pct}%)\n"
-    msg += f"\n_Source: [APD Crime Reports](https://data.austintexas.gov/d/fdj4-gpfu)_\n"
-    return msg
-
-
-def _get_nibrs_homicides() -> list:
-    """Fetch all homicide offenses from NIBRS Group A dataset."""
-    resp = requests.get(
-        "https://data.austintexas.gov/resource/i7fg-wrk5.json",
-        params={"$where": "nibrs_group='Homicide Offenses'", "$limit": 2000},
-        timeout=20,
-    )
-    resp.raise_for_status()
-    return resp.json()
-
-
-async def crime_homicides_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Fetching homicide data...")
-    try:
-        records = await asyncio.to_thread(_get_nibrs_homicides)
-        if not records:
-            await query.edit_message_text("📝 No homicide records found.")
-            return
-
-        # Short labels for nibrs_desc
-        TYPE_LABELS = {
-            "09A Homicide: Murder and Non- Negligent Manslaughter": "Murder / Non-Neg. Manslaughter",
-            "09B Homicide: Negligent Manslaughter":                  "Negligent Manslaughter",
-            "09C Homicide: Justifiable Homicide (NOT A CRIME)":      "Justifiable Homicide",
-        }
-        CLEARED = {"CLEARED BY ARREST", "CLEARED EXCEPTIONALLY", "CLEARED ADMINISTRATIVELY"}
-
-        by_year: dict = {}
-        for r in records:
-            year = int(r.get("occ_year") or 0)
-            if not year:
-                continue
-            if year not in by_year:
-                by_year[year] = {"total": 0, "cleared": 0, "types": {}}
-            by_year[year]["total"] += 1
-            if r.get("internal_clearance_status") in CLEARED:
-                by_year[year]["cleared"] += 1
-            label = TYPE_LABELS.get(r.get("nibrs_desc", ""), r.get("nibrs_desc", "Unknown"))
-            by_year[year]["types"][label] = by_year[year]["types"].get(label, 0) + 1
-
-        years = sorted(y for y in by_year if y >= 2019)
-        cur_year = datetime.now(timezone.utc).year
-        cur_month = datetime.now(timezone.utc).month
-
-        # YTD comparison: current year vs last year same months
-        ytd_now = sum(
-            1 for r in records
-            if int(r.get("occ_year") or 0) == cur_year
-        )
-        ytd_prev = sum(
-            1 for r in records
-            if int(r.get("occ_year") or 0) == cur_year - 1
-            and datetime.strptime(r["occurred_date"][:7], "%Y-%m").month <= cur_month
-        )
-        if ytd_prev > 0:
-            ytd_pct = round((ytd_now - ytd_prev) / ytd_prev * 100)
-            ytd_arrow = "📈" if ytd_pct > 0 else "📉" if ytd_pct < 0 else "➡️"
-            ytd_str = f"{ytd_arrow} {cur_year} YTD: *{ytd_now}* vs {cur_year-1} same period: *{ytd_prev}* ({'+' if ytd_pct > 0 else ''}{ytd_pct}%)"
-        else:
-            ytd_str = f"📊 {cur_year} YTD: *{ytd_now}*"
-
-        # Overall clearance rate (excluding current partial year)
-        full_years = [y for y in years if y < cur_year]
-        total_full = sum(by_year[y]["total"] for y in full_years)
-        cleared_full = sum(by_year[y]["cleared"] for y in full_years)
-        open_full = sum(
-            1 for r in records
-            if int(r.get("occ_year") or 0) in full_years
-            and r.get("internal_clearance_status") == "OPEN"
-        )
-        clearance_pct = round(cleared_full / total_full * 100) if total_full else 0
-
-        msg = "⚰️ *Austin Homicides — NIBRS Data*\n"
-        msg += f"_Murder, manslaughter & justifiable homicide · 2019–{cur_year}_\n\n"
-        msg += f"{ytd_str}\n"
-        msg += f"🔍 *Clearance rate:* {clearance_pct}% solved · 🔴 *Open/unsolved:* {open_full} ({min(full_years)}–{max(full_years)})\n\n"
-
-        msg += "*Year-by-year (per 100k population):*\n"
-        max_total = max(by_year[y]["total"] for y in years)
-        for year in years:
-            d = by_year[year]
-            pop = _austin_population(year)
-            rate = round(d["total"] / pop * 100_000, 1) if pop else None
-            rate_str = f"  _{rate}/100k_" if rate else ""
-            bar = "█" * min(10, round(d["total"] / max_total * 10))
-            suffix = " *(partial)*" if year == cur_year else ""
-            msg += f"*{year}:* {bar} {d['total']}{rate_str}{suffix}\n"
-
-        # Type breakdown across all years
-        type_totals: dict = {}
-        for d in by_year.values():
-            for t, c in d["types"].items():
-                type_totals[t] = type_totals.get(t, 0) + c
-        msg += "\n*By offense type (all years):*\n"
-        total_all = sum(type_totals.values())
-        for t, c in sorted(type_totals.items(), key=lambda x: -x[1]):
-            pct = round(c / total_all * 100)
-            msg += f"  • {t}: {c} ({pct}%)\n"
-
-        msg += "\n_Source: [APD NIBRS Data](https://data.austintexas.gov/d/i7fg-wrk5)_"
-        await _send_chunked(query, msg)
-    except Exception as e:
-        logger.error(f"crime homicides: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
-
-@rate_limited
-async def crime_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    from datetime import datetime, timedelta, timezone
-    await update.message.reply_text("⏳ Fetching crime data...")
-    try:
-        now = datetime.now(timezone.utc)
-        start = now - timedelta(days=30)
-        start_str = start.strftime("%Y-%m-%d")
-        end_str = now.strftime("%Y-%m-%d")
-        label = f"🚔 APD Crime — {start.strftime('%b %d')} to {now.strftime('%b %d, %Y')}"
-
-        stats = await asyncio.to_thread(_get_crime_stats, start_str, end_str)
-        msg = _format_crime_stats(stats, label)
-
-        keyboard = [
-            [InlineKeyboardButton("🗺️ View Map", url="https://seanatwork.github.io/austin311bot-unofficial/crime/"),
-             InlineKeyboardButton("📈 Trends", url="https://seanatwork.github.io/austin311bot-unofficial/crime/trends/")],
-            [InlineKeyboardButton("📅 Compare to 10 years ago", callback_data=f"crime_compare_{start_str}_{end_str}")],
-            [InlineKeyboardButton("⚰️ Homicides (2019–present)", callback_data="crime_homicides")],
-            [InlineKeyboardButton("🔔 Subscribe to crime alerts", callback_data="subscribe_start")],
-        ]
-        await update.message.reply_text(
-            msg,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-    except Exception as e:
-        logger.error(f"crime command: {e}")
-        await update.message.reply_text(f"❌ Error fetching crime data: {e}")
-
-
-async def crime_compare_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-
-    # Parse the current window dates from callback data
-    _, _, start_str, end_str = query.data.split("_", 3)
-
-    await query.edit_message_reply_markup(reply_markup=None)
-    await query.message.reply_text("⏳ Fetching data from 10 years ago...")
-
-    try:
-        from datetime import datetime, timedelta, timezone
-        start_then = datetime.strptime(start_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        end_then = datetime.strptime(end_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
-        start_10y = (start_then.replace(year=start_then.year - 10)).strftime("%Y-%m-%d")
-        end_10y = (end_then.replace(year=end_then.year - 10)).strftime("%Y-%m-%d")
-
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-            f_now = pool.submit(_get_crime_stats, start_str, end_str)
-            f_then = pool.submit(_get_crime_stats, start_10y, end_10y)
-            stats_now = f_now.result()
-            stats_then = f_then.result()
-
-        year_now = datetime.strptime(end_str, "%Y-%m-%d").year
-        year_then = datetime.strptime(end_10y, "%Y-%m-%d").year
-        pop_now = _austin_population(year_now)
-        pop_then = _austin_population(year_then)
-
-        now_label = f"🚔 APD Crime — {datetime.strptime(start_str, '%Y-%m-%d').strftime('%b %d')} to {datetime.strptime(end_str, '%Y-%m-%d').strftime('%b %d, %Y')}"
-        then_label = f"📅 Same Period — {datetime.strptime(start_10y, '%Y-%m-%d').strftime('%b %d')} to {datetime.strptime(end_10y, '%Y-%m-%d').strftime('%b %d, %Y')}"
-
-        msg = _format_crime_stats(stats_now, now_label)
-        msg += "\n"
-        msg += _format_crime_stats(stats_then, then_label)
-
-        if stats_then['total'] > 0 and pop_now and pop_then:
-            # Scale 30-day window to annualised per-100k for a fair comparison
-            rate_now = round(stats_now['total'] / pop_now * 100_000)
-            rate_then = round(stats_then['total'] / pop_then * 100_000)
-            rate_diff = rate_now - rate_then
-            rate_pct = round(abs(rate_diff) / rate_then * 100)
-            direction = "📈" if rate_diff > 0 else "📉"
-            msg += f"\n*Per-capita rate (per 100k residents):*\n"
-            msg += f"{direction} {rate_now}/100k now vs. {rate_then}/100k in {year_then}\n"
-            msg += f"{'Up' if rate_diff > 0 else 'Down'} *{rate_pct}%* adjusted for population growth\n"
-            msg += f"_Austin population: ~{pop_now:,} ({year_now}) vs. ~{pop_then:,} ({year_then})_"
-        elif stats_then['total'] > 0:
-            diff = stats_now['total'] - stats_then['total']
-            pct = round(abs(diff) / stats_then['total'] * 100)
-            direction = "📈 up" if diff > 0 else "📉 down"
-            msg += f"\n{direction} *{pct}%* raw vs. 10 years ago ({diff:+,} incidents)"
-
-        await query.message.reply_text(msg, parse_mode="Markdown")
-    except Exception as e:
-        logger.error(f"crime compare cb: {e}")
-        await query.message.reply_text(f"❌ Error: {e}")
-
-
-# Neighborhood to Council District mapping for /safety command
-NEIGHBORHOOD_TO_DISTRICT = {
-    # District 1 - East Austin
-    "east austin": "1", "east side": "1", "cherrywood": "1", "manor park": "1",
-    "upper boggy creek": "1", "windemere": "1", "harris branch": "1",
-    "delwood": "1", "mlk": "1", "bartholomew park": "1",
-    
-    # District 2 - Southeast Austin
-    "southeast austin": "2", "riverside": "2", "montopolis": "2", "pleasant valley": "2",
-    "springdale": "2", "east riverside": "2", "ocky chase": "2", " Franklin park": "2",
-    "govalle": "2", "gracywoods": "2",
-    
-    # District 3 - South Austin
-    "south austin": "3", "south congress": "3", "soco": "3", "barton hills": "3",
-    "zilker": "3", "bouldin creek": "3", "galindo": "3", "south lamar": "3",
-    "westgate": "3", "sunset valley": "3", "manchaca": "3", "shady hollow": "3",
-    "slaughter": "3", "onion creek": "3",
-    
-    # District 4 - Northeast Austin
-    "northeast austin": "4", "highland": "4", "north lamar": "4", "windsor park": "4",
-    "chestnut": "4", "pecan springs": "4", " MLK 183": "4", "mueller": "4",
-    "barbara jordan": "4", "cambridge heights": "4", "sherwood heights": "4",
-    
-    # District 5 - Central Austin
-    "downtown": "5", "west campus": "5", "hyde park": "5", "north university": "5",
-    "clarksville": "5", "old west austin": "5", "tarrytown": "5", "rollingwood": "5",
-    "west lake hills": "5", "casanova": "5", "westfield": "5",
-    
-    # District 6 - Northwest Austin
-    "northwest austin": "6", "great hills": "6", "canyon creek": "6", "jollyville": "6",
-    "balcones": "6", "flintrock": "6", "four points": "6", "steiner ranch": "6",
-    "river place": "6", "cat hollow": "6", "milwood": "6", "rattan creek": "6",
-    
-    # District 7 - North Austin
-    "north austin": "7", "north loop": "7", "brentwood": "7", "crestview": "7",
-    "allandale": "7", "wooten": "7", "north shoal creek": "7", "lincoln village": "7",
-    "gracywoods": "7", "quail creek": "7", "village at anderson mill": "7",
-    
-    # District 8 - Southwest Austin
-    "southwest austin": "8", "circle c": "8", "travis country": "8", "village square": "8",
-    "avery ranch": "8", "brushy creek": "8", "cat mountain": "8", "davenport": "8",
-    "four points": "8", "lakeway": "8", "lake pointe": "8",
-    
-    # District 9 - Central/South Austin
-    "mueller": "9", "east caesar chavez": "9", "rosewood": "9", "chestnut": "9",
-    "east 11th": "9", "french place": "9", "holly": "9", "boggy creek": "9",
-    "east cesar chavez": "9", "east sixth": "9",
-    
-    # District 10 - Far Northwest Austin
-    "cedar park": "10", "leander": "10", "brushy creek": "10", "lago vista": "10",
-    "steiner ranch": "10", "river place": "10", "lakewood": "10", "slaughter": "10",
-    "teravista": "10", "palmera ridge": "10",
-}
-
-
-def _resolve_district(input_str: str) -> tuple[str, str]:
-    """Resolve district number or neighborhood name to district.
-    Returns (district, display_name) or (None, error_message)
-    """
-    input_lower = input_str.lower().strip()
-    
-    # Check if it's a district number 1-10
-    if input_str.isdigit():
-        district = int(input_str)
-        if 1 <= district <= 10:
-            return (str(district), f"District {district}")
-        return (None, "District must be 1-10")
-    
-    # Check neighborhood mapping
-    if input_lower in NEIGHBORHOOD_TO_DISTRICT:
-        district = NEIGHBORHOOD_TO_DISTRICT[input_lower]
-        return (district, f"{input_str.title()} (District {district})")
-    
-    # Try partial match
-    matches = [(n, d) for n, d in NEIGHBORHOOD_TO_DISTRICT.items() if input_lower in n or n in input_lower]
-    if matches:
-        # Return the first match
-        neighborhood, district = matches[0]
-        return (district, f"{neighborhood.title()} (District {district})")
-    
-    # List valid options for user
-    neighborhoods = ", ".join(sorted(set(NEIGHBORHOOD_TO_DISTRICT.keys()))[:15]) + "..."
-    return (None, f"Unknown neighborhood. Try: {neighborhoods} or use district 1-10")
-
-
-DISTRICT_LABELS = {
-    "1": "1 · East",
-    "2": "2 · SE Austin",
-    "3": "3 · South",
-    "4": "4 · NE Austin",
-    "5": "5 · Central",
-    "6": "6 · NW Austin",
-    "7": "7 · North",
-    "8": "8 · SW Austin",
-    "9": "9 · E Central",
-    "10": "10 · Far NW",
-}
-
-
-@rate_limited
-async def safety_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [
-        [InlineKeyboardButton(DISTRICT_LABELS[str(d)], callback_data=f"safety_district_{d}") for d in pair]
-        for pair in [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
-    ]
-    await update.message.reply_text(
-        "🔍 *Safety by District*\n\nPick a council district to see crime stats and how it compares to the rest of Austin:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-
-async def safety_district_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    district = query.data.replace("safety_district_", "")
-    label = DISTRICT_LABELS.get(district, f"District {district}")
-    await query.edit_message_text(f"⏳ Fetching crime data for {label}...")
-
-    try:
-        from datetime import datetime, timedelta, timezone
-        start_date = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
-        url = "https://data.austintexas.gov/resource/fdj4-gpfu.json"
-        app_token = os.getenv("AUSTINAPIKEY", "")
-        headers = {"X-App-Token": app_token} if app_token else {}
-
-        # Fetch district data and citywide data in parallel via two requests
-        import concurrent.futures
-
-        def fetch(params):
-            r = requests.get(url, params=params, headers=headers, timeout=30)
-            r.raise_for_status()
-            return r.json()
-
-        district_params = {
-            "$where": f"council_district='{district}' AND occ_date >= '{start_date}'",
-            "$limit": 1000,
-        }
-        city_params = {
-            "$where": f"occ_date >= '{start_date}'",
-            "$limit": 5000,
-        }
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-            f_district = pool.submit(fetch, district_params)
-            f_city = pool.submit(fetch, city_params)
-            district_data = f_district.result()
-            city_data = f_city.result()
-
-        d_total = len(district_data)
-        city_total = len(city_data)
-
-        if d_total == 0:
-            await query.edit_message_text(f"✅ No incidents reported in {label} (last 30 days)")
-            return
-
-        # Per-district counts from citywide data for ranking
-        district_counts = {}
-        for inc in city_data:
-            d = inc.get("council_district", "Unknown")
-            district_counts[d] = district_counts.get(d, 0) + 1
-
-        ranked = sorted(district_counts.items(), key=lambda x: -x[1])
-        rank = next((i + 1 for i, (d, _) in enumerate(ranked) if d == district), None)
-        num_districts = len(ranked)
-        city_avg = round(city_total / num_districts) if num_districts else 0
-        pct_of_city = round(d_total / city_total * 100) if city_total else 0
-        diff = d_total - city_avg
-        vs_avg = f"+{diff} above avg" if diff > 0 else f"{abs(diff)} below avg"
-
-        # Crime type breakdown for this district
-        crime_types = {}
-        cleared = 0
-        for inc in district_data:
-            ct = inc.get("crime_type", "Unknown")
-            crime_types[ct] = crime_types.get(ct, 0) + 1
-            if inc.get("clearance_status") == "C":
-                cleared += 1
-
-        top_crimes = sorted(crime_types.items(), key=lambda x: -x[1])[:5]
-        clearance_pct = round(cleared / d_total * 100)
-
-        msg = f"🔍 *{label}* — Last 30 Days\n\n"
-        msg += f"📊 *{d_total}* incidents ({pct_of_city}% of city total)\n"
-        msg += f"🏙 City avg: {city_avg}/district  ·  {vs_avg}\n"
-        if rank:
-            msg += f"📈 Ranked #{rank} of {num_districts} districts\n"
-        msg += f"✅ {clearance_pct}% of cases cleared\n\n"
-        msg += "*Top Crime Types:*\n"
-        for crime, count in top_crimes:
-            pct = round(count / d_total * 100) if d_total else 0
-            msg += f"• {_crime_label(crime)}: {count} ({pct}%)\n"
-
-        msg += "\n_Source: [APD Crime Reports](https://data.austintexas.gov/d/fdj4-gpfu)_"
-        await _send_chunked(query, msg)
-    except Exception as e:
-        logger.error(f"safety district cb: {e}")
-        await query.edit_message_text(f"❌ Error: {e}")
-
-
-async def police_crime_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    from datetime import datetime, timedelta, timezone
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Fetching crime data...")
-    try:
-        now = datetime.now(timezone.utc)
-        start = now - timedelta(days=30)
-        start_str = start.strftime("%Y-%m-%d")
-        end_str = now.strftime("%Y-%m-%d")
-        label = f"🚔 APD Crime — {start.strftime('%b %d')} to {now.strftime('%b %d, %Y')}"
-
-        stats = await asyncio.to_thread(_get_crime_stats, start_str, end_str)
-        msg = _format_crime_stats(stats, label)
-
-        keyboard = [
-            [InlineKeyboardButton("📅 Compare to 10 years ago", callback_data=f"crime_compare_{start_str}_{end_str}")],
-            [InlineKeyboardButton("⚰️ Homicides (2019–present)", callback_data="crime_homicides")],
-        ]
-        await query.edit_message_text(
-            msg, parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            disable_web_page_preview=True,
-        )
-    except Exception as e:
-        logger.error(f"police crime cb: {e}")
-        await query.edit_message_text(f"❌ Error fetching crime data: {e}")
-
-
-async def police_safety_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    keyboard = [
-        [InlineKeyboardButton(DISTRICT_LABELS[str(d)], callback_data=f"safety_district_{d}") for d in pair]
-        for pair in [(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)]
-    ]
-    await query.edit_message_text(
-        "🔍 *Safety by District*\n\nPick a council district to see crime stats and how it compares to the rest of Austin:",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-
-# =============================================================================
-# HOMELESSNESS BUDGET (Austin Open Budget dataset yeeq-kk6v)
-# =============================================================================
-
-_HOMELESS_DIRECT_DEPTS = [
-    "Homeless Strategies and Operations",
-    "Housing",
-]
-
-_HOMELESS_DOWNSTREAM_DEPTS = [
-    ("Fire",                       "🔥"),
-    ("Emergency Medical Services", "🚑"),
-    ("Public Health",              "🏥"),
-    ("Austin Resource Recovery",   "🗑️"),
-    ("Parks and Recreation",       "🌳"),
-    ("Police",                     "👮"),
-]
-
-
-def _fmt_millions(amount: float) -> str:
-    if amount >= 1_000_000:
-        return f"${amount / 1_000_000:.1f}M"
-    if amount >= 1_000:
-        return f"${amount / 1_000:.0f}K"
-    return f"${amount:.0f}"
-
-
-def _budget_trend(first: float, last: float, first_yr: str = "", last_yr: str = "") -> str:
-    if not first:
-        return ""
-    pct = round((last - first) / first * 100)
-    arrow = "📈" if pct > 5 else "📉" if pct < -5 else "➡️"
-    sign = "+" if pct > 0 else ""
-    span = f"FY{first_yr} → FY{last_yr}: " if first_yr and last_yr else ""
-    return f"_{arrow} {span}{sign}{pct}%_"
-
-
-def _dept_spend(dept_data: dict, fy: str) -> float:
-    d = dept_data.get(fy, {})
-    return d.get("actual") or d.get("budget") or 0.0
-
-
-def _get_homeless_budget() -> dict:
-    """Fetch annual spend for homelessness-related departments from Austin Open Budget."""
-    url = "https://data.austintexas.gov/resource/yeeq-kk6v.json"
-    all_depts = _HOMELESS_DIRECT_DEPTS + [n for n, _ in _HOMELESS_DOWNSTREAM_DEPTS]
-    dept_list = ",".join(f"'{d}'" for d in all_depts)
-    app_token = os.getenv("AUSTINAPIKEY")
-    headers = {"X-App-Token": app_token} if app_token else {}
-    try:
-        resp = requests.get(url, params={
-            "$select": "fy,dept_nm,sum(act) as actual,sum(bud) as budget",
-            "$where":  f"dept_nm in({dept_list})",
-            "$group":  "fy,dept_nm",
-            "$order":  "fy ASC,dept_nm ASC",
-            "$limit":  500,
-        }, headers=headers, timeout=20)
-        resp.raise_for_status()
-        result: dict[str, dict[str, dict]] = {}
-        for row in resp.json():
-            dept = row.get("dept_nm", "")
-            fy = row.get("fy", "")
-            try:
-                actual = float(row.get("actual") or 0)
-                budget = float(row.get("budget") or 0)
-            except (ValueError, TypeError):
-                continue
-            result.setdefault(dept, {})[fy] = {"actual": actual, "budget": budget}
-
-        # Fetch grants-to-subrecipients (NGO/nonprofit pass-through) by year
-        grants_resp = requests.get(url, params={
-            "$select": "fy,sum(act) as actual,sum(bud) as budget",
-            "$where":  "dept_nm='Homeless Strategies and Operations' AND obj_desc='Grants to subrecipients'",
-            "$group":  "fy",
-            "$order":  "fy ASC",
-            "$limit":  100,
-        }, headers=headers, timeout=20)
-        grants_resp.raise_for_status()
-        grants: dict[str, dict] = {}
-        for row in grants_resp.json():
-            fy = row.get("fy", "")
-            try:
-                actual = float(row.get("actual") or 0)
-                budget = float(row.get("budget") or 0)
-            except (ValueError, TypeError):
-                continue
-            grants[fy] = {"actual": actual, "budget": budget}
-        result["_grants_to_subrecipients"] = grants
-
-        # Fetch citywide pension contributions and health/dental benefits by year
-        pension_obj = (
-            "Contribution to employees ret",
-            "Contribution to police ret",
-            "Contribution to firefighter rt",
-        )
-        pension_list = ",".join(f"'{o}'" for o in pension_obj)
-        pension_resp = requests.get(url, params={
-            "$select": "fy,obj_desc,sum(act) as actual,sum(bud) as budget",
-            "$where":  f"obj_desc in({pension_list},'Insurance-health/life/dental')",
-            "$group":  "fy,obj_desc",
-            "$order":  "fy ASC",
-            "$limit":  200,
-        }, headers=headers, timeout=20)
-        pension_resp.raise_for_status()
-        pension: dict[str, dict] = {}   # fy -> {pension: float, health: float}
-        for row in pension_resp.json():
-            fy = row.get("fy", "")
-            desc = row.get("obj_desc", "")
-            try:
-                actual = float(row.get("actual") or 0)
-            except (ValueError, TypeError):
-                continue
-            entry = pension.setdefault(fy, {"pension": 0.0, "health": 0.0})
-            if desc in pension_obj:
-                entry["pension"] += actual
-            else:
-                entry["health"] += actual
-        result["_pension_benefits"] = pension
-
-        return result
-    except Exception as e:
-        logger.error(f"homeless budget: {e}")
-        return {}
-
-
-def _austin_current_fy() -> str:
-    """Return the current Austin fiscal year as a string (FY ends Sep 30)."""
-    now = datetime.now()
-    return str(now.year if now.month < 10 else now.year + 1)
-
-
-def _format_homeless_budget(data: dict) -> str:
-    if not data:
-        return "🏠 *Austin Citywide Budget Impact*\n\nNo data available."
-
-    all_years = sorted({fy for k, dept_data in data.items() if not k.startswith("_") for fy in dept_data})
-    if not all_years:
-        return "🏠 *Austin Citywide Budget Impact*\n\nNo data available."
-
-    current_fy = _austin_current_fy()
-
-    def fy_label(fy: str) -> str:
-        return f"FY{fy}(partial)" if fy == current_fy else f"FY{fy}"
-
-    recent = all_years[-5:]
-    first_yr, last_yr = recent[0], recent[-1]
-    # Use last completed year for trend; partial year would produce a misleading result
-    completed = [fy for fy in recent if fy != current_fy]
-    trend_yr = completed[-1] if completed else last_yr
-
-    msg = f"🏠 *Austin Citywide Budget Impact*\n"
-    msg += f"_FY{first_yr}–FY{last_yr} · actual spend where available_\n\n"
-
-    grants = data.get("_grants_to_subrecipients", {})
-    pension = data.get("_pension_benefits", {})
-
-    # Calculate total for the most recent fiscal year
-    total_last_year = 0.0
-    for dept in _HOMELESS_DIRECT_DEPTS:
-        if dept in data:
-            total_last_year += _dept_spend(data[dept], last_yr)
-    if grants:
-        total_last_year += _dept_spend(grants, last_yr)
-    for dept_name, _ in _HOMELESS_DOWNSTREAM_DEPTS:
-        if dept_name in data:
-            total_last_year += _dept_spend(data[dept_name], last_yr)
-    if pension and last_yr in pension:
-        total_last_year += pension[last_yr].get("pension", 0.0)
-        total_last_year += pension[last_yr].get("health", 0.0)
-
-    msg += f"💰 *TOTAL:* {_fmt_millions(total_last_year)}\n\n"
-
-    msg += "*Direct Homeless Services:*\n"
-    for dept in _HOMELESS_DIRECT_DEPTS:
-        dept_data = data.get(dept)
-        if not dept_data:
-            continue
-        label = "Homeless Strategies & Ops" if "Homeless" in dept else dept
-        year_strs = "  ".join(
-            f"{fy_label(fy)}: {_fmt_millions(_dept_spend(dept_data, fy))}" for fy in recent
-        )
-        trend = _budget_trend(_dept_spend(dept_data, first_yr), _dept_spend(dept_data, trend_yr), first_yr, trend_yr)
-        msg += f"*{label}*\n{year_strs}" + (f"\n{trend}" if trend else "") + "\n\n"
-
-    if grants:
-        year_strs = "  ".join(
-            f"{fy_label(fy)}: {_fmt_millions(_dept_spend(grants, fy))}" for fy in recent
-        )
-        trend = _budget_trend(_dept_spend(grants, first_yr), _dept_spend(grants, trend_yr), first_yr, trend_yr)
-        msg += f"*Grants to NGOs/Nonprofits*\n{year_strs}" + (f"\n{trend}" if trend else "") + "\n\n"
-
-    msg += "*Downstream Departments:*\n"
-    for dept_name, emoji in _HOMELESS_DOWNSTREAM_DEPTS:
-        dept_data = data.get(dept_name)
-        if not dept_data:
-            continue
-        first_spend = _dept_spend(dept_data, first_yr)
-        trend_spend = _dept_spend(dept_data, trend_yr)
-        last_spend = _dept_spend(dept_data, last_yr)
-        trend = _budget_trend(first_spend, trend_spend, first_yr, trend_yr)
-        partial_suffix = (
-            f"  ·  {fy_label(last_yr)}: {_fmt_millions(last_spend)}"
-            if last_yr != trend_yr else ""
-        )
-        msg += (
-            f"{emoji} *{dept_name}*\n"
-            f"  FY{first_yr}: {_fmt_millions(first_spend)} → "
-            f"FY{trend_yr}: {_fmt_millions(trend_spend)}{partial_suffix}  {trend}\n\n"
-        )
-
-    if pension:
-        pension_years = sorted(pension.keys())
-        p_recent = pension_years[-5:]
-        p_first = p_recent[0]
-        p_completed = [fy for fy in p_recent if fy != current_fy]
-        p_trend_yr = p_completed[-1] if p_completed else p_recent[-1]
-        msg += "*Citywide Pension & Benefits:*\n"
-        p_strs = "  ".join(
-            f"{fy_label(fy)}: {_fmt_millions(pension.get(fy, {}).get('pension', 0.0))}" for fy in p_recent
-        )
-        p_trend = _budget_trend(
-            pension.get(p_first, {}).get("pension", 0.0),
-            pension.get(p_trend_yr, {}).get("pension", 0.0),
-            p_first, p_trend_yr,
-        )
-        msg += f"*Pension contributions*\n{p_strs}" + (f"\n{p_trend}" if p_trend else "") + "\n\n"
-        h_strs = "  ".join(
-            f"{fy_label(fy)}: {_fmt_millions(pension.get(fy, {}).get('health', 0.0))}" for fy in p_recent
-        )
-        h_trend = _budget_trend(
-            pension.get(p_first, {}).get("health", 0.0),
-            pension.get(p_trend_yr, {}).get("health", 0.0),
-            p_first, p_trend_yr,
-        )
-        msg += f"*Health/dental insurance*\n{h_strs}" + (f"\n{h_trend}" if h_trend else "") + "\n\n"
-
-    msg += "_Source: [Austin Open Budget](https://data.austintexas.gov/d/yeeq-kk6v)_"
-    return msg
-
-
-@rate_limited
-async def homeless_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("⏳ Fetching budget insights...")
-    try:
-        data = await asyncio.to_thread(_get_homeless_budget)
-        msg = _format_homeless_budget(data)
-        await _send_chunked(update.message, msg)
-    except Exception as e:
-        logger.error(f"homeless command: {e}")
-        await update.message.reply_text(f"❌ Error fetching budget data: {e}")
-
-
-async def police_homeless_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Fetching budget insights...")
-    try:
-        data = await asyncio.to_thread(_get_homeless_budget)
-        msg = _format_homeless_budget(data)
-        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="service_police")]]
-        await query.edit_message_text(
-            msg, parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            disable_web_page_preview=True,
-        )
-    except Exception as e:
-        logger.error(f"police homeless cb: {e}")
-        await query.edit_message_text(f"❌ Error fetching budget data: {e}")
-
-
-# =============================================================================
 # HOMELESS ENCAMPMENT 311 REPORTS (keyword-filtered across Open311 codes)
 # =============================================================================
 
@@ -2698,7 +1789,7 @@ async def homeless_311_command(update: Update, context: ContextTypes.DEFAULT_TYP
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📊 Stats (30 days)", callback_data="homeless311_stats_30"),
          InlineKeyboardButton("📊 Stats (90 days)", callback_data="homeless311_stats_90")],
-        [InlineKeyboardButton("🗺️ View Map", url="https://seanatwork.github.io/austin311bot-unofficial/homeless/"),
+        [InlineKeyboardButton("🗺️ View Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/homeless/")),
          InlineKeyboardButton("📍 Open Locations", callback_data="homeless311_locations_30")],
         [InlineKeyboardButton("Change Time Window", callback_data="homeless311_time_window")],
     ])
@@ -2771,155 +1862,6 @@ async def homeless311_time_window_cb(update: Update, context: ContextTypes.DEFAU
     )
 
 
-
-
-# =============================================================================
-# HATE CRIMES DATA (APD Hate Crimes dataset t99n-5ib4)
-# =============================================================================
-
-_HATE_BIAS_LABELS: dict[str, str] = {
-    "Anti-Black or African American": "Anti-Black/African American",
-    "Anti-Jewish":                    "Anti-Jewish",
-    "Anti-White":                     "Anti-White",
-    "Anti-Hispanic or Latino":        "Anti-Hispanic/Latino",
-    "Anti-Gay (Male)":                "Anti-Gay (Male)",
-    "Anti-Lesbian, Gay, Bisexual, or Transgender (Mixed Group)": "Anti-LGBTQ+",
-    "Anti-Lesbian":                   "Anti-Lesbian",
-    "Anti-Islamic (Muslim)":          "Anti-Muslim",
-    "Anti-Asian":                     "Anti-Asian",
-    "Anti-Other Race/Ethnicity/Ancestry": "Anti-Other Race",
-    "Anti-Arab":                      "Anti-Arab",
-    "Anti-Transgender":               "Anti-Transgender",
-    "Anti-Gender Non-Conforming":     "Anti-Gender Non-Conforming",
-    "Anti-Female":                    "Anti-Female",
-    "Anti-Male":                      "Anti-Male",
-    "Anti-Mental Disability":         "Anti-Mental Disability",
-    "Anti-Physical Disability":       "Anti-Physical Disability",
-    "Anti-Catholic":                  "Anti-Catholic",
-    "Anti-Protestant":                "Anti-Protestant",
-    "Anti-Other Christian":           "Anti-Other Christian",
-    "Anti-Other Religion":            "Anti-Other Religion",
-    "Anti-Multiple Races, Group":     "Anti-Multiple Races",
-}
-
-
-def _get_hate_crimes() -> dict:
-    """Fetch all hate crime incidents from APD dataset (full history)."""
-    url = "https://data.austintexas.gov/resource/t99n-5ib4.json"
-    params = {
-        "$order":  "date_of_incident DESC",
-        "$limit":  5000,
-        "$select": "date_of_incident,bias,race_ethnicity_of_offenders,offense_s,zip_code",
-    }
-    app_token = os.getenv("AUSTINAPIKEY")
-    headers = {"X-App-Token": app_token} if app_token else {}
-    try:
-        resp = requests.get(url, params=params, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        if not data:
-            return {"total": 0, "by_year": {}, "bias": {}, "race": {}, "offenses": {}}
-
-        bias_counts: dict[str, int] = {}
-        race_counts: dict[str, int] = {}
-        offense_counts: dict[str, int] = {}
-        by_year: dict[int, int] = {}
-
-        for row in data:
-            b = row.get("bias", "Unknown") or "Unknown"
-            bias_counts[b] = bias_counts.get(b, 0) + 1
-
-            r = row.get("race_ethnicity_of_offenders", "Unknown") or "Unknown"
-            race_counts[r] = race_counts.get(r, 0) + 1
-
-            o = row.get("offense_s", "Unknown") or "Unknown"
-            offense_counts[o] = offense_counts.get(o, 0) + 1
-
-            dt = row.get("date_of_incident", "")
-            if dt:
-                try:
-                    year = int(dt[:4])
-                    by_year[year] = by_year.get(year, 0) + 1
-                except (ValueError, IndexError):
-                    pass
-
-        return {
-            "total":    len(data),
-            "by_year":  dict(sorted(by_year.items())),
-            "bias":     dict(sorted(bias_counts.items(), key=lambda x: -x[1])),
-            "race":     dict(sorted(race_counts.items(), key=lambda x: -x[1])),
-            "offenses": dict(sorted(offense_counts.items(), key=lambda x: -x[1])),
-        }
-    except Exception as e:
-        logger.error(f"hate crimes fetch: {e}")
-        return {"total": 0, "by_year": {}, "bias": {}, "race": {}, "offenses": {}}
-
-
-def _format_hate_crimes(data: dict) -> str:
-    total = data["total"]
-    if total == 0:
-        return "🎯 *Austin Hate Crimes*\n\nNo data found."
-
-    by_year = data["by_year"]
-    years = sorted(by_year.keys())
-    year_range = f"{years[0]}–{years[-1]}" if years else "All years"
-    msg = f"🎯 *Austin Hate Crimes — {year_range}*\n_{total} reported incidents_\n\n"
-
-    if by_year:
-        msg += "*Incidents by Year:*\n"
-        max_count = max(by_year.values())
-        for year in years:
-            count = by_year[year]
-            bar = "█" * min(10, round(count / max_count * 10))
-            msg += f"*{year}:* {bar} {count}\n"
-
-    msg += "\n*Bias Motivation:*\n"
-    for raw, count in list(data["bias"].items())[:8]:
-        label = _HATE_BIAS_LABELS.get(raw, raw)
-        pct = round(count / total * 100)
-        msg += f"• {label}: {count} ({pct}%)\n"
-
-    msg += "\n*Offender Race/Ethnicity:*\n"
-    for raw, count in list(data["race"].items())[:7]:
-        label = raw.strip() or "Unknown"
-        pct = round(count / total * 100)
-        msg += f"• {label}: {count} ({pct}%)\n"
-
-    msg += "\n*Top Offenses:*\n"
-    for raw, count in list(data["offenses"].items())[:5]:
-        pct = round(count / total * 100)
-        msg += f"• {raw}: {count} ({pct}%)\n"
-
-    msg += f"\n_Source: [APD Hate Crimes Dataset](https://data.austintexas.gov/d/t99n-5ib4)_"
-    return msg
-
-
-@rate_limited
-async def hate_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("⏳ Fetching hate crime data...")
-    try:
-        data = await asyncio.to_thread(_get_hate_crimes)
-        msg = _format_hate_crimes(data)
-        await _send_chunked(update.message, msg)
-    except Exception as e:
-        logger.error(f"hate command: {e}")
-        await update.message.reply_text(f"❌ Error fetching hate crime data: {e}")
-
-
-async def police_hate_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text("⏳ Fetching hate crime data...")
-    try:
-        data = await asyncio.to_thread(_get_hate_crimes)
-        msg = _format_hate_crimes(data)
-        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="service_police")]]
-        await query.edit_message_text(msg, parse_mode="Markdown",
-                                      reply_markup=InlineKeyboardMarkup(keyboard),
-                                      disable_web_page_preview=True)
-    except Exception as e:
-        logger.error(f"police hate cb: {e}")
-        await query.edit_message_text(f"❌ Error fetching hate crime data: {e}")
 
 
 # =============================================================================
@@ -3373,25 +2315,6 @@ def _format_bar_stats(data: dict) -> str:
                 f"_{pct_str} · +{_fmt_dollars(r['delta'])}_\n"
             )
 
-    msg += "\n_Source: [TABC Mixed Beverage Sales](https://data.texas.gov/d/g5bj-yb6k)_"
-    return msg
-
-
-@rate_limited
-async def bars_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("⏳ Fetching TABC sales data...")
-    try:
-        data = await asyncio.to_thread(_get_bar_stats)
-        msg = _format_bar_stats(data)
-        await _send_chunked(update.message, msg)
-    except _TABC_RETRYABLE_ERRORS:
-        logger.error("bars command: TABC endpoint timed out after retries")
-        await update.message.reply_text("❌ TABC data source is slow right now. Try again in a minute.")
-    except Exception as e:
-        logger.error(f"bars command: {e}")
-        await update.message.reply_text("❌ Could not fetch bar data. Try again shortly.")
-
-
 # =============================================================================
 # COURT CASELOADS
 # =============================================================================
@@ -3401,8 +2324,8 @@ async def bars_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 async def court_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [
-            InlineKeyboardButton("⚖️ Court Caseloads", url="https://seanatwork.github.io/austin311bot-unofficial/court/"),
-            InlineKeyboardButton("📈 Travis County Trends", url="https://seanatwork.github.io/austin311bot-unofficial/court/trends/"),
+            InlineKeyboardButton("⚖️ Court Caseloads", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/court/")),
+            InlineKeyboardButton("📈 Travis County Trends", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/court/trends/")),
         ]
     ]
     await update.message.reply_text(
@@ -3468,14 +2391,10 @@ def create_application() -> Application:
 
     async def post_init(application) -> None:
         await application.bot.set_my_commands([
-            BotCommand("subscribe",   "Push alerts — crime, 311, animals, crashes near you"),
+            BotCommand("subscribe",   "Push alerts — 311, animals, crashes near you"),
             BotCommand("myalerts",    "View and manage your active alerts"),
             BotCommand("unsubscribe", "Cancel all alerts"),
             BotCommand("deletedata",  "Remove all your stored alert data"),
-            # BotCommand("crime",       "APD incident stats — map · trends · homicides"),
-            # BotCommand("safety",      "Crime by district — compare to city average"),
-            # BotCommand("budget",      "City budget — homelessness services · spending"),
-            # BotCommand("rest",        "Restaurant inspections — worst scores · search"),
             BotCommand("help",        "All commands"),
             BotCommand("start",       "Main menu"),
         ])
@@ -3492,29 +2411,6 @@ def create_application() -> Application:
     app.add_handler(CallbackQueryHandler(alerts_menu_cb,  pattern="^alerts_menu$"))
     app.add_handler(CallbackQueryHandler(about_cb,        pattern="^about$"))
 
-    # Restaurant inline (disabled)
-    # app.add_handler(CallbackQueryHandler(restaurants_lowscores_cb, pattern="^restaurants_lowscores"))
-    # app.add_handler(CallbackQueryHandler(restaurants_grades_cb, pattern="^restaurants_grades"))
-
-    # Crime slash command + inline (disabled)
-    # app.add_handler(CommandHandler("crime", crime_command))
-    # app.add_handler(CallbackQueryHandler(crime_compare_cb, pattern="^crime_compare_"))
-    # app.add_handler(CallbackQueryHandler(crime_homicides_cb, pattern="^crime_homicides"))
-
-    # Safety slash command + inline (disabled)
-    # app.add_handler(CommandHandler("safety", safety_command))
-    # app.add_handler(CallbackQueryHandler(safety_district_cb, pattern="^safety_district_"))
-
-    # Police & Crime menu inline (disabled)
-    # app.add_handler(CallbackQueryHandler(police_crime_cb, pattern="^police_crime$"))
-    # app.add_handler(CallbackQueryHandler(police_safety_cb, pattern="^police_safety$"))
-
-    # Budget slash command (disabled)
-    # app.add_handler(CommandHandler("budget", homeless_command))
-
-    # Restaurant slash command (disabled)
-    # app.add_handler(CommandHandler("rest", restaurant_command))
-
     # Alert subscription handlers
     alerts_db.init_db()
     register_alert_handlers(app)
@@ -3522,13 +2418,9 @@ def create_application() -> Application:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo_handler))
     app.add_error_handler(error_handler)
 
-    # Alert jobs: daily at 08:00 UTC, digest every Monday at 08:00 UTC
-    app.job_queue.run_daily(crime_daily_job,     time=__import__("datetime").time(8, 0), name="crime_daily")
-    app.job_queue.run_daily(district_digest_job, time=__import__("datetime").time(8, 0),
-                            days=(0,), name="district_digest")  # Monday only
+    # Alert jobs: daily at 08:00 UTC
     app.job_queue.run_daily(nearby_311_job,      time=__import__("datetime").time(8, 0), name="nearby_311")
     app.job_queue.run_daily(animal_nearby_job,   time=__import__("datetime").time(8, 0), name="animal_nearby")
-    app.job_queue.run_daily(crash_nearby_job,    time=__import__("datetime").time(8, 0), name="crash_nearby")
 
     return app
 
