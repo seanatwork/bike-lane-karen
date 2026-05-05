@@ -98,7 +98,7 @@ def subscribe_popup_html(lat: float, lon: float, alert_code: str = "311") -> str
 
 # ── Open Graph / Twitter card metadata for each docs/<slug>/ page ─────────────
 
-SITE_BASE_URL = "https://seanatwork.github.io/austin311bot-unofficial"
+SITE_BASE_URL = "https://austin311.com"
 
 # (slug → (title, description)). slug "" is the landing page.
 _OG_PAGES = {

@@ -126,21 +126,21 @@ Public maps are deployed via GitHub Pages (`docs/` folder), generated from the s
 **⚠️ Two-repo split (as of 2026-04-18 consolidation):** this `austin311bot/` folder inside `All-Telegram-Bots` is now the authoritative source for code, but GitHub Pages + the map-refresh workflows still live in the original `seanatwork/austin311bot-unofficial` repo. The `docs/` folder and `.github/workflows/generate-*-map.yml` files listed below exist in both repos; the ones that actually run are the copies on `austin311bot-unofficial`. After any edit here that affects map output (generator, `*_bot.py` modules, `scripts/generate_map.py`), run `bash sync-to-unofficial.sh` to push the code to the old repo and kick off its workflows. Pure-Telegram edits don't need this.
 
 **Maps:**
-- `docs/index.html` — Landing page hub (https://seanatwork.github.io/austin311bot-unofficial/) — branded "Austin 311"
-- `docs/homeless/index.html` — Homeless encampment map (https://seanatwork.github.io/austin311bot-unofficial/homeless/)
-- `docs/bicycle/index.html` — Bicycle infrastructure map (https://seanatwork.github.io/austin311bot-unofficial/bicycle/)
-- `docs/graffiti/index.html` — Graffiti abatement map (https://seanatwork.github.io/austin311bot-unofficial/graffiti/)
-- `docs/traffic/index.html` — Traffic & infrastructure map (https://seanatwork.github.io/austin311bot-unofficial/traffic/)
-- `docs/parking/index.html` — Parking enforcement map (https://seanatwork.github.io/austin311bot-unofficial/parking/)
-- `docs/crime/index.html` — APD crime choropleth by council district (https://seanatwork.github.io/austin311bot-unofficial/crime/)
-- `docs/noise/index.html` — Noise complaint point map (https://seanatwork.github.io/austin311bot-unofficial/noise/)
-- `docs/parks/index.html` — Park maintenance point map (https://seanatwork.github.io/austin311bot-unofficial/parks/)
-- `docs/water/index.html` — Water conservation violations point map (https://seanatwork.github.io/austin311bot-unofficial/water/)
-- `docs/childcare/index.html` — Childcare facility compliance map (https://seanatwork.github.io/austin311bot-unofficial/childcare/)
-- `docs/animal/index.html` — Animal services map (https://seanatwork.github.io/austin311bot-unofficial/animal/)
-- `docs/crashes/index.html` — APD crash map with sidebar (https://seanatwork.github.io/austin311bot-unofficial/crashes/) — **client-side only**, fetches live from Socrata `y2wy-tgr5`; no Python generator
-- `docs/budget/index.html` — City budget spending (https://seanatwork.github.io/austin311bot-unofficial/budget/)
-- `docs/court/index.html` — Austin court caseloads (https://seanatwork.github.io/austin311bot-unofficial/court/)
+- `docs/index.html` — Landing page hub (https://austin311.com/) — branded "Austin 311"
+- `docs/homeless/index.html` — Homeless encampment map (https://austin311.com/homeless/)
+- `docs/bicycle/index.html` — Bicycle infrastructure map (https://austin311.com/bicycle/)
+- `docs/graffiti/index.html` — Graffiti abatement map (https://austin311.com/graffiti/)
+- `docs/traffic/index.html` — Traffic & infrastructure map (https://austin311.com/traffic/)
+- `docs/parking/index.html` — Parking enforcement map (https://austin311.com/parking/)
+- `docs/crime/index.html` — APD crime choropleth by council district (https://austin311.com/crime/)
+- `docs/noise/index.html` — Noise complaint point map (https://austin311.com/noise/)
+- `docs/parks/index.html` — Park maintenance point map (https://austin311.com/parks/)
+- `docs/water/index.html` — Water conservation violations point map (https://austin311.com/water/)
+- `docs/childcare/index.html` — Childcare facility compliance map (https://austin311.com/childcare/)
+- `docs/animal/index.html` — Animal services map (https://austin311.com/animal/)
+- `docs/crashes/index.html` — APD crash map with sidebar (https://austin311.com/crashes/) — **client-side only**, fetches live from Socrata `y2wy-tgr5`; no Python generator
+- `docs/budget/index.html` — City budget spending (https://austin311.com/budget/)
+- `docs/court/index.html` — Austin court caseloads (https://austin311.com/court/)
 
 **Files:**
 - `scripts/generate_map.py` — generic map generator that accepts category as CLI argument

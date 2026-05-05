@@ -25,14 +25,11 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 OPEN311_URL = "https://311.austintexas.gov/open311/v2/requests.json"
 SOCRATA_BASE = "https://data.austintexas.gov/resource"
-INCIDENTS_DATASET = "dx9v-zd7x"   # Live traffic incidents
-CRIME_DATASET = "fdj4-gpfu"       # APD Crime Reports
+FATAL_CRASHES_DATASET = "y2wy-tgr5"  # APD Crash Data (archival, historical)
+CRIME_DATASET = "fdj4-gpfu"          # APD Crime Reports
 
 # ── discovered from live API query ────────────────────────────────────────────
 
-# issue_reported values that indicate a fatality (case-insensitive match).
-# From dx9v-zd7x: "TRAFFIC FATALITY" is the canonical value.
-FATALITY_TERMS = frozenset({"traffic fatality"})
 
 # crime_type values that indicate violent crime.
 # From fdj4-gpfu: APD uses uppercase abbreviations. These cover:
@@ -129,6 +126,7 @@ def _count_311_24h() -> int:
     while True:
         params = {
             "start_date": start_str,
+            "status": "open,closed",
             "page": page,
             "page_size": 1000,
         }
@@ -160,15 +158,35 @@ def _count_311_24h() -> int:
 # ── Counter 2: fatal crashes in last 90 days ─────────────────────────────────
 
 def _count_fatal_crashes_90d() -> int:
-    """Count fatal traffic incidents from Socrata dx9v-zd7x, last 90 days."""
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=90))
-    cutoff_str = cutoff.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
+    """Count fatal crashes from APD Crash Data (y2wy-tgr5), last 90 days reporting window."""
     session = _get_session()
+
+    # Step 1: get the latest crash timestamp in the dataset (accounts for publication lag)
+    max_params: dict = {"$select": "max(crash_timestamp)"}
+    token = _app_token()
+    if token:
+        max_params["$$app_token"] = token
+    try:
+        resp = session.get(
+            f"{SOCRATA_BASE}/{FATAL_CRASHES_DATASET}.json",
+            params=max_params,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        latest = resp.json()
+        latest_ts = datetime.fromisoformat(latest[0]["max_crash_timestamp"])
+    except Exception as e:
+        logger.warning(f" fatal crashes — could not fetch latest timestamp: {e}")
+        # fallback: today's date (but this would include lag days with no data)
+        latest_ts = datetime.now(timezone.utc)
+
+    cutoff = latest_ts - timedelta(days=90)
+    cutoff_str = cutoff.strftime("%Y-%m-%dT%H:%M:%S.000")
+
     params = {
-        "$where": f"published_date >= '{cutoff_str}'",
+        "$where": f"crash_timestamp >= '{cutoff_str}' AND crash_fatal_fl = true",
         "$limit": 5000,
-        "$select": "issue_reported",
+        "$select": "count(*)",
     }
     token = _app_token()
     if token:
@@ -177,12 +195,12 @@ def _count_fatal_crashes_90d() -> int:
     for attempt in range(3):
         try:
             resp = session.get(
-                f"{SOCRATA_BASE}/{INCIDENTS_DATASET}.json",
+                f"{SOCRATA_BASE}/{FATAL_CRASHES_DATASET}.json",
                 params=params,
                 timeout=30,
             )
             resp.raise_for_status()
-            rows = resp.json()
+            data = resp.json()
             break
         except Exception as e:
             if attempt == 2:
@@ -192,10 +210,8 @@ def _count_fatal_crashes_90d() -> int:
     else:
         return -1
 
-    fatal = sum(
-        1 for r in rows
-        if (r.get("issue_reported") or "").lower().strip() in FATALITY_TERMS
-    )
+    # Socrata returns [{"count": N}] when $select=count(*)
+    fatal = int(data[0]["count"]) if data else 0
     logger.info(f"  ✓ fatal crashes (90d): {fatal:,}")
     return fatal
 
@@ -275,8 +291,8 @@ def main() -> None:
                 "id": "fatal_crashes_90d",
                 "label": "fatal crashes in the last 90 days",
                 "value": None if count_fatal < 0 else count_fatal,
-                "source": "APD Traffic Incidents",
-                "link": "https://data.austintexas.gov/d/dx9v-zd7x",
+                "source": "APD Crash Data",
+                "link": "https://data.austintexas.gov/d/y2wy-tgr5",
             },
             {
                 "id": "violent_crime_7d",

@@ -333,7 +333,7 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]]
         text = (
             "🚦 *Traffic & Infrastructure Reports*\n\n"
-            "https://seanatwork.github.io/austin311bot-unofficial/traffic/\n\n"
+            "https://austin311.com/traffic/\n\n"
             "The map shows:\n"
             "• Pothole repairs\n"
             "• Traffic signal issues\n"
@@ -360,7 +360,7 @@ async def service_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_main")]]
         text = (
             "🅿️ *Parking Enforcement Reports*\n\n"
-            "https://seanatwork.github.io/austin311bot-unofficial/parking/\n\n"
+            "https://austin311.com/parking/\n\n"
             "The map shows:\n"
             "• All parking violation reports\n"
             "• Open and resolved citations\n"
@@ -464,8 +464,8 @@ async def about_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 @rate_limited
 async def graffiti_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/")),
-         InlineKeyboardButton("📈 Trends", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/graffiti/trends/"))],
+        [InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://austin311.com/graffiti/")),
+         InlineKeyboardButton("📈 Trends", web_app=WebAppInfo(url="https://austin311.com/graffiti/trends/"))],
     ]
     await update.message.reply_text(
         "🎨 *Graffiti Abatement Reports*\n\nMap and monthly trends for graffiti abatement requests citywide. Filter by status (open/closed) and time window (30d/60d/90d).",
@@ -508,10 +508,10 @@ async def bicycle_ticket_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 @rate_limited
 async def bicycle_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    keyboard = [[InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/bicycle/"))]]
+    keyboard = [[InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://austin311.com/bicycle/"))]]
     await update.message.reply_text(
         "🚴 *Bicycle Infrastructure Reports*\n\n"
-        "https://seanatwork.github.io/austin311bot-unofficial/bicycle/\n\n"
+        "https://austin311.com/bicycle/\n\n"
         "The map shows:\n"
         "• Bike lane issues and obstructions\n"
         "• Debris hazards and sweeping requests\n"
@@ -1128,8 +1128,8 @@ async def noise_night_cb(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 @rate_limited
 async def noisecomplaints_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
-        [InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/noise/")),
-         InlineKeyboardButton("📈 Trends", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/noise/trends/"))],
+        [InlineKeyboardButton("🗺️ Open Map", web_app=WebAppInfo(url="https://austin311.com/noise/")),
+         InlineKeyboardButton("📈 Trends", web_app=WebAppInfo(url="https://austin311.com/noise/trends/"))],
         [InlineKeyboardButton("🗺️ Hotspots", callback_data="noise_hotspots"),
          InlineKeyboardButton("🕐 Peak Times", callback_data="noise_peak")],
         [InlineKeyboardButton("📋 Resolution by Type", callback_data="noise_resolution"),
@@ -1799,7 +1799,7 @@ async def homeless_311_command(update: Update, context: ContextTypes.DEFAULT_TYP
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("📊 Stats (30 days)", callback_data="homeless311_stats_30"),
          InlineKeyboardButton("📊 Stats (90 days)", callback_data="homeless311_stats_90")],
-        [InlineKeyboardButton("🗺️ View Map", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/homeless/")),
+        [InlineKeyboardButton("🗺️ View Map", web_app=WebAppInfo(url="https://austin311.com/homeless/")),
          InlineKeyboardButton("📍 Open Locations", callback_data="homeless311_locations_30")],
         [InlineKeyboardButton("Change Time Window", callback_data="homeless311_time_window")],
     ])
@@ -2334,13 +2334,13 @@ def _format_bar_stats(data: dict) -> str:
 async def court_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     keyboard = [
         [
-            InlineKeyboardButton("⚖️ Court Caseloads", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/court/")),
-            InlineKeyboardButton("📈 Travis County Trends", web_app=WebAppInfo(url="https://seanatwork.github.io/austin311bot-unofficial/court/trends/")),
+            InlineKeyboardButton("⚖️ Court Caseloads", web_app=WebAppInfo(url="https://austin311.com/court/")),
+            InlineKeyboardButton("📈 Travis County Trends", web_app=WebAppInfo(url="https://austin311.com/court/trends/")),
         ]
     ]
     await update.message.reply_text(
         "⚖️ *Austin Court Caseloads*\n\n"
-        "https://seanatwork.github.io/austin311bot-unofficial/court/\n\n"
+        "https://austin311.com/court/\n\n"
         "Live data from Austin's open data portal:\n"
         "• 📋 *Municipal Court FY2026* — 100k+ cases by charge type\n"
         "• 🏛️ *Downtown Community Court* — FY2025 & FY2026\n"
