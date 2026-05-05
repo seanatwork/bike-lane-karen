@@ -1,0 +1,26 @@
+{
+  "updated": "2026-05-05T02:02:42.648381+00:00",
+  "counters": [
+    {
+      "id": "311_24h",
+      "label": "new 311 reports in the last 24h",
+      "value": 100,
+      "source": "Open311",
+      "link": "https://311.austintexas.gov"
+    },
+    {
+      "id": "fatal_crashes_90d",
+      "label": "fatal crashes in the last 90 days",
+      "value": 1,
+      "source": "APD Traffic Incidents",
+      "link": "https://data.austintexas.gov/d/dx9v-zd7x"
+    },
+    {
+      "id": "violent_crime_7d",
+      "label": "violent crime incidents in the last 7 days",
+      "value": 252,
+      "source": "APD Crime Reports",
+      "link": "https://data.austintexas.gov/d/fdj4-gpfu"
+    }
+  ]
+}
