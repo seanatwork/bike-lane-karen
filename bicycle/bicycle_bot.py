@@ -32,7 +32,7 @@ MAX_RETRIES = 8
 RETRY_DELAY = 1.0
 MAX_PAGES = 10
 
-API_KEY = os.getenv("AUSTINAPIKEY")
+API_KEY = os.getenv("OPEN311_API_KEY")
 
 SERVICE_CODES = {
     "PWBICYCL": "Bicycle Issue",

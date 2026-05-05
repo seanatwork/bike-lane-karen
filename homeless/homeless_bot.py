@@ -40,7 +40,7 @@ MAX_RETRIES = 3
 RETRY_DELAY = 1.0
 MAX_PAGES = 10  # up to 1,000 records per code
 
-API_KEY = os.getenv("AUSTINAPIKEY")
+API_KEY = os.getenv("OPEN311_API_KEY")
 
 # Service codes to search and their department labels
 # 
@@ -744,7 +744,7 @@ def generate_encampment_map(days_back: int = 180) -> tuple[Optional[io.BytesIO],
         folium.Marker(
             location=[site["lat"], site["lon"]],
             popup=folium.Popup(popup_html, max_width=260),
-            icon=folium.Icon(color="purple", icon="trash", prefix="glyphicon"),
+            icon=folium.Icon(color="purple"),
             tooltip=site["name"] or "City Cleanup Site",
         ).add_to(fg_cleanup)
     fg_cleanup.add_to(m)
