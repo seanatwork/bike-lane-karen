@@ -40,3 +40,66 @@ The biggest gap: the site and the bot share data but don't share *user intent*. 
 - **#5** (OG cards): cheapest signup-conversion lift you'll get all year.
 
 Which thread do you want to pull?
+
+Here's a menu of counter ideas grouped by feel, with the data source + computation noted. The site has access to the Open311 API, four Socrata datasets, ArcGIS districts, and the budget API — that's plenty to draw from.
+Live-feeling activity ("right now")
+Counter	Source	Compute
+X new 311 reports in last 24h	Open311 /requests.json?start_date=24h	count of returned rows
+X currently open (status=open across all categories)	Open311 + your existing cache	sum of cached status=open
+X reports closed in last 24h (responsiveness)	Open311 with status=closed filter	count
+X active crashes right now	Socrata y2wy-tgr5 (live, no cache lag)	rows with traffic_report_status=ACTIVE
+Most recent crash: <address> — <time ago>	Socrata y2wy-tgr5	first row sorted by published_date desc
+Severity / "this matters" headlines
+Counter	Source	Compute
+X fatal crashes in last 90 days (your example)	Socrata dx9v-zd7x	filter issue_reported ∈ {fatality terms}
+X animal bite reports this week	Open311 service_code=ACBITE2	7-day count
+X vicious-dog cases open	Open311 service_code=COAACDD, status=open	count
+X violent crime incidents in last 7d	Socrata fdj4-gpfu	filter on crime_type keywords
+X 311 tickets open >30 days (backlog)	Open311 cache	open & requested_datetime > 30d ago
+Civic accountability ("how's the city doing")
+Counter	Source	Compute
+Median days to close a pothole	Open311 service_code for potholes	median(updated_at − requested_at) for closed
+% of graffiti closed within 14 days	Open311 graffiti cache	closed-on-time / total-closed
+Oldest still-open ticket: filed <date>, <service>	Open311 cache	min(requested_datetime) for status=open
+District with biggest WoW increase (already have weekly digest logic)	Socrata fdj4-gpfu	_type_breakdown() by district, sorted by Δ
+Days since last fatal crash	Socrata dx9v-zd7x	now − max(published_date) where fatal
+Coverage / scope ("the data is alive")
+Counter	Source	Compute
+All 10 council districts reported today	Open311 + ArcGIS district polygons	unique districts in last-24h reports
+X services tracked, X total reports	Static across all maps	sum of cache row counts
+Map last refreshed <X minutes ago>	Workflow timestamp	now − snapshot timestamp
+Trend / motion ("what's changing")
+Counter	Source	Compute
+Top-filed 311 category today: <category> (X reports)	Open311 24h	groupby + max
+Trending up: <category> with arrow	Open311 7d vs prior 7d	groupby Δ, biggest gainer
+Animal bites: 18 this week (+22% vs last)	Open311 ACBITE2	week / prior-week ratio
+Local / quirky (Austin flavor)
+Counter	Source	Compute
+Loudest neighborhood this week	Open311 noise codes by zip	groupby zip, top
+Park with most maintenance complaints	Open311 PRGRDISS by address	groupby park name
+Coyote sightings this week	Open311 WILDEXPO	7-day count
+Bar of the month	(already on /fun)	reuse
+My pick for the hero trio
+Three counters that together cover volume, severity, and coverage, all from sources you already fetch:
+    1. 412 new 311 reports in the last 24h — Open311. Always changes, immediate "alive" signal.
+    2. 3 fatal crashes in the last 90 days — Socrata dx9v-zd7x (the one your daily traffic-incident workflow already hits). Heavy emotional weight.
+    3. All 10 council districts reporting today or 9 of 10 reporting — Open311 lat/lon → ArcGIS lookup. Plays nicely with how you've already split crime by district. When it's <10 it raises a question ("which district is silent?") which is itself interesting.
+A nice fallback if any number looks low/empty: rotate in the trend counter ("Animal bites +22% vs last week") so the page is never showing a zero.
+Suggested plumbing
+One cron-driven workflow → docs/pulse.json:
+{
+  "updated": "2026-05-04T13:00:00Z",
+  "open311": {"filed_24h": 412, "closed_24h": 380, "open_total": 4127, "districts_today": 10},
+  "crashes":  {"fatal_90d": 3, "injury_30d": 247, "active_now": 12},
+  "animal":   {"bites_7d": 18, "loose_dogs_7d": 67},
+  "trends":   {"top_category_today": "Loose Dog", "fastest_growing": "Encampment", "growth_pct": 22}
+}
+Landing page does one fetch('/pulse.json') on load, swaps the three counters, and shows Updated X min ago underneath. ~40 lines of JS.
+A new scripts/generate_pulse.py reuses your existing fetch helpers (open311_get, the Socrata calls in crime/crime_map.py and alerts/jobs.py _fetch_crashes_recent) — no new HTTP plumbing. Run it in generate-all-socrata.yml (already daily) so cache key alignment stays sensible.
+Want me to build it? If so, which trio?
+
+
+    4. 412 new 311 reports in the last 24h — Open311. Always changes, immediate "alive" signal.
+    5. 3 fatal crashes in the last 90 days — Socrata dx9v-zd7x (the one your daily traffic-incident workflow already hits). Heavy emotional weight.
+X violent crime incidents in last 7d	Socrata fdj4-gpfu	filter on crime_type keywords
+

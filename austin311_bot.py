@@ -17,7 +17,17 @@ import logging
 import re
 import time
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, WebAppInfo
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    BotCommand,
+    BotCommandScopeAllChatAdministrators,
+    BotCommandScopeAllGroupChats,
+    BotCommandScopeAllPrivateChats,
+    BotCommandScopeDefault,
+    WebAppInfo,
+)
 
 load_dotenv()
 
@@ -2390,8 +2400,22 @@ def create_application() -> Application:
         raise ValueError("AUSTIN311_BOT_TOKEN environment variable is not set.")
 
     async def post_init(application) -> None:
+        # Telegram persists slash commands per scope. set_my_commands only
+        # overwrites one scope, so wipe the others first to clear any leftover
+        # commands from earlier deploys (rest/budget/crime/safety, etc.).
+        for scope in (
+            BotCommandScopeDefault(),
+            BotCommandScopeAllPrivateChats(),
+            BotCommandScopeAllGroupChats(),
+            BotCommandScopeAllChatAdministrators(),
+        ):
+            try:
+                await application.bot.delete_my_commands(scope=scope)
+            except Exception as e:
+                logger.warning(f"delete_my_commands {type(scope).__name__}: {e}")
+
         await application.bot.set_my_commands([
-            BotCommand("subscribe",   "Push alerts — 311, animals, crashes near you"),
+            BotCommand("subscribe",   "Push alerts for 311 reports & animals near you"),
             BotCommand("myalerts",    "View and manage your active alerts"),
             BotCommand("unsubscribe", "Cancel all alerts"),
             BotCommand("deletedata",  "Remove all your stored alert data"),

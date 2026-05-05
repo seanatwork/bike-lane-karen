@@ -74,12 +74,12 @@ def main() -> None:
 
     # Pill row — service categories. Plain text inside rounded boxes.
     pills = [
-        "311 Reports",
-        "APD Crime",
-        "Crashes",
-        "Parking",
-        "Courts",
+        "Homeless",
         "Budget",
+        "Graffiti",
+        "Traffic",
+        "Crime",
+        "Parking",
     ]
     pad_x = 22
     pad_y = 12

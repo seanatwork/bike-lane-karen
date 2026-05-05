@@ -27,11 +27,6 @@ jobs:
       - name: Install dependencies
         run: pip install -e .
 
-      - name: Generate pulse counters
-        run: python scripts/generate_pulse.py
-        env:
-          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
-
       - name: Generate crime map
         if: github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'crime')
         run: python scripts/generate_map.py crime
@@ -72,7 +67,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/crime/index.html docs/crime/trends/index.html docs/water/index.html docs/childcare/index.html docs/budget/index.html docs/court/data.json docs/court/index.html docs/pulse.json
+          git add docs/crime/index.html docs/crime/trends/index.html docs/water/index.html docs/childcare/index.html docs/budget/index.html docs/court/data.json docs/court/index.html
           git diff --cached --quiet || git commit -m "chore: refresh all Socrata maps and trends [skip ci]"
           git pull --rebase origin main
           git push
