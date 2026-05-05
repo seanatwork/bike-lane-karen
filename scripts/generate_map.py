@@ -157,6 +157,19 @@ def generate_homeless_trends_page(days_back: int = 365) -> tuple:
     return generate_homeless_trends(days_back)
 
 
+def generate_nearby_page(days_back: int = 180) -> tuple:
+    """Generate "311 Near You" dynamic map page with embedded request data."""
+    import io
+    from scripts.generate_nearby_page import main as nearby_main
+    try:
+        nearby_main()
+        out_path = Path("docs") / "nearby" / "index.html"
+        buf = io.BytesIO(out_path.read_bytes())
+        return buf, "Nearby page generated successfully"
+    except Exception as e:
+        return None, f"Nearby generation failed: {e}"
+
+
 CATEGORY_MAPS = {
     "bicycle": (generate_bicycle_map, "bicycle/index.html"),
     "graffiti": (generate_graffiti_map, "graffiti/index.html"),
@@ -175,6 +188,7 @@ CATEGORY_MAPS = {
     "animal": (generate_animal_map, "animal/index.html"),
     "homeless-trends": (generate_homeless_trends_page, "homeless/trends/index.html"),
     "budget": (generate_budget_page, "budget/index.html"),
+    "nearby": (generate_nearby_page, "nearby/index.html"),
 }
 
 

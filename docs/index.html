@@ -99,7 +99,7 @@
 
     header {
       text-align: center;
-      margin-bottom: 2.5rem;
+      margin-bottom: 1rem;
     }
 
     header h1 {
@@ -114,6 +114,79 @@
       color: var(--text-tag);
       font-size: 1rem;
     }
+
+    /* ── "311 Near You" search hero ── */
+    .nearby-hero {
+      width: 100%;
+      max-width: 900px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 50%, #3b82f6 100%);
+      border-radius: 16px;
+      padding: 2rem 2rem 1.8rem;
+      margin-bottom: 2rem;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+    }
+    html.dark .nearby-hero {
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.15);
+    }
+    .nearby-hero h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.3rem;
+    }
+    .nearby-hero p {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 1rem;
+    }
+    .nearby-search-row {
+      display: flex;
+      gap: 8px;
+      max-width: 600px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .nearby-search-row input {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      background: rgba(255,255,255,0.95);
+      color: #1e293b;
+      outline: none;
+      transition: background 0.15s;
+    }
+    .nearby-search-row input:focus { background: #ffffff; }
+    .nearby-search-row input::placeholder { color: #94a3b8; }
+    .nearby-search-row button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: rgba(255,255,255,0.2);
+      color: #ffffff;
+      backdrop-filter: blur(4px);
+    }
+    .nearby-search-row button:hover { background: rgba(255,255,255,0.3); }
+    .nearby-search-row button.primary {
+      background: #ffffff;
+      color: #2563eb;
+    }
+    .nearby-search-row button.primary:hover { background: #e2e8f0; }
+    .nearby-hero .nearby-stats {
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.7);
+    }
+    .nearby-hero .nearby-stats span { display: inline-block; margin: 0 6px; }
+    .nearby-hero .nearby-stats strong { color: #ffffff; }
 
     .grid {
       display: grid;
@@ -315,7 +388,24 @@
     <p>Real data on what your city is doing — and what it isn't.</p>
   </header>
 
-  <div id="pulse-bar" hidden>
+  <!-- ── 311 Near You ── -->
+  <div class="nearby-hero">
+    <h2>📍 311 Near You</h2>
+    <p>Enter your address or neighborhood to see recent 311 requests on a map.</p>
+    <div class="nearby-search-row">
+      <input type="text" id="nearby-address" placeholder="e.g. Downtown Austin, 78701, Zilker…" autocomplete="address-level2" />
+      <button class="primary" onclick="searchNearby()">Search</button>
+      <button onclick="locateNearby()" title="Use my location">📍</button>
+    </div>
+    <div class="nearby-stats">
+      <span>Radius: <strong id="nearby-radius-display">1.5 mi</strong></span>
+      <span>·</span>
+      <span>Visible: <strong id="nearby-count">—</strong> requests</span>
+    </div>
+    <div id="nearby-error" style="display:none; margin-top:8px; font-size:0.82rem; color:#fca5a5;"></div>
+  </div>
+
+  <div id="pulse-bar" hidden style="display:none !important;">
     <div class="pulse-counter" id="pulse-311">
       <span class="pulse-value pulse-loading">…</span>
       <span class="pulse-label">new 311 reports in the last 24h</span>
@@ -480,7 +570,59 @@
       localStorage.setItem("theme", isDark ? "dark" : "light");
     });
 
-    // ── pulse bar fetch ──
+    // ── nearby search ──
+    function searchNearby() {
+      var q = document.getElementById("nearby-address").value.trim();
+      if (!q) return;
+      var err = document.getElementById("nearby-error");
+      err.style.display = "none";
+      // Geocode via Nominatim (free, no key needed)
+      var url = "https://nominatim.openstreetmap.org/search?format=json&q=" +
+        encodeURIComponent(q) + "&countrycodes=us&limit=1";
+      fetch(url, { headers: { "User-Agent": "austin311.com/1.0" } })
+        .then(function (r) { if (!r.ok) throw new Error("Geocode failed"); return r.json(); })
+        .then(function (data) {
+          if (!data || !data.length) throw new Error("Location not found");
+          var lat = parseFloat(data[0].lat);
+          var lon = parseFloat(data[0].lon);
+          window.location.href = "nearby/?lat=" + lat.toFixed(5) + "&lon=" + lon.toFixed(5) + "&q=" + encodeURIComponent(q);
+        })
+        .catch(function (e) {
+          err.textContent = "Could not find that location. Try a different search.";
+          err.style.display = "block";
+        });
+    }
+
+    function locateNearby() {
+      if (!navigator.geolocation) return;
+      var err = document.getElementById("nearby-error");
+      err.style.display = "none";
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          var lat = pos.coords.latitude;
+          var lon = pos.coords.longitude;
+          window.location.href = "nearby/?lat=" + lat.toFixed(5) + "&lon=" + lon.toFixed(5);
+        },
+        function () {
+          err.textContent = "Could not get your location. Try typing an address.";
+          err.style.display = "block";
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // Enter key in the address input triggers search
+    document.addEventListener("DOMContentLoaded", function () {
+      var input = document.getElementById("nearby-address");
+      if (input) {
+        input.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); searchNearby(); }
+        });
+      }
+    });
+
+    // ── pulse bar fetch (disabled until counters are working) ──
+    /*
     (function loadPulse() {
       const bar = document.getElementById("pulse-bar");
       fetch("pulse.json")
@@ -516,6 +658,7 @@
           bar.hidden = true;
         });
     })();
+    */
   </script>
 </body>
 </html>
