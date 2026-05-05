@@ -288,7 +288,7 @@ def main() -> None:
         ],
     }
 
-    out_path = Path("docs/pulse.json")
+    out_path = Path(__file__).resolve().parent.parent / "docs" / "pulse.json"
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(pulse, indent=2), encoding="utf-8")
     logger.info(f"Wrote {out_path.stat().st_size:,} bytes to {out_path}")
