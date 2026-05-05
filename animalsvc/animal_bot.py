@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from open311_client import subscribe_popup_html
+from open311_client import subscribe_popup_html, og_meta_tags
 
 logger = logging.getLogger(__name__)
 
@@ -503,6 +503,7 @@ def generate_animal_map(days_back: int = 90) -> tuple:
     logger.info("Done fetching additional details.")
 
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("animal")))
 
     # Layer key: {status}_{bucket}_{typeSlug}  — no underscores in slug so split('_') is safe
     fg_clusters = {}

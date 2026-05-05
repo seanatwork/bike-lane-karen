@@ -17,6 +17,8 @@ from collections import Counter
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+from open311_client import og_meta_tags
+
 logger = logging.getLogger(__name__)
 
 OPEN311_BASE_URL = "https://311.austintexas.gov/open311/v2"
@@ -294,6 +296,7 @@ def generate_water_map(days_back: int = 90) -> tuple:
     counts_js = str(bucket_counts).replace("'", '"')
 
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("water")))
 
     fg_clusters = {}
     fg_objects = {}

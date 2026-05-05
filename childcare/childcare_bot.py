@@ -17,6 +17,8 @@ import requests
 from typing import Optional
 from urllib.parse import quote
 
+from open311_client import og_meta_tags
+
 logger = logging.getLogger(__name__)
 
 FACILITIES_URL   = "https://data.texas.gov/resource/bc5r-88dy.json"
@@ -340,6 +342,7 @@ def generate_childcare_map(days_back: int = 90) -> tuple:
     counts_by_tier = {"high": 0, "medium_high": 0, "medium": 0, "clean": 0}
 
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("childcare")))
 
     fg_objects = {}
     fg_clusters = {}

@@ -20,7 +20,7 @@ import logging
 import requests
 import os
 import io
-from open311_client import open311_get, subscribe_popup_html
+from open311_client import open311_get, subscribe_popup_html, og_meta_tags
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
@@ -471,6 +471,7 @@ def generate_bicycle_map(days_back: int = 90) -> tuple:
     counts_js = str(type_bucket_counts).replace("'", '"')
 
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("bicycle")))
 
     # Layer key: {status}_{bucket}_{typeSlug}
     fg_clusters = {}

@@ -10,7 +10,7 @@ import os
 import io
 import requests
 from datetime import datetime, timezone, timedelta
-from open311_client import open311_get, subscribe_popup_html
+from open311_client import open311_get, subscribe_popup_html, og_meta_tags
 from typing import Optional
 from collections import defaultdict
 
@@ -653,6 +653,7 @@ def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
 
     # Create map centered on Austin
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("parking")))
 
     # Six FeatureGroups: open/closed × 30/60/90-day buckets
     fg_clusters = {}

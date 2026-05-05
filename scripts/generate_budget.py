@@ -8,12 +8,16 @@ Run quarterly via .github/workflows/generate-budget.yml.
 
 import json
 import os
+import sys
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from open311_client import og_meta_tags
 
 # ── config ─────────────────────────────────────────────────────────────────────
 
@@ -243,6 +247,7 @@ def generate_html(fy, quarter, depts, dept_cats):
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Austin 311 — Austin General Fund FY{fy}</title>
+  {og_meta_tags("budget")}
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
   <script>

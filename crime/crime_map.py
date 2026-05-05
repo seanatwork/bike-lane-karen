@@ -16,6 +16,8 @@ import requests
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+from open311_client import og_meta_tags
+
 logger = logging.getLogger(__name__)
 
 SOCRATA_BASE = "https://data.austintexas.gov/resource"
@@ -176,6 +178,7 @@ def generate_crime_map(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
     total_30 = sum(counts_30.values())
 
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("crime")))
     map_var = m.get_name()
 
     counts_js = json.dumps({

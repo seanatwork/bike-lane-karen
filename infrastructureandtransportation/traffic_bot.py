@@ -11,7 +11,7 @@ import requests
 import os
 import io
 from datetime import datetime, timezone, timedelta
-from open311_client import open311_get, subscribe_popup_html
+from open311_client import open311_get, subscribe_popup_html, og_meta_tags
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -539,6 +539,7 @@ def generate_traffic_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
 
     # Create map centered on Austin
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("traffic")))
 
     # 30 FeatureGroups: open/closed × 30/60/90-day buckets × 5 categories
     fg_clusters = {}

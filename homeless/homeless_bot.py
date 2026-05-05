@@ -26,7 +26,7 @@ import time
 import logging
 import requests
 from datetime import datetime, timezone, timedelta
-from open311_client import open311_get, subscribe_popup_html
+from open311_client import open311_get, subscribe_popup_html, og_meta_tags
 from typing import Optional
 from collections import defaultdict
 import io
@@ -729,6 +729,7 @@ def generate_encampment_map(days_back: int = 180) -> tuple[Optional[io.BytesIO],
 
     # Create map centered on Austin
     m = folium.Map(location=[30.2672, -97.7431], zoom_start=11, tiles="CartoDB positron")
+    m.get_root().header.add_child(folium.Element(og_meta_tags("homeless")))
 
     # Cleanup sites overlay (fetched from Google My Maps KML)
     cleanup_sites = fetch_cleanup_sites()

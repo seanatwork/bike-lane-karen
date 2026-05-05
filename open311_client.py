@@ -94,3 +94,73 @@ def subscribe_popup_html(lat: float, lon: float, alert_code: str = "311") -> str
         'style="color:#0088cc;font-size:12px;text-decoration:none;font-weight:600;">'
         '🔔 Alert me near here →</a></div>'
     )
+
+
+# ── Open Graph / Twitter card metadata for each docs/<slug>/ page ─────────────
+
+SITE_BASE_URL = "https://seanatwork.github.io/austin311bot-unofficial"
+
+# (slug → (title, description)). slug "" is the landing page.
+_OG_PAGES = {
+    "":            ("Austin 311 — Real data on what your city is doing",
+                    "Live maps and trends across 311 reports, APD crime, crashes, parking, courts, and more — refreshed daily. Subscribe to alerts on Telegram."),
+    "animal":      ("Austin 311 — Animal Services Map",
+                    "Loose dogs, bites, and wildlife reports across Austin — last 30/60/90 days, refreshed daily."),
+    "bicycle":     ("Austin 311 — Bicycle Infrastructure Map",
+                    "Bike lane issues, debris hazards, and obstructions across Austin's bike network — last 30/60/90 days."),
+    "budget":      ("Austin 311 — General Fund Budget FY2026",
+                    "Where Austin's $1.6B General Fund actually goes — by department, with line-item drill-down."),
+    "childcare":   ("Austin 311 — Child Care Compliance",
+                    "Austin childcare facility inspections — search by name and live compliance data."),
+    "court":       ("Austin 311 — Municipal & Community Court Caseloads",
+                    "Austin court cases by charge type, demographics, and FY2022–2026 trends. Live data."),
+    "crashes":     ("Austin 311 — Live Crash Map",
+                    "Live APD crash reports — fatal, injury, and minor crashes across Austin updated continuously."),
+    "crime":       ("Austin 311 — APD Crime by District",
+                    "30/60/90-day APD incident counts by Austin council district."),
+    "fun":         ("Austin 311 — Fun Data",
+                    "Bar of the month, coyote sightings, and other live Austin curiosities."),
+    "graffiti":    ("Austin 311 — Graffiti Abatement Map",
+                    "Graffiti abatement requests across Austin, with response-time trends and hotspot detection."),
+    "homeless":    ("Austin 311 — Encampment & Homeless 311 Reports",
+                    "311 reports mentioning encampments, tents, and homelessness across Parks, ROW, Debris, and Drainage."),
+    "noise":       ("Austin 311 — Noise Complaints Map",
+                    "Noise complaints, outdoor venue/music issues, and fireworks reports across Austin."),
+    "parking":     ("Austin 311 — Parking Enforcement Map",
+                    "Citywide 311 parking enforcement reports — last 30/60/90 days, refreshed daily."),
+    "parks":       ("Austin 311 — Parks Maintenance Map",
+                    "Park maintenance requests across Austin — grounds, plumbing, electrical, and building issues."),
+    "restaurants": ("Austin 311 — Restaurant Inspection Search",
+                    "Austin Public Health restaurant inspection scores — search by name with live data."),
+    "traffic":     ("Austin 311 — Traffic & Infrastructure Map",
+                    "Potholes, signal issues, and sidewalk requests citywide — last 30/60/90 days."),
+    "water":       ("Austin 311 — Water Conservation Violations",
+                    "Water conservation violation reports across Austin."),
+}
+
+
+def og_meta_tags(slug: str = "") -> str:
+    """Return Open Graph + Twitter-card meta tags for a docs/<slug>/ page.
+
+    Pass "" (default) for the landing page. Tags assume a shared OG image at
+    /og-default.png; per-page overrides can be added by extending _OG_PAGES.
+    """
+    title, desc = _OG_PAGES.get(slug, _OG_PAGES[""])
+    page_path = f"/{slug}/" if slug else "/"
+    page_url = f"{SITE_BASE_URL}{page_path}"
+    image_url = f"{SITE_BASE_URL}/og-default.png"
+    return (
+        '<meta property="og:type" content="website" />\n'
+        f'<meta property="og:title" content="{title}" />\n'
+        f'<meta property="og:description" content="{desc}" />\n'
+        f'<meta property="og:url" content="{page_url}" />\n'
+        f'<meta property="og:image" content="{image_url}" />\n'
+        '<meta property="og:image:width" content="1200" />\n'
+        '<meta property="og:image:height" content="630" />\n'
+        '<meta property="og:site_name" content="Austin 311" />\n'
+        '<meta name="twitter:card" content="summary_large_image" />\n'
+        f'<meta name="twitter:title" content="{title}" />\n'
+        f'<meta name="twitter:description" content="{desc}" />\n'
+        f'<meta name="twitter:image" content="{image_url}" />\n'
+        f'<meta name="description" content="{desc}" />'
+    )
