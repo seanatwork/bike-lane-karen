@@ -374,7 +374,7 @@
           const street = escapeSoql(clean.split(",")[0].trim());
           where = `upper(address) like upper('%${street}%')`;
         } else {
-          const name = escapeSoql(clean.replace(/[^\w\s]/g, "").trim());
+          const name = escapeSoql(clean.replace(/['"]/g, "").trim());
           where = `upper(restaurant_name) like upper('%${name}%')`;
         }
         const records = await fetchSocrata({
