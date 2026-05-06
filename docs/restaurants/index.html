@@ -263,9 +263,9 @@
     }
 
     function escapeSoql(s) {
-      // Strip quotes and escape single quotes for SoQL literal
-      return s.replace(/['"]/g, "").replace(/'/g, "''");
-    }
+        // Escape single quotes for SoQL literal (double them up)
+        return s.replace(/'/g, "''");
+      }
 
     function scoreToGrade(score) {
       const s = parseFloat(score);
@@ -374,7 +374,7 @@
           const street = escapeSoql(clean.split(",")[0].trim());
           where = `upper(address) like upper('%${street}%')`;
         } else {
-          const name = escapeSoql(clean.replace(/['"]/g, "").trim());
+          const name = escapeSoql(clean.replace(/"/g, "").trim());
           where = `upper(restaurant_name) like upper('%${name}%')`;
         }
         const records = await fetchSocrata({
