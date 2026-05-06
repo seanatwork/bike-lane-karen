@@ -524,8 +524,10 @@ def fetch_parking_with_coords(days_back: int = 30) -> dict:
     """Fetch all parking reports and filter to those with valid coordinates.
 
     Returns both open AND closed requests with location data for mapping.
+    Uses the cached month-by-month fetcher to avoid hitting MAX_PAGES=100.
     """
-    records = get_all_citations(days_back)
+    months_back = max(1, days_back // 30) + 1
+    records = fetch_parking_monthly(months_back)
 
     # Filter to records with valid coordinates
     located = []

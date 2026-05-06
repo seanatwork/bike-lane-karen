@@ -39,7 +39,15 @@ TPPECRNE - Pedestrian Crossing New/Modify - 1 request
 TRASIGNE - Traffic Signal - New - 1 request
 SBGENRL - Street and Bridge Miscellaneous - 1 request
 ZZARSTSW - Street Sweeping - 9 requests
-DRCHANEL - Channels/Creeks/Drainage Issues - 8 requests
+# STORM / DRAINAGE / FLOODING
+SWSSTORM - Storm Debris Collection - 55,314 requests (discovered)
+DRCHANEL - Channels/Creeks/Drainage Issues - 18,047 requests (discovered)
+DRILID   - Storm Drain Services - 9,398 requests (discovered)
+DRFLOODG - Flooding Current - 4,773 requests (discovered)
+DRSSPIPE - Standing Water - 3,868 requests (discovered)
+DRFLOODR - Flooding Past - 2,302 requests (discovered)
+ZZEROSIO - Erosion - 1,736 requests (discovered)
+DRDITCH  - Ditch/Driveway Pipe Services - 1,540 requests (discovered)
 OBSTMIDB - Obstruction in Right of Way - 5 requests
 PWTRISRW - Tree Issue Right of Way - 4 requests
 ATCOCIRW - Construction Concerns in Right of Way - 3 requests
@@ -58,7 +66,7 @@ SBSIDERE - Sidewalk Repair - 1 request
 # 7. Austin Energy Street Light Issue - Address - 94,828 requests ✓ (STREETL2)
 # 8. Adopted/Impounded/Surrendered Animal - 75,153 requests
 # 9. Parking Violation Enforcement - 68,080 requests ✓ (PARKINGV)
-# 10. Storm Debris Collection - 55,314 requests
+# 10. Storm Debris Collection - 55,314 requests ✓ (SWSSTORM)
 # 11. Water Conservation Violation - 55,308 requests
 # 12. Pothole Repair - 40,687 requests ✓ (SBPOTREP)
 # 13. Debris in Street - 40,332 requests ✓ (SBDEBROW)

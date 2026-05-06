@@ -1,7 +1,8 @@
-name: Refresh all Open311 maps
+name: Refresh weekly Open311 maps (graffiti, noise, parking, parks, storm)
 
 on:
-  # Weekly batch job for all Open311-based maps
+  # Weekly batch job for low-frequency Open311 maps
+  # (bicycle, traffic, animal, homeless run in the daily workflow instead)
   schedule:
     - cron: "0 12 * * 1"  # weekly Monday noon UTC
   workflow_dispatch:        # allow manual trigger from Actions tab
@@ -36,12 +37,6 @@ jobs:
       - name: Install dependencies
         run: pip install -e .
 
-      - name: Generate bicycle map
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'bicycle')
-        run: python scripts/generate_map.py bicycle
-        env:
-          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
-
       - name: Generate graffiti map
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'graffiti')
         run: python scripts/generate_map.py graffiti
@@ -66,21 +61,9 @@ jobs:
         env:
           AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
 
-      - name: Generate traffic map
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'traffic')
-        run: python scripts/generate_map.py traffic
-        env:
-          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
-
-      - name: Generate animal map
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'animal')
-        run: python scripts/generate_map.py animal
-        env:
-          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
-
-      - name: Generate homeless map
-        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'homeless')
-        run: python scripts/generate_map.py homeless
+      - name: Generate storm map
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'storm')
+        run: python scripts/generate_map.py storm
         env:
           AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
 
@@ -95,8 +78,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/bicycle/index.html docs/graffiti/index.html docs/noise/index.html docs/parking/index.html docs/parks/index.html docs/traffic/index.html docs/animal/index.html docs/homeless/index.html
-          git diff --cached --quiet || git commit -m "chore: refresh all Open311 maps [skip ci]"
+          git add docs/graffiti/index.html docs/noise/index.html docs/parking/index.html docs/parks/index.html docs/storm/index.html
+          git diff --cached --quiet || git commit -m "chore: refresh weekly Open311 maps [skip ci]"
           git pull --rebase origin main
           git push
 

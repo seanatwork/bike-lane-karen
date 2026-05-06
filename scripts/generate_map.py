@@ -163,6 +163,12 @@ def generate_homeless_trends_page(days_back: int = 365) -> tuple:
     return generate_homeless_trends(days_back)
 
 
+def generate_storm_map(days_back: int = 90) -> tuple:
+    """Generate storm debris, drainage & flooding point map."""
+    from storm.storm_bot import generate_storm_map
+    return generate_storm_map(days_back)
+
+
 def generate_nearby_page(days_back: int = 180) -> tuple:
     """Generate "311 Near You" dynamic map page with embedded request data."""
     import io
@@ -196,6 +202,7 @@ CATEGORY_MAPS = {
     "homeless-trends": (generate_homeless_trends_page, "homeless/trends/index.html"),
     "budget": (generate_budget_page, "budget/index.html"),
     "nearby": (generate_nearby_page, "nearby/index.html"),
+    "storm": (generate_storm_map, "storm/index.html"),
 }
 
 
