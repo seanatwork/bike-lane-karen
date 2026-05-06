@@ -97,6 +97,12 @@ def generate_crime_trends_page(days_back: int = 365) -> tuple:
     return generate_crime_trends(days_back)
 
 
+def generate_hate_crime_page(days_back: int = 0) -> tuple:
+    """Generate APD hate crime incidents page."""
+    from crime.hate_crime import generate_hate_crime
+    return generate_hate_crime()
+
+
 def generate_noise_trends_page(days_back: int = 365) -> tuple:
     """Generate noise complaint trends page."""
     from noisecomplaints.trends import generate_noise_trends
@@ -191,6 +197,7 @@ CATEGORY_MAPS = {
     "parking-trends": (generate_parking_trends_page, "parking/trends/index.html"),
     "crime": (generate_crime_map, "crime/index.html"),
     "crime-trends": (generate_crime_trends_page, "crime/trends/index.html"),
+    "hate-crime": (generate_hate_crime_page, "crime/hatecrime/index.html"),
     "noise": (generate_noise_map, "noise/index.html"),
     "noise-trends": (generate_noise_trends_page, "noise/trends/index.html"),
     "graffiti-trends": (generate_graffiti_trends_page, "graffiti/trends/index.html"),

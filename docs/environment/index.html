@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Austin 311 — Environment</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Austin 311 — Environment: Water, Spills & Algae" />
+  <meta property="og:description" content="Water conservation violations, environmental spills, and harmful algae bloom reports across Austin." />
+  <meta property="og:url" content="https://austin311.com/environment/" />
+  <meta property="og:image" content="https://austin311.com/og-default.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Austin 311" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Austin 311 — Environment: Water, Spills & Algae" />
+  <meta name="twitter:description" content="Water conservation violations, environmental spills, and harmful algae bloom reports across Austin." />
+  <meta name="twitter:image" content="https://austin311.com/og-default.png" />
+  <meta name="description" content="Water conservation violations, environmental spills, and harmful algae bloom reports across Austin." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #f8fafc;
+      --bg-card:      #ffffff;
+      --bg-card-hover:#f1f5f9;
+      --border:       #e2e8f0;
+      --border-hover: #94a3b8;
+      --text:         #1e293b;
+      --text-head:    #0f172a;
+      --text-tag:     #475569;
+      --text-label:   #0f172a;
+      --text-desc:    #64748b;
+      --text-footer:  #94a3b8;
+      --text-footer-a:#64748b;
+      --text-footer-hover: #475569;
+    }
+
+    html.dark {
+      --bg:           #0f1117;
+      --bg-card:      #1e2230;
+      --bg-card-hover:#252b3b;
+      --border:       #2d3348;
+      --border-hover: #4a5568;
+      --text:         #e2e8f0;
+      --text-head:    #f8fafc;
+      --text-tag:     #94a3b8;
+      --text-label:   #f1f5f9;
+      --text-desc:    #64748b;
+      --text-footer:  #475569;
+      --text-footer-a:#64748b;
+      --text-footer-hover: #94a3b8;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1rem 3rem;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    #theme-toggle {
+      position: fixed;
+      top: 14px;
+      right: 16px;
+      z-index: 200;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      color: var(--text-desc);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      user-select: none;
+    }
+    #theme-toggle:hover { color: var(--text); border-color: var(--border-hover); }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-head);
+    }
+
+    header p {
+      margin-top: 0.4rem;
+      color: var(--text-tag);
+      font-size: 0.95rem;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 1rem;
+      font-size: 0.85rem;
+      color: var(--text-desc);
+      text-decoration: none;
+    }
+    .back-link:hover { color: var(--text-head); text-decoration: underline; }
+
+    .section {
+      width: 100%;
+      max-width: 860px;
+      margin-bottom: 2rem;
+    }
+
+    .section h2 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-head);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .section h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-head);
+      margin: 1rem 0 0.5rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+      text-align: center;
+    }
+
+    .stat-card .value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--text-head);
+      letter-spacing: -0.3px;
+    }
+
+    .stat-card .label {
+      font-size: 0.78rem;
+      color: var(--text-desc);
+      margin-top: 0.15rem;
+    }
+
+    .info-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+      font-size: 0.9rem;
+    }
+
+    .info-box strong {
+      color: var(--text-head);
+    }
+
+    .info-box ul {
+      margin: 0.5rem 0 0 1.2rem;
+    }
+
+    .info-box li {
+      margin-bottom: 0.3rem;
+    }
+
+    .map-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      color: var(--text);
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .map-link:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .topic-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+
+    .topic-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .topic-card .icon { font-size: 1.8rem; line-height: 1; }
+    .topic-card .label { font-size: 1rem; font-weight: 600; color: var(--text-label); }
+    .topic-card .desc { font-size: 0.82rem; color: var(--text-desc); line-height: 1.4; }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #dbeafe;
+      color: #1e40af;
+      font-weight: 500;
+    }
+    html.dark .tag {
+      background: #1e3a5f;
+      color: #93c5fd;
+    }
+
+    footer {
+      margin-top: 2.5rem;
+      font-size: 0.75rem;
+      color: var(--text-footer);
+      text-align: center;
+    }
+    footer a { color: var(--text-footer-a); text-decoration: none; }
+    footer a:hover { color: var(--text-footer-hover); }
+  </style>
+</head>
+<body>
+  <button id="theme-toggle" aria-label="Toggle dark mode">🌙 Dark</button>
+
+  <header>
+    <a class="back-link" href="../">← Austin 311</a>
+    <h1>🌍 Environment</h1>
+    <p>Water conservation, environmental spills, harmful algae &amp; surface water quality</p>
+  </header>
+
+  <div class="section">
+    <h2>💧 Water Conservation Violations</h2>
+    <p style="font-size:0.85rem;color:var(--text-desc);margin-bottom:1rem;">
+      Reports of sprinkler misuse, leaks, and water waste investigated by Austin Water.
+      <span class="tag">Service code: WWREPORT</span>
+    </p>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value">243</div>
+        <div class="label">Reports (last 90 days)</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">9</div>
+        <div class="label">Open investigations</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">234</div>
+        <div class="label">Closed / resolved</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">~2.7</div>
+        <div class="label">Reports per day</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>📋 Investigation Outcomes:</strong>
+      <ul>
+        <li>📬 Warning postcard sent: 98</li>
+        <li>✅ Violation confirmed: 47</li>
+        <li>🚫 Invalid complaint: 19</li>
+        <li>🔍 No problem found: 14</li>
+        <li>✔️ Action already taken: 12</li>
+        <li>🔎 Under investigation: 53</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>🚿 Violation Types:</strong>
+      <ul>
+        <li>💧 Other water waste: 112</li>
+        <li>🔧 Leak / broken pipe: 58</li>
+        <li>🌊 Runoff into street: 32</li>
+        <li>📅 Wrong watering day: 24</li>
+        <li>🌧️ Watering during rain: 12</li>
+        <li>💦 Sprinkler / irrigation: 5</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>📍 Most Reported Streets:</strong>
+      <ul>
+        <li>S Ih 35 Svrd NB: 6</li>
+        <li>W Sh 71: 3</li>
+        <li>Wilson Heights Dr: 2</li>
+        <li>Shoal Creek Blvd: 2</li>
+        <li>Unity Cir: 2</li>
+        <li>Airport Blvd: 2</li>
+      </ul>
+    </div>
+
+    <a class="map-link" href="../water/" target="_blank">
+      🗺️ Open Water Conservation Map →
+    </a>
+  </div>
+
+  <div class="section">
+    <h2>⚠️ Environmental Spills</h2>
+    <p style="font-size:0.85rem;color:var(--text-desc);margin-bottom:1rem;">
+      Chemical, fuel, and waste spills reported to the Texas Commission on Environmental Quality (TCEQ) in Austin &amp; Travis County.
+      <span class="tag">Source: TCEQ Emergency Response</span>
+    </p>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="value">31</div>
+        <div class="label">Incidents (last 365 days)</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">6</div>
+        <div class="label">Open investigations</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">25</div>
+        <div class="label">Closed / resolved</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">~0.6</div>
+        <div class="label">Incidents per week</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <strong>Impacted media:</strong>
+      <ul>
+        <li>🗑️ Waste (solid or liquid) — 26 incidents</li>
+        <li>💧 Water (surface or ground) — 5 incidents</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>Reported materials:</strong>
+      <ul>
+        <li>⛽ Diesel — 3 incidents</li>
+        <li>🛢️ Kerosene — 1 incident</li>
+        <li>⛽ Gasoline — 1 incident</li>
+        <li>🔧 Hydraulic fluid — 1 incident</li>
+        <li>⚗️ Aluminum sulfate — 1 incident</li>
+        <li>❓ Unknown material — 23 incidents</li>
+      </ul>
+    </div>
+
+    <div class="info-box">
+      <strong>📋 Recent incidents:</strong>
+      <ul>
+        <li><strong>2026-04-06</strong> — 50-gallon diesel release while moving a storage tank (78754) <em style="color:var(--text-desc)">[Closed]</em></li>
+        <li><strong>2026-03-20</strong> — 20-gallon fuel spill from overfilling tank (78758) <em style="color:var(--text-desc)">[Closed]</em></li>
+        <li><strong>2026-03-15</strong> — Up to 167 gallons of mineral oil released from pad-mounted transformer (78734) <em style="color:var(--text-desc)">[Closed]</em></li>
+        <li><strong>2025-12-22</strong> — 275-gallon kerosene release from abandoned highway tote <em style="color:var(--text-desc)">[Closed]</em></li>
+      </ul>
+    </div>
+
+    <p style="font-size:0.8rem;color:var(--text-desc);margin-top:0.5rem;">
+      Data: <a href="https://data.austintexas.gov/resource/xagr-a3x2" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">TCEQ Emergency Response Spills dataset</a> — Austin/Travis County incidents only.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>🌿 Harmful Algae &amp; Lake Water Quality</h2>
+    <p style="font-size:0.85rem;color:var(--text-desc);margin-bottom:1rem;">
+      Scientists measure algae by how much green pigment (chlorophyll) is in the water. The higher the number, the more algae — and the greater the risk of a harmful bloom.
+      <a href="https://www.austintexas.gov/department/watershed-protection" target="_blank" rel="noopener" class="tag" style="text-decoration:none;">Source: Austin Watershed Protection ↗</a>
+    </p>
+
+    <div class="info-box">
+      <strong>🔬 Lady Bird Lake — Current algae levels (Apr 14, 2026):</strong>
+      <div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.6rem;">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span>Basin (west end)</span>
+            <span style="font-weight:600;color:#16a34a;">2.4 µg/L — Clean ✅</span>
+          </div>
+          <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;">
+            <div style="background:#16a34a;height:100%;width:9.6%;" title="2.4 out of 25 µg/L advisory threshold"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span>1st St bridge</span>
+            <span style="font-weight:600;color:#16a34a;">0.4 µg/L — Clean ✅</span>
+          </div>
+          <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;">
+            <div style="background:#16a34a;height:100%;width:1.7%;" title="0.4 out of 25 µg/L advisory threshold"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+            <span>Red Bud Isle</span>
+            <span style="font-weight:600;color:#16a34a;">0.4 µg/L — Clean ✅</span>
+          </div>
+          <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;">
+            <div style="background:#16a34a;height:100%;width:1.7%;" title="0.4 out of 25 µg/L advisory threshold"></div>
+          </div>
+        </div>
+      </div>
+      <p style="margin-top:0.75rem;font-size:0.82em;color:var(--text-desc);">Bar shows % of advisory trigger level (25 µg/L). All sites currently well within safe range.</p>
+    </div>
+
+    <div class="info-box">
+      <strong>📅 Algae levels over the past year — Lady Bird Lake (basin):</strong>
+      <table style="width:100%;border-collapse:collapse;margin-top:0.6rem;font-size:0.88rem;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-desc);">
+            <th style="text-align:left;padding:4px 0;">Month</th>
+            <th style="text-align:right;padding:4px 0;">Level</th>
+            <th style="text-align:right;padding:4px 0;">Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;">Apr 2026</td>
+            <td style="text-align:right;">2.4 µg/L</td>
+            <td style="text-align:right;color:#16a34a;font-weight:600;">Clean</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;">Feb 2026</td>
+            <td style="text-align:right;">6.2 µg/L</td>
+            <td style="text-align:right;color:#16a34a;font-weight:600;">Clean</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;">Dec 2025</td>
+            <td style="text-align:right;">3.5 µg/L</td>
+            <td style="text-align:right;color:#16a34a;font-weight:600;">Clean</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;">Oct 2025 <em style="font-weight:normal;color:var(--text-desc);">(seasonal peak)</em></td>
+            <td style="text-align:right;">9.8 µg/L</td>
+            <td style="text-align:right;color:#ca8a04;font-weight:600;">Low caution</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0;">Sep 2025</td>
+            <td style="text-align:right;">3.1 µg/L</td>
+            <td style="text-align:right;color:#16a34a;font-weight:600;">Clean</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-box">
+      <strong>🌍 How does Austin compare to global safety standards?</strong>
+      <p style="margin:0.5rem 0 0.4rem;">Chlorophyll-a above <strong>25 µg/L</strong> is where regulators around the world start issuing public health advisories. Austin's lake is well under that right now.</p>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem;margin-top:0.5rem;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-desc);">
+            <th style="text-align:left;padding:4px 0;">Standard</th>
+            <th style="text-align:left;padding:4px 6px;">Advisory trigger</th>
+            <th style="text-align:left;padding:4px 0;">What it means</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;font-weight:600;">🇪🇺 EU Bathing Water Directive</td>
+            <td style="padding:5px 6px;">~25 µg/L</td>
+            <td style="padding:5px 0;color:var(--text-desc);">Post a visible-bloom advisory; test for cyanobacteria toxins before allowing swimming</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;font-weight:600;">🇺🇸 California (CalEPA)</td>
+            <td style="padding:5px 6px;">25 µg/L</td>
+            <td style="padding:5px 0;color:var(--text-desc);">State's strictest in the US — triggers sampling for microcystin toxin; beach closure possible at 50 µg/L</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:5px 0;font-weight:600;">🌐 WHO Recreational Water</td>
+            <td style="padding:5px 6px;">10 µg/L</td>
+            <td style="padding:5px 0;color:var(--text-desc);">Low-risk threshold; monitoring recommended above this level</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0;font-weight:600;">🤠 Austin / Texas</td>
+            <td style="padding:5px 6px;">varies</td>
+            <td style="padding:5px 0;color:var(--text-desc);">TCEQ issues advisories based on visible bloom + cyanotoxin testing, not a fixed chlorophyll-a number</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top:0.7rem;font-size:0.82em;color:var(--text-desc);">Lady Bird Lake's Oct 2025 peak (9.8 µg/L) fell below the WHO low-risk threshold. A level between 10–25 µg/L would warrant closer monitoring; above 25 µg/L would trigger a public advisory in California and most of Europe.</p>
+    </div>
+
+    <div class="info-box">
+      <strong>🐕 What to watch for in Austin:</strong> Lady Bird Lake sees its worst algae in late summer and early fall when the water is warm and slow-moving. Blue-green algae (cyanobacteria) looks like a green paint spill or pea soup on the surface. Keep pets out of any water with a visible scum — cyanotoxins can kill a dog within hours of exposure. Austin Parks &amp; Recreation posts advisories at park entrances and on the city website when blooms are detected.
+    </div>
+
+    <p style="font-size:0.8rem;color:var(--text-desc);margin-top:0.5rem;">
+      Data: <a href="https://data.austintexas.gov/resource/5tye-7ray" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline;">Austin Water Quality Sampling dataset</a> (chlorophyll-a, Lady Bird Lake watershed). µg/L = micrograms per liter, a standard unit for algae pigment concentration.
+    </p>
+  </div>
+
+  <div class="section">
+    <h2>🔗 Related Topics</h2>
+    <div class="card-grid">
+      <a class="topic-card" href="../water/">
+        <span class="icon">💧</span>
+        <span class="label">Water Conservation Map</span>
+        <span class="desc">Interactive map of water conservation violation reports</span>
+      </a>
+      <a class="topic-card" href="../storm/">
+        <span class="icon">🌧️</span>
+        <span class="label">Storm &amp; Drainage</span>
+        <span class="desc">Storm debris, drainage &amp; flooding reports</span>
+      </a>
+      <a class="topic-card" href="../parks/">
+        <span class="icon">🏞️</span>
+        <span class="label">Parks</span>
+        <span class="desc">Park maintenance requests including water features</span>
+      </a>
+    </div>
+  </div>
+
+  <footer>
+    Data: <a href="https://311.austintexas.gov" target="_blank" rel="noopener">Austin 311</a>
+    &nbsp;·&nbsp;
+    <a href="https://data.austintexas.gov" target="_blank" rel="noopener">Open Data Portal</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/seanatwork" target="_blank" rel="noopener">Vibecoded with ❤️</a>
+  </footer>
+
+  <script>
+    const btn = document.getElementById("theme-toggle");
+    const html = document.documentElement;
+    const dark = localStorage.getItem("theme") === "dark";
+    if (dark) { html.classList.add("dark"); btn.textContent = "☀️ Light"; }
+    btn.addEventListener("click", () => {
+      const isDark = html.classList.toggle("dark");
+      btn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+      localStorage.setItem("theme", isDark ? "dark" : "light");
+    });
+  </script>
+</body>
+</html>

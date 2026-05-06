@@ -39,6 +39,9 @@ def _aggregate(records: list) -> dict:
     monthly_open: dict = defaultdict(int)
     streets: dict = defaultdict(int)
     violations: dict = defaultdict(int)
+    violation_streets: dict = defaultdict(lambda: defaultdict(int))
+    violation_monthly: dict = defaultdict(lambda: defaultdict(int))
+    violation_open: dict = defaultdict(int)
     total = 0
 
     for r in records:
@@ -52,16 +55,23 @@ def _aggregate(records: list) -> dict:
 
         month_key = dt.strftime("%Y-%m")
         monthly[month_key] += 1
-        if (r.get("status") or "").lower() == "open":
+        is_open = (r.get("status") or "").lower() == "open"
+        if is_open:
             monthly_open[month_key] += 1
 
         addr = r.get("address") or ""
-        if addr:
-            streets[_extract_street(addr)] += 1
+        street = _extract_street(addr) if addr else ""
+        if street:
+            streets[street] += 1
 
         vt = _extract_violation_type(r.get("description") or "")
         if vt:
             violations[vt] += 1
+            violation_monthly[vt][month_key] += 1
+            if street:
+                violation_streets[vt][street] += 1
+            if is_open:
+                violation_open[vt] += 1
 
         total += 1
 
@@ -78,6 +88,17 @@ def _aggregate(records: list) -> dict:
         else:
             rolling.append(round(sum(counts[i - window + 1 : i + 1]) / window, 1))
 
+    violation_details: dict = {}
+    for vname, vcount in top_violations:
+        v_streets = sorted(violation_streets[vname].items(), key=lambda x: -x[1])[:5]
+        v_monthly = [violation_monthly[vname].get(m, 0) for m in months_sorted]
+        violation_details[vname] = {
+            "streets": [{"name": s, "count": c} for s, c in v_streets],
+            "monthly": v_monthly,
+            "open": violation_open[vname],
+            "closed": vcount - violation_open[vname],
+        }
+
     return {
         "total": total,
         "months": months_sorted,
@@ -86,6 +107,7 @@ def _aggregate(records: list) -> dict:
         "rolling_avg": rolling,
         "top_streets": top_streets,
         "top_violations": top_violations,
+        "violation_details": violation_details,
     }
 
 
@@ -96,6 +118,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
     monthly_open_counts = data["monthly_open_counts"]
     top_streets = data["top_streets"]
     top_violations = data["top_violations"]
+    violation_details = data["violation_details"]
 
     avg_per_month = round(total / max(1, len(months)), 0) if months else 0
     peak_month_idx = monthly_counts.index(max(monthly_counts)) if monthly_counts else -1
@@ -112,6 +135,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
         "rollingAvg": rolling_avg,
         "streets": [{"name": s, "count": c} for s, c in top_streets],
         "violations": [{"name": v, "count": c} for v, c in top_violations],
+        "violationDetails": violation_details,
     }
     payload_json = json.dumps(payload)
 
@@ -206,6 +230,52 @@ def _render_html(data: dict, fetched_at: str) -> str:
     footer a {{ color: var(--text-sub); text-decoration: none; }}
     footer a:hover {{ color: var(--text); }}
     @media (max-width: 520px) {{ .stat-value {{ font-size: 1rem; }} .chart-container {{ height: 260px; }} }}
+
+    .chart-hint {{ font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-style: italic; }}
+
+    #violation-detail {{
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-top: 3px solid #f59e0b;
+      border-radius: 0 0 8px 8px;
+      padding: 16px;
+      margin-top: -9px;
+    }}
+    #vd-header {{
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }}
+    #vd-title {{ font-size: 15px; font-weight: 700; color: var(--text-head); }}
+    #vd-close {{
+      background: none; border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text-muted); cursor: pointer; font-size: 13px; padding: 2px 8px;
+      line-height: 1.4;
+    }}
+    #vd-close:hover {{ color: var(--text); border-color: var(--border-hover, #94a3b8); }}
+    .vd-section {{ margin-bottom: 14px; }}
+    .vd-section-title {{ font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }}
+    .vd-stat-row {{ display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }}
+    .vd-stat {{ background: var(--bg-panel, #f1f5f9); border-radius: 6px; padding: 8px 12px; text-align: center; min-width: 80px; }}
+    .vd-stat .v {{ font-size: 1.2rem; font-weight: 700; color: var(--text-head); }}
+    .vd-stat .l {{ font-size: 0.67rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }}
+    .mini-bar-row {{ display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 11px; }}
+    .mini-bar-label {{ width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }}
+    .mini-bar-track {{ flex: 1; background: var(--border); border-radius: 2px; height: 9px; }}
+    .mini-bar-fill {{ height: 100%; border-radius: 2px; }}
+    .mini-bar-count {{ width: 34px; text-align: right; color: var(--text-sub); }}
+    .month-bar-row {{ display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 10px; }}
+    .month-bar-label {{ width: 32px; color: var(--text-muted); }}
+    .month-bar-track {{ flex: 1; background: var(--border); border-radius: 2px; height: 8px; }}
+    .month-bar-fill {{ height: 100%; border-radius: 2px; background: #f59e0b; }}
+    .month-bar-count {{ width: 30px; text-align: right; color: var(--text-sub); }}
+    #vd-map-btn {{
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #2563eb; color: #fff; border: none; border-radius: 5px;
+      padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+      text-decoration: none; margin-top: 4px;
+    }}
+    #vd-map-btn:hover {{ background: #1d4ed8; }}
   </style>
 </head>
 <body>
@@ -252,9 +322,27 @@ def _render_html(data: dict, fetched_at: str) -> str:
       <div class="chart-container" style="height: {max(320, len(top_streets) * 26)}px;"><canvas id="streetsChart"></canvas></div>
     </div>
 
-    <div class="chart-block">
+    <div class="chart-block" id="violations-block">
       <div class="chart-title">Top {TOP_VIOLATIONS} violation types</div>
+      <div class="chart-hint">Click a bar to explore that violation type ↓</div>
       <div class="chart-container" style="height: {max(300, len(top_violations) * 30)}px;"><canvas id="violationsChart"></canvas></div>
+    </div>
+
+    <div id="violation-detail">
+      <div id="vd-header">
+        <span id="vd-title"></span>
+        <button id="vd-close" onclick="closeViolationDetail()">✕ Close</button>
+      </div>
+      <div class="vd-stat-row" id="vd-stats"></div>
+      <div class="vd-section">
+        <div class="vd-section-title">Top streets</div>
+        <div id="vd-streets"></div>
+      </div>
+      <div class="vd-section">
+        <div class="vd-section-title">Monthly breakdown</div>
+        <div id="vd-trend"></div>
+      </div>
+      <a id="vd-map-btn" href="../" target="_blank">🗺️ View on parking map →</a>
     </div>
 
     <div id="data-note">
@@ -389,20 +477,96 @@ def _render_html(data: dict, fetched_at: str) -> str:
       options: hBarOpts,
     }});
 
-    // Top violation types
-    new Chart(document.getElementById("violationsChart"), {{
+    // Top violation types — with click drill-down
+    let selectedViolationIdx = null;
+    const violationsChart = new Chart(document.getElementById("violationsChart"), {{
       type: "bar",
       data: {{
         labels: DATA.violations.map(v => v.name),
         datasets: [{{
           label: "Complaints",
           data: DATA.violations.map(v => v.count),
-          backgroundColor: "#f59e0b",
+          backgroundColor: DATA.violations.map(() => "#f59e0b"),
           borderRadius: 4,
         }}],
       }},
-      options: hBarOpts,
+      options: {{
+        ...hBarOpts,
+        onClick(evt, elements) {{
+          if (!elements.length) return;
+          const idx = elements[0].index;
+          if (idx === selectedViolationIdx) {{
+            closeViolationDetail();
+          }} else {{
+            openViolationDetail(idx);
+          }}
+        }},
+        onHover(evt, elements) {{
+          evt.native.target.style.cursor = elements.length ? "pointer" : "default";
+        }},
+      }},
     }});
+
+    function openViolationDetail(idx) {{
+      selectedViolationIdx = idx;
+      const v = DATA.violations[idx];
+      const detail = DATA.violationDetails[v.name] || {{}};
+      const total = DATA.violations.reduce((s, x) => s + x.count, 0);
+      const pct = total ? Math.round(v.count / total * 100) : 0;
+
+      // Highlight selected bar, dim others
+      const colors = DATA.violations.map((_, i) => i === idx ? "#f59e0b" : "rgba(245,158,11,0.3)");
+      violationsChart.data.datasets[0].backgroundColor = colors;
+      violationsChart.update("none");
+
+      document.getElementById("vd-title").textContent = v.name + " violations";
+
+      // Stats row
+      const openCount = detail.open || 0;
+      const closedCount = detail.closed || 0;
+      document.getElementById("vd-stats").innerHTML = `
+        <div class="vd-stat"><div class="v">${{v.count.toLocaleString()}}</div><div class="l">Reports</div></div>
+        <div class="vd-stat"><div class="v">${{pct}}%</div><div class="l">of all complaints</div></div>
+        <div class="vd-stat"><div class="v" style="color:#ef4444">${{openCount}}</div><div class="l">Still open</div></div>
+        <div class="vd-stat"><div class="v" style="color:#22c55e">${{closedCount}}</div><div class="l">Resolved</div></div>
+      `;
+
+      // Top streets
+      const streets = detail.streets || [];
+      const maxStreet = streets.length ? streets[0].count : 1;
+      document.getElementById("vd-streets").innerHTML = streets.length
+        ? streets.map(s => `
+            <div class="mini-bar-row">
+              <span class="mini-bar-label" title="${{s.name}}">${{s.name}}</span>
+              <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${{Math.round(s.count/maxStreet*100)}}%;background:#8b5cf6;"></div></div>
+              <span class="mini-bar-count">${{s.count}}</span>
+            </div>`).join("")
+        : '<span style="font-size:12px;color:var(--text-muted);">No street data available</span>';
+
+      // Monthly trend
+      const monthly = detail.monthly || [];
+      const maxMonth = Math.max(...monthly, 1);
+      document.getElementById("vd-trend").innerHTML = monthly.map((cnt, i) => `
+        <div class="month-bar-row">
+          <span class="month-bar-label">${{DATA.months[i].split(" ")[0]}}</span>
+          <div class="month-bar-track"><div class="month-bar-fill" style="width:${{Math.round(cnt/maxMonth*100)}}%;"></div></div>
+          <span class="month-bar-count">${{cnt}}</span>
+        </div>`).join("");
+
+      // Map link — passes type as URL param
+      const mapUrl = "../?type=" + encodeURIComponent(v.name);
+      document.getElementById("vd-map-btn").href = mapUrl;
+
+      document.getElementById("violation-detail").style.display = "block";
+      document.getElementById("violation-detail").scrollIntoView({{ behavior: "smooth", block: "nearest" }});
+    }}
+
+    function closeViolationDetail() {{
+      selectedViolationIdx = null;
+      violationsChart.data.datasets[0].backgroundColor = DATA.violations.map(() => "#f59e0b");
+      violationsChart.update("none");
+      document.getElementById("violation-detail").style.display = "none";
+    }}
   </script>
 </body>
 </html>

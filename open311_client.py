@@ -118,6 +118,8 @@ _OG_PAGES = {
                     "Live APD crash reports — fatal, injury, and minor crashes across Austin updated continuously."),
     "crime":       ("Austin 311 — APD Crime by District",
                     "30/60/90-day APD incident counts by Austin council district."),
+    "crime/hatecrime": ("Austin 311 — Hate Crime Incidents",
+                    "APD hate crime incidents 2017–present. Yearly trends, bias breakdown, and offender demographics."),
     "fun":         ("Austin 311 — Fun Data",
                     "Bar of the month, coyote sightings, and other live Austin curiosities."),
     "graffiti":    ("Austin 311 — Graffiti Abatement Map",

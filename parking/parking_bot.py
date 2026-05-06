@@ -834,6 +834,20 @@ def generate_parking_map(days_back: int = 30) -> tuple[Optional[io.BytesIO], str
 
         document.addEventListener('DOMContentLoaded', function() {{
             setTimeout(initLayers, 1000);
+            var typeFilter = new URLSearchParams(window.location.search).get('type');
+            if (typeFilter) {{
+                var banner = document.createElement('div');
+                banner.id = 'type-filter-banner';
+                banner.style.cssText = 'position:absolute;bottom:24px;left:50%;transform:translateX(-50%);' +
+                    'background:#1d4ed8;color:#fff;padding:7px 14px;border-radius:6px;' +
+                    'font-family:sans-serif;font-size:12px;z-index:9999;white-space:nowrap;' +
+                    'box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;';
+                banner.innerHTML = '🔍 Filtered from trends: <strong>' + typeFilter + '</strong>' +
+                    ' &nbsp;<a href="../" style="color:#93c5fd;font-size:11px;">← back to trends</a>' +
+                    ' &nbsp;<span onclick="document.getElementById(\'type-filter-banner\').remove()" ' +
+                    'style="cursor:pointer;opacity:0.7;font-size:14px;">✕</span>';
+                document.body.appendChild(banner);
+            }}
         }});
     </script>
     """
