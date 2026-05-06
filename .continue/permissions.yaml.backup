@@ -1,0 +1,61 @@
+# Continue Permissions Configuration
+# This file controls which tools and domains run without prompting
+
+allow:
+
+  # Auto-approve all file edits, multi-file edits, and new file creation
+  - Edit(*)
+  - MultiEdit(*)
+  - Write(*)
+
+  # Auto-approve all terminal commands (everything)
+  - Bash(*)
+
+  # Read-only inspection commands (auto-approved)
+
+  # Read-only commands with ANY arguments (notice the * wildcards)
+  - Bash(head *)
+  - Bash(pwd)
+  - Bash(ls *)
+  - Bash(cat *)
+  - Bash(tail *)
+  - Bash(echo *)
+  - Bash(find *)
+  - Bash(grep *)
+  # Explicit rules for absolute paths and complex strings
+  - Bash(grep * /home/*)
+  - Bash(grep * /*)
+  - Bash(grep *\\|*)   # Specifically for escaped pipes
+  - Bash(grep *\**)    # For asterisks in the search
+  - Bash(wc *)
+  - Bash(tree *)
+  - Bash(which *)
+  - Bash(type *)
+  
+  # Git status/inspect commands (safe, no modifications)
+  - Bash(git status)
+  - Bash(git diff)
+  - Bash(git log --oneline)
+  - Bash(git branch)
+  
+  # Read-only tools (always allowed)
+  - Read(*)
+  - List(*)
+  - Search(*)
+  - Diff(*)
+  - Read(.env.example)  # Explicitly allow this specific file
+  - Read(env.example.txt)
+  
+  # Web fetch for trusted domains (add your domains here)
+  - Fetch(https://api.telegram.org/*)
+  - Fetch(https://api.openstreetmap.org/*)
+  - Fetch(https://nominatim.openstreetmap.org*)
+  - Fetch(https://data.austintexas.gov*)
+
+ 
+
+ask:
+
+  - Fetch(*)  # Any fetch not explicitly allowed above will ask
+
+exclude: []

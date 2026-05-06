@@ -41,6 +41,3 @@ contextProviders:
       commandTimeout: 120000
   - name: code
   - name: diff
-
-systemMessage: |
-  For terminal commands >25 seconds, use nohup with log files.
