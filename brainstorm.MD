@@ -5,27 +5,16 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 ## 🔴 HIGH PRIORITY (large-volume categories, Austin-relevant, missing from your stack)
 
-### 2. Shared Micromobility (E-scooters, Bikeshare)
-
+### 2. Shared Micromobility (E-scooters, Bikeshare) - WIP
 - **311 volume:** \#14 at **39,043 reports**
 
 - **Current status:** Nothing. This is a uniquely Austin pain-point (dockless scooter complaints, sidewalk obstructions, improperly parked bikes/scooters).
 
 - **Common in peer cities:** Yes, especially cities with Lime/Bird/Veo/CapMetro Bikeshare.
 
-- **Suggested approach:** Dedicated `/micromobility` or `/scooter` command. The Socrata dataset ID is likely `7d8e-dm7x` or query filtering service codes for "Shared Micromobility." Could also integrate into `/traffic` or `/bicycle` as a sub-view.
 
-### 3. Storm Debris, Drainage & Flooding
 
-- **311 volume:** \#10 Storm Debris (55,314), \#22 Channels/Creeks/Drainage (18,047), \#38 Storm Drain Services (9,398), \#62 Flooding Current (4,773), \#69 Standing Water (3,868), \#75 Flooding Past (2,302), \#78 Erosion (1,736), \#79 Ditch/Driveway Pipe (1,540) = **~97K reports combined**
-
-- **Current status:** Only water quality/surface sampling (`/water`). None of the stormwater/flooding/drainage structural categories.
-
-- **Common in peer cities:** High priority, especially in flood-prone Austin.
-
-- **Suggested approach:** A `stormwater` module covering drainage issues, flood reports, and storm debris. This is a major quality-of-life category.
-
-### 4. Debris in Street (non-storm)
+### 4. Debris in Street (non-storm) WIP
 
 - **311 volume:** \#13 at **40,332 reports**
 
@@ -45,7 +34,7 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Suggested approach:** A `/trees` command or sub-view under parks/environmental.
 
-### 6. Code Violations & Property Standards (full scope)
+### 6. Code Violations & Property Standards (full scope) -WIP Needs anaylsis
 
 - **311 volume:** \#26 DSD Follow-Up (16,270), \#27 Concerns in ROW (15,827), \#40 Billboard (10,407), \#58 Construction Concerns (5,275), \#42 Construction in ROW (8,465) = **~46K+ reports**
 
@@ -185,15 +174,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 3. Debris in street (~40K)
 
 4. Micromobility/scooters (~39K)
-
-5. Dead animal collection (~33K)
-
-
-
-
-
-
-
 
 
 
