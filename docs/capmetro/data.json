@@ -1,0 +1,2336 @@
+{
+  "generated_at": "2026-05-06T04:59:41.346905+00:00",
+  "data_note": "Data ends June 30, 2024. The city has not received updated trip data from the vendor since then.",
+  "totals": {
+    "total_trips": 2271153,
+    "by_year": {
+      "2013": 1418,
+      "2014": 150606,
+      "2015": 176528,
+      "2016": 194469,
+      "2017": 187868,
+      "2018": 385757,
+      "2019": 106764,
+      "2020": 101659,
+      "2021": 223995,
+      "2022": 316980,
+      "2023": 283965,
+      "2024": 141144
+    },
+    "first_year": 2013,
+    "last_year": 2024
+  },
+  "bike_types": {
+    "by_year": {
+      "2013": {
+        "classic": 1418,
+        "electric": 0
+      },
+      "2014": {
+        "classic": 150606,
+        "electric": 0
+      },
+      "2015": {
+        "classic": 176528,
+        "electric": 0
+      },
+      "2016": {
+        "classic": 194333,
+        "electric": 136
+      },
+      "2017": {
+        "classic": 187591,
+        "electric": 277
+      },
+      "2018": {
+        "classic": 382738,
+        "electric": 3019
+      },
+      "2019": {
+        "classic": 103363,
+        "electric": 3401
+      },
+      "2020": {
+        "classic": 35093,
+        "electric": 66566
+      },
+      "2021": {
+        "classic": 38891,
+        "electric": 185104
+      },
+      "2022": {
+        "classic": 45571,
+        "electric": 271409
+      },
+      "2023": {
+        "classic": 23624,
+        "electric": 260341
+      },
+      "2024": {
+        "classic": 7967,
+        "electric": 133177
+      }
+    },
+    "totals": {
+      "classic": 1347723,
+      "electric": 923430
+    },
+    "electric_pct": 40.7
+  },
+  "flows": [
+    {
+      "origin": "Dean Keeton/Whitis",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "3795",
+      "dest_id": "3798",
+      "trips": 17672
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "Dean Keeton/Speedway",
+      "origin_id": "3798",
+      "dest_id": "2498",
+      "trips": 16301
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "Dean Keeton/Whitis",
+      "origin_id": "3798",
+      "dest_id": "3795",
+      "trips": 16116
+    },
+    {
+      "origin": "Dean Keeton/Speedway",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "2498",
+      "dest_id": "3798",
+      "trips": 14504
+    },
+    {
+      "origin": "26th/Nueces",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "3838",
+      "dest_id": "3798",
+      "trips": 12179
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "21st/Guadalupe",
+      "origin_id": "3798",
+      "dest_id": "2547",
+      "trips": 9762
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "26th/Nueces",
+      "origin_id": "3798",
+      "dest_id": "3838",
+      "trips": 9680
+    },
+    {
+      "origin": "22nd/Pearl",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "7188",
+      "dest_id": "3798",
+      "trips": 8876
+    },
+    {
+      "origin": "21st/Guadalupe",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "2547",
+      "dest_id": "3798",
+      "trips": 7969
+    },
+    {
+      "origin": "28th/Rio Grande",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "7189",
+      "dest_id": "3798",
+      "trips": 7917
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "22nd/Pearl",
+      "origin_id": "3798",
+      "dest_id": "7188",
+      "trips": 7335
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "Guadalupe/West Mall @ University Co-op",
+      "origin_id": "3798",
+      "dest_id": "2548",
+      "trips": 7031
+    },
+    {
+      "origin": "Guadalupe/West Mall @ University Co-op",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "2548",
+      "dest_id": "3798",
+      "trips": 6893
+    },
+    {
+      "origin": "26th/Nueces",
+      "destination": "Dean Keeton/Speedway",
+      "origin_id": "3838",
+      "dest_id": "2498",
+      "trips": 6429
+    },
+    {
+      "origin": "21st/Speedway @ PCL",
+      "destination": "28th/Rio Grande",
+      "origin_id": "3798",
+      "dest_id": "7189",
+      "trips": 6333
+    },
+    {
+      "origin": "23rd/Pearl",
+      "destination": "21st/Speedway @ PCL",
+      "origin_id": "7125",
+      "dest_id": "3798",
+      "trips": 5767
+    },
+    {
+      "origin": "Dean Keeton/Speedway",
+      "destination": "26th/Nueces",
+      "origin_id": "2498",
+      "dest_id": "3838",
+      "trips": 5762
+    }
+  ],
+  "kiosk_evolution": [
+    {
+      "kiosk_id": "2495",
+      "name": "W 4th St & N Congress Ave",
+      "lat": 30.26619,
+      "lng": -97.74352,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 43431,
+      "active": true
+    },
+    {
+      "kiosk_id": "2496",
+      "name": "E 8th St & N Congress Ave",
+      "lat": 30.26993,
+      "lng": -97.74213,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 23396,
+      "active": true
+    },
+    {
+      "kiosk_id": "2497",
+      "name": "Texas Capitol Visitors Center",
+      "lat": 30.27265,
+      "lng": -97.73925,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 38514,
+      "active": true
+    },
+    {
+      "kiosk_id": "2498",
+      "name": "Speedway & E Dean Keeton St",
+      "lat": 30.28947,
+      "lng": -97.73681,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 82661,
+      "active": true
+    },
+    {
+      "kiosk_id": "2499",
+      "name": "Austin City Hall",
+      "lat": 30.26506,
+      "lng": -97.74746,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 48551,
+      "active": true
+    },
+    {
+      "kiosk_id": "3293",
+      "name": "W Riverside Dr & Barton Springs Rd",
+      "lat": 30.25866,
+      "lng": -97.74847,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 18689,
+      "active": true
+    },
+    {
+      "kiosk_id": "2500",
+      "name": "Republic Square",
+      "lat": 30.26779,
+      "lng": -97.74733,
+      "first_year": 2013,
+      "last_year": 2016,
+      "total_trips": 440,
+      "active": false
+    },
+    {
+      "kiosk_id": "2501",
+      "name": "5th/Bowie",
+      "lat": 30.26952,
+      "lng": -97.75263,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 47309,
+      "active": true
+    },
+    {
+      "kiosk_id": "2494",
+      "name": "Congress Ave. & W 2nd St",
+      "lat": 30.26432,
+      "lng": -97.74422,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 48336,
+      "active": true
+    },
+    {
+      "kiosk_id": "2503",
+      "name": "W James St & S Congress Ave",
+      "lat": 30.25115,
+      "lng": -97.74912,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 24561,
+      "active": true
+    },
+    {
+      "kiosk_id": "2504",
+      "name": "E Elizabeth St & S Congress Ave",
+      "lat": 30.2489,
+      "lng": -97.74995,
+      "first_year": 2013,
+      "last_year": 2024,
+      "total_trips": 22731,
+      "active": true
+    },
+    {
+      "kiosk_id": "2544",
+      "name": "Pedernales St & E 6th St",
+      "lat": 30.25893,
+      "lng": -97.71468,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 12584,
+      "active": true
+    },
+    {
+      "kiosk_id": "2545",
+      "name": "ACC Rio Grande Campus",
+      "lat": 30.27676,
+      "lng": -97.7476,
+      "first_year": 2014,
+      "last_year": 2015,
+      "total_trips": 1705,
+      "active": false
+    },
+    {
+      "kiosk_id": "2546",
+      "name": "ACC Rio Grande Campus",
+      "lat": 30.27676,
+      "lng": -97.7476,
+      "first_year": 2014,
+      "last_year": 2016,
+      "total_trips": 4339,
+      "active": false
+    },
+    {
+      "kiosk_id": "2547",
+      "name": "Guadalupe St & W 21st St",
+      "lat": 30.28381,
+      "lng": -97.74193,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 64474,
+      "active": true
+    },
+    {
+      "kiosk_id": "2548",
+      "name": "University Co-op",
+      "lat": 30.28616,
+      "lng": -97.74192,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 59726,
+      "active": true
+    },
+    {
+      "kiosk_id": "2549",
+      "name": "The Long Center for the Performing Arts",
+      "lat": 30.26025,
+      "lng": -97.75109,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 33097,
+      "active": true
+    },
+    {
+      "kiosk_id": "2550",
+      "name": "Guadalupe/4th",
+      "lat": 30.26733,
+      "lng": -97.74704,
+      "first_year": 2014,
+      "last_year": 2016,
+      "total_trips": 10800,
+      "active": false
+    },
+    {
+      "kiosk_id": "2552",
+      "name": "W 3rd St & West Ave",
+      "lat": 30.26764,
+      "lng": -97.7516,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 45854,
+      "active": true
+    },
+    {
+      "kiosk_id": "2561",
+      "name": "Capitol Visitors Parking Garage",
+      "lat": 30.27364,
+      "lng": -97.73743,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 10978,
+      "active": true
+    },
+    {
+      "kiosk_id": "2562",
+      "name": "E 8th St & San Jacinto Blvd",
+      "lat": 30.26925,
+      "lng": -97.73974,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 14425,
+      "active": true
+    },
+    {
+      "kiosk_id": "2563",
+      "name": "Rainey St & Davis St",
+      "lat": 30.26009,
+      "lng": -97.7383,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 41892,
+      "active": true
+    },
+    {
+      "kiosk_id": "2564",
+      "name": "E 5th St. & San Marcos St",
+      "lat": 30.26418,
+      "lng": -97.73295,
+      "first_year": 2014,
+      "last_year": 2017,
+      "total_trips": 7290,
+      "active": false
+    },
+    {
+      "kiosk_id": "2565",
+      "name": "Trinity St & E 6th St",
+      "lat": 30.26709,
+      "lng": -97.73934,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 19200,
+      "active": true
+    },
+    {
+      "kiosk_id": "2566",
+      "name": "Pfluger Pedestrian Bridge",
+      "lat": 30.26536,
+      "lng": -97.75599,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 43854,
+      "active": true
+    },
+    {
+      "kiosk_id": "2567",
+      "name": "Palmer Events Center",
+      "lat": 30.26038,
+      "lng": -97.75326,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 34127,
+      "active": true
+    },
+    {
+      "kiosk_id": "2568",
+      "name": "Victory East",
+      "lat": 30.26917,
+      "lng": -97.72856,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 9187,
+      "active": true
+    },
+    {
+      "kiosk_id": "2569",
+      "name": "E 11th St & San Marcos St",
+      "lat": 30.26978,
+      "lng": -97.73083,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 15967,
+      "active": true
+    },
+    {
+      "kiosk_id": "2570",
+      "name": "S Congress Ave & Academy Dr",
+      "lat": 30.25216,
+      "lng": -97.74874,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 24194,
+      "active": true
+    },
+    {
+      "kiosk_id": "2571",
+      "name": "E 8th St & Red River St",
+      "lat": 30.26834,
+      "lng": -97.73652,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 18291,
+      "active": true
+    },
+    {
+      "kiosk_id": "2572",
+      "name": "Barton Springs Pool",
+      "lat": 30.26373,
+      "lng": -97.7714,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 27695,
+      "active": true
+    },
+    {
+      "kiosk_id": "2574",
+      "name": "Zilker Metropolitan Park",
+      "lat": 30.26698,
+      "lng": -97.77297,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 49292,
+      "active": true
+    },
+    {
+      "kiosk_id": "2575",
+      "name": "W Riverside Dr & S Lamar Blvd",
+      "lat": 30.26446,
+      "lng": -97.75706,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 63161,
+      "active": true
+    },
+    {
+      "kiosk_id": "2576",
+      "name": "River St",
+      "lat": 30.25758,
+      "lng": -97.73813,
+      "first_year": 2014,
+      "last_year": 2016,
+      "total_trips": 4377,
+      "active": false
+    },
+    {
+      "kiosk_id": "2707",
+      "name": "Rainey St & Cummings St",
+      "lat": 30.25579,
+      "lng": -97.73988,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 61488,
+      "active": true
+    },
+    {
+      "kiosk_id": "2711",
+      "name": "Kinney Ave & Barton Springs Rd",
+      "lat": 30.26204,
+      "lng": -97.76145,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 29148,
+      "active": true
+    },
+    {
+      "kiosk_id": "2822",
+      "name": "Robert T Martinez Jr St & E 6th St",
+      "lat": 30.26029,
+      "lng": -97.71861,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 13459,
+      "active": true
+    },
+    {
+      "kiosk_id": "2712",
+      "name": "S Lamar Blvd & Toomey Rd",
+      "lat": 30.26292,
+      "lng": -97.75769,
+      "first_year": 2014,
+      "last_year": 2015,
+      "total_trips": 3462,
+      "active": false
+    },
+    {
+      "kiosk_id": "2823",
+      "name": "CapMetro",
+      "lat": 30.25644,
+      "lng": -97.70987,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 8012,
+      "active": true
+    },
+    {
+      "kiosk_id": "3841",
+      "name": "W 23rd St & Rio Grande St",
+      "lat": 30.28721,
+      "lng": -97.74472,
+      "first_year": 2014,
+      "last_year": 2021,
+      "total_trips": 33385,
+      "active": false
+    },
+    {
+      "kiosk_id": "3838",
+      "name": "W 26th St & Nueces St",
+      "lat": 30.29056,
+      "lng": -97.74291,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 67726,
+      "active": true
+    },
+    {
+      "kiosk_id": "2536",
+      "name": "Waller St & E 6th St",
+      "lat": 30.26441,
+      "lng": -97.73052,
+      "first_year": 2014,
+      "last_year": 2016,
+      "total_trips": 5544,
+      "active": false
+    },
+    {
+      "kiosk_id": "2537",
+      "name": "W 6th St",
+      "lat": 30.27259,
+      "lng": -97.75676,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 20777,
+      "active": true
+    },
+    {
+      "kiosk_id": "3621",
+      "name": "The Quarters Nueces House",
+      "lat": 30.28681,
+      "lng": -97.74407,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 26821,
+      "active": true
+    },
+    {
+      "kiosk_id": "2539",
+      "name": "Trinity Center Austin",
+      "lat": 30.2685,
+      "lng": -97.73948,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 34092,
+      "active": true
+    },
+    {
+      "kiosk_id": "2540",
+      "name": "Guadalupe St & W 17th St",
+      "lat": 30.27972,
+      "lng": -97.74233,
+      "first_year": 2014,
+      "last_year": 2020,
+      "total_trips": 11485,
+      "active": false
+    },
+    {
+      "kiosk_id": "2542",
+      "name": "Plaza Saltillo",
+      "lat": 30.26205,
+      "lng": -97.72761,
+      "first_year": 2014,
+      "last_year": 2024,
+      "total_trips": 28098,
+      "active": true
+    },
+    {
+      "kiosk_id": "3377",
+      "name": "Mopac Mobility Bike and Pedestrian Bridge",
+      "lat": 30.24272,
+      "lng": -97.81065,
+      "first_year": 2015,
+      "last_year": 2024,
+      "total_trips": 29869,
+      "active": true
+    },
+    {
+      "kiosk_id": "1006",
+      "name": "Zilker Metropolitan Park",
+      "lat": 30.26698,
+      "lng": -97.77297,
+      "first_year": 2015,
+      "last_year": 2016,
+      "total_trips": 1294,
+      "active": false
+    },
+    {
+      "kiosk_id": "3291",
+      "name": "E 11th St & San Jacinto Blvd",
+      "lat": 30.27206,
+      "lng": -97.73866,
+      "first_year": 2015,
+      "last_year": 2022,
+      "total_trips": 8396,
+      "active": false
+    },
+    {
+      "kiosk_id": "3292",
+      "name": "Chicon St & E 4th St",
+      "lat": 30.25981,
+      "lng": -97.7234,
+      "first_year": 2015,
+      "last_year": 2024,
+      "total_trips": 11828,
+      "active": true
+    },
+    {
+      "kiosk_id": "3294",
+      "name": "W 6th St & Lavaca St",
+      "lat": 30.26874,
+      "lng": -97.74521,
+      "first_year": 2015,
+      "last_year": 2024,
+      "total_trips": 7045,
+      "active": true
+    },
+    {
+      "kiosk_id": "3381",
+      "name": "N Pleasant Valley Rd & E 7th St",
+      "lat": 30.2601,
+      "lng": -97.70949,
+      "first_year": 2015,
+      "last_year": 2016,
+      "total_trips": 551,
+      "active": false
+    },
+    {
+      "kiosk_id": "1008",
+      "name": "W 3rd St & Nueces St",
+      "lat": 30.26685,
+      "lng": -97.7495,
+      "first_year": 2016,
+      "last_year": 2016,
+      "total_trips": 303,
+      "active": false
+    },
+    {
+      "kiosk_id": "3464",
+      "name": "Pease District Park",
+      "lat": 30.28142,
+      "lng": -97.75167,
+      "first_year": 2016,
+      "last_year": 2017,
+      "total_trips": 685,
+      "active": false
+    },
+    {
+      "kiosk_id": "3513",
+      "name": "Austin American-Statesman",
+      "lat": 30.25854,
+      "lng": -97.74416,
+      "first_year": 2016,
+      "last_year": 2024,
+      "total_trips": 23366,
+      "active": true
+    },
+    {
+      "kiosk_id": "3619",
+      "name": "W 6th St & N Congress Ave",
+      "lat": 30.26806,
+      "lng": -97.74282,
+      "first_year": 2016,
+      "last_year": 2024,
+      "total_trips": 24902,
+      "active": true
+    },
+    {
+      "kiosk_id": "2538",
+      "name": "Bullock Texas State History Museum",
+      "lat": 30.28034,
+      "lng": -97.73907,
+      "first_year": 2016,
+      "last_year": 2017,
+      "total_trips": 5798,
+      "active": false
+    },
+    {
+      "kiosk_id": "3390",
+      "name": "Brazos St & E 6th St",
+      "lat": 30.26769,
+      "lng": -97.74149,
+      "first_year": 2016,
+      "last_year": 2023,
+      "total_trips": 18545,
+      "active": false
+    },
+    {
+      "kiosk_id": "1007",
+      "name": "W 6th St & Lavaca St",
+      "lat": 30.26874,
+      "lng": -97.74521,
+      "first_year": 2016,
+      "last_year": 2017,
+      "total_trips": 3967,
+      "active": false
+    },
+    {
+      "kiosk_id": "2541",
+      "name": "Texas Capitol",
+      "lat": 30.27467,
+      "lng": -97.74035,
+      "first_year": 2016,
+      "last_year": 2017,
+      "total_trips": 2397,
+      "active": false
+    },
+    {
+      "kiosk_id": "3455",
+      "name": "Guadalupe/4th",
+      "lat": 30.26733,
+      "lng": -97.74704,
+      "first_year": 2016,
+      "last_year": 2024,
+      "total_trips": 15544,
+      "active": true
+    },
+    {
+      "kiosk_id": "2502",
+      "name": "W Riverside Dr & Barton Springs Rd",
+      "lat": 30.25866,
+      "lng": -97.74847,
+      "first_year": 2016,
+      "last_year": 2019,
+      "total_trips": 9408,
+      "active": false
+    },
+    {
+      "kiosk_id": "3684",
+      "name": "W Cesar Chavez St & N Congress Ave",
+      "lat": 30.26339,
+      "lng": -97.74455,
+      "first_year": 2017,
+      "last_year": 2024,
+      "total_trips": 16014,
+      "active": true
+    },
+    {
+      "kiosk_id": "3685",
+      "name": "W 9th St & Henderson St",
+      "lat": 30.27361,
+      "lng": -97.75172,
+      "first_year": 2017,
+      "last_year": 2024,
+      "total_trips": 10381,
+      "active": true
+    },
+    {
+      "kiosk_id": "3686",
+      "name": "Sterzing St & Barton Springs Rd",
+      "lat": 30.26385,
+      "lng": -97.76364,
+      "first_year": 2017,
+      "last_year": 2024,
+      "total_trips": 17635,
+      "active": true
+    },
+    {
+      "kiosk_id": "3687",
+      "name": "The Boardwalk at Lady Bird Lake",
+      "lat": 30.2483,
+      "lng": -97.73213,
+      "first_year": 2017,
+      "last_year": 2024,
+      "total_trips": 20728,
+      "active": true
+    },
+    {
+      "kiosk_id": "3456",
+      "name": "5th/Guadalupe (Republic Square)",
+      "lat": 30.26807,
+      "lng": -97.7469,
+      "first_year": 2017,
+      "last_year": 2017,
+      "total_trips": 348,
+      "active": false
+    },
+    {
+      "kiosk_id": "1001",
+      "name": "Downtown Austin",
+      "lat": 30.27033,
+      "lng": -97.74346,
+      "first_year": 2017,
+      "last_year": 2017,
+      "total_trips": 12,
+      "active": false
+    },
+    {
+      "kiosk_id": "3635",
+      "name": "San Antonio St & W 13th St",
+      "lat": 30.27631,
+      "lng": -97.74478,
+      "first_year": 2017,
+      "last_year": 2020,
+      "total_trips": 2697,
+      "active": false
+    },
+    {
+      "kiosk_id": "3660",
+      "name": "Medina St & E 6th St",
+      "lat": 30.26476,
+      "lng": -97.73152,
+      "first_year": 2017,
+      "last_year": 2024,
+      "total_trips": 17184,
+      "active": true
+    },
+    {
+      "kiosk_id": "4059",
+      "name": "RBJ Public Health Center",
+      "lat": 30.25233,
+      "lng": -97.7337,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 14557,
+      "active": true
+    },
+    {
+      "kiosk_id": "4060",
+      "name": "Fairmont Austin",
+      "lat": 30.26208,
+      "lng": -97.73822,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 9105,
+      "active": true
+    },
+    {
+      "kiosk_id": "4061",
+      "name": "Firehouse Hostel",
+      "lat": 30.26821,
+      "lng": -97.74109,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 23009,
+      "active": true
+    },
+    {
+      "kiosk_id": "4062",
+      "name": "S Lakeshore Blvd & S Pleasant Valley Rd",
+      "lat": 30.2425,
+      "lng": -97.71721,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 15368,
+      "active": true
+    },
+    {
+      "kiosk_id": "4057",
+      "name": "Chalmers Ave & E 6th St",
+      "lat": 30.26236,
+      "lng": -97.7245,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 7953,
+      "active": true
+    },
+    {
+      "kiosk_id": "3790",
+      "name": "Deep Eddy Ave & Lake Austin Blvd",
+      "lat": 30.27796,
+      "lng": -97.77237,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 9107,
+      "active": true
+    },
+    {
+      "kiosk_id": "3791",
+      "name": "Enfield Rd & Lake Austin Blvd",
+      "lat": 30.29613,
+      "lng": -97.78381,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 4514,
+      "active": true
+    },
+    {
+      "kiosk_id": "3792",
+      "name": "Pearl St & W 22nd St",
+      "lat": 30.28533,
+      "lng": -97.74653,
+      "first_year": 2018,
+      "last_year": 2022,
+      "total_trips": 33563,
+      "active": false
+    },
+    {
+      "kiosk_id": "3793",
+      "name": "W 28th St & Rio Grande St",
+      "lat": 30.29341,
+      "lng": -97.74415,
+      "first_year": 2018,
+      "last_year": 2022,
+      "total_trips": 36516,
+      "active": false
+    },
+    {
+      "kiosk_id": "3794",
+      "name": "Speedway & E Dean Keeton St",
+      "lat": 30.28947,
+      "lng": -97.73681,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 32594,
+      "active": true
+    },
+    {
+      "kiosk_id": "3795",
+      "name": "W Dean Keeton St & Whitis Ave",
+      "lat": 30.28972,
+      "lng": -97.74027,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 60601,
+      "active": true
+    },
+    {
+      "kiosk_id": "3797",
+      "name": "W 21st St",
+      "lat": 30.28392,
+      "lng": -97.74362,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 37414,
+      "active": true
+    },
+    {
+      "kiosk_id": "3798",
+      "name": "Perry-Casta\u00f1eda Library",
+      "lat": 30.28266,
+      "lng": -97.73821,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 179703,
+      "active": true
+    },
+    {
+      "kiosk_id": "3799",
+      "name": "Darrell K Royal-Texas Memorial Stadium",
+      "lat": 30.28354,
+      "lng": -97.73252,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 33528,
+      "active": true
+    },
+    {
+      "kiosk_id": "4047",
+      "name": "Lavaca St & W 8th St",
+      "lat": 30.2706,
+      "lng": -97.74453,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 4863,
+      "active": true
+    },
+    {
+      "kiosk_id": "4048",
+      "name": "S Congress Ave",
+      "lat": 30.24846,
+      "lng": -97.75011,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 9598,
+      "active": true
+    },
+    {
+      "kiosk_id": "4050",
+      "name": "DuBois, Bryant & Campbell",
+      "lat": 30.26588,
+      "lng": -97.74471,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 6929,
+      "active": true
+    },
+    {
+      "kiosk_id": "4051",
+      "name": "E 10th St & Red River St",
+      "lat": 30.27023,
+      "lng": -97.73581,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 2949,
+      "active": true
+    },
+    {
+      "kiosk_id": "4052",
+      "name": "Rosewood Ave & Angelina St",
+      "lat": 30.26888,
+      "lng": -97.7243,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 2614,
+      "active": true
+    },
+    {
+      "kiosk_id": "4054",
+      "name": "Rosewood Ave & Chicon St",
+      "lat": 30.26971,
+      "lng": -97.71905,
+      "first_year": 2018,
+      "last_year": 2023,
+      "total_trips": 1817,
+      "active": false
+    },
+    {
+      "kiosk_id": "4055",
+      "name": "Salina St & E 11th St",
+      "lat": 30.26638,
+      "lng": -97.72146,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 3624,
+      "active": true
+    },
+    {
+      "kiosk_id": "4058",
+      "name": "Hollow Creek Dr & Barton Hills Dr",
+      "lat": 30.26174,
+      "lng": -97.77266,
+      "first_year": 2018,
+      "last_year": 2024,
+      "total_trips": 6690,
+      "active": true
+    },
+    {
+      "kiosk_id": "4699",
+      "name": "Eastside Bus Plaza BAY A",
+      "lat": 30.25166,
+      "lng": -97.69841,
+      "first_year": 2020,
+      "last_year": 2024,
+      "total_trips": 2688,
+      "active": true
+    },
+    {
+      "kiosk_id": "7131",
+      "name": "Waterloo Greenway",
+      "lat": 30.27159,
+      "lng": -97.73512,
+      "first_year": 2021,
+      "last_year": 2024,
+      "total_trips": 2664,
+      "active": true
+    },
+    {
+      "kiosk_id": "7125",
+      "name": "W 23rd St & San Gabriel St",
+      "lat": 30.28718,
+      "lng": -97.74793,
+      "first_year": 2021,
+      "last_year": 2024,
+      "total_trips": 26135,
+      "active": true
+    },
+    {
+      "kiosk_id": "4938",
+      "name": "Twenty Two 15",
+      "lat": 30.28656,
+      "lng": -97.74455,
+      "first_year": 2021,
+      "last_year": 2024,
+      "total_trips": 16080,
+      "active": true
+    },
+    {
+      "kiosk_id": "4879",
+      "name": "San Antonio St & W 16th St",
+      "lat": 30.27916,
+      "lng": -97.74375,
+      "first_year": 2021,
+      "last_year": 2024,
+      "total_trips": 9282,
+      "active": true
+    },
+    {
+      "kiosk_id": "7189",
+      "name": "W 28th St & Rio Grande St",
+      "lat": 30.29341,
+      "lng": -97.74415,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 28828,
+      "active": true
+    },
+    {
+      "kiosk_id": "7190",
+      "name": "W 12th St & Rio Grande St",
+      "lat": 30.27572,
+      "lng": -97.74738,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 3859,
+      "active": true
+    },
+    {
+      "kiosk_id": "7253",
+      "name": "W Riverside Dr & Barton Springs Rd",
+      "lat": 30.25866,
+      "lng": -97.74847,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 1846,
+      "active": true
+    },
+    {
+      "kiosk_id": "7341",
+      "name": "Park Pl & E Dean Keeton St",
+      "lat": 30.28924,
+      "lng": -97.73274,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 3077,
+      "active": true
+    },
+    {
+      "kiosk_id": "7188",
+      "name": "Pearl St & W 22nd St",
+      "lat": 30.28533,
+      "lng": -97.74653,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 22215,
+      "active": true
+    },
+    {
+      "kiosk_id": "7186",
+      "name": "One Texas Center",
+      "lat": 30.25738,
+      "lng": -97.74921,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 1530,
+      "active": true
+    },
+    {
+      "kiosk_id": "7187",
+      "name": "S Congress Ave & E Mary St",
+      "lat": 30.24517,
+      "lng": -97.75133,
+      "first_year": 2022,
+      "last_year": 2024,
+      "total_trips": 4182,
+      "active": true
+    },
+    {
+      "kiosk_id": "7637",
+      "name": "1701 Barton Springs Rd",
+      "lat": 30.26273,
+      "lng": -97.76297,
+      "first_year": 2023,
+      "last_year": 2023,
+      "total_trips": 182,
+      "active": false
+    }
+  ],
+  "kiosk_locations": [
+    {
+      "id": "2494",
+      "name": "Congress Ave. & W 2nd St",
+      "lat": 30.26432,
+      "lng": -97.74422
+    },
+    {
+      "id": "2495",
+      "name": "W 4th St & N Congress Ave",
+      "lat": 30.26619,
+      "lng": -97.74352
+    },
+    {
+      "id": "2496",
+      "name": "E 8th St & N Congress Ave",
+      "lat": 30.26993,
+      "lng": -97.74213
+    },
+    {
+      "id": "2497",
+      "name": "Texas Capitol Visitors Center",
+      "lat": 30.27265,
+      "lng": -97.73925
+    },
+    {
+      "id": "2498",
+      "name": "Speedway & E Dean Keeton St",
+      "lat": 30.28947,
+      "lng": -97.73681
+    },
+    {
+      "id": "2499",
+      "name": "Austin City Hall",
+      "lat": 30.26506,
+      "lng": -97.74746
+    },
+    {
+      "id": "2500",
+      "name": "Republic Square",
+      "lat": 30.26779,
+      "lng": -97.74733
+    },
+    {
+      "id": "2501",
+      "name": "5th/Bowie",
+      "lat": 30.26952,
+      "lng": -97.75263
+    },
+    {
+      "id": "2502",
+      "name": "W Riverside Dr & Barton Springs Rd",
+      "lat": 30.25866,
+      "lng": -97.74847
+    },
+    {
+      "id": "2503",
+      "name": "W James St & S Congress Ave",
+      "lat": 30.25115,
+      "lng": -97.74912
+    },
+    {
+      "id": "2504",
+      "name": "E Elizabeth St & S Congress Ave",
+      "lat": 30.2489,
+      "lng": -97.74995
+    },
+    {
+      "id": "2536",
+      "name": "Waller St & E 6th St",
+      "lat": 30.26441,
+      "lng": -97.73052
+    },
+    {
+      "id": "2537",
+      "name": "W 6th St",
+      "lat": 30.27259,
+      "lng": -97.75676
+    },
+    {
+      "id": "2538",
+      "name": "Bullock Texas State History Museum",
+      "lat": 30.28034,
+      "lng": -97.73907
+    },
+    {
+      "id": "2539",
+      "name": "Trinity Center Austin",
+      "lat": 30.2685,
+      "lng": -97.73948
+    },
+    {
+      "id": "2540",
+      "name": "Guadalupe St & W 17th St",
+      "lat": 30.27972,
+      "lng": -97.74233
+    },
+    {
+      "id": "2541",
+      "name": "Texas Capitol",
+      "lat": 30.27467,
+      "lng": -97.74035
+    },
+    {
+      "id": "2542",
+      "name": "Plaza Saltillo",
+      "lat": 30.26205,
+      "lng": -97.72761
+    },
+    {
+      "id": "2544",
+      "name": "Pedernales St & E 6th St",
+      "lat": 30.25893,
+      "lng": -97.71468
+    },
+    {
+      "id": "2545",
+      "name": "ACC Rio Grande Campus",
+      "lat": 30.27676,
+      "lng": -97.7476
+    },
+    {
+      "id": "2546",
+      "name": "ACC Rio Grande Campus",
+      "lat": 30.27676,
+      "lng": -97.7476
+    },
+    {
+      "id": "2547",
+      "name": "Guadalupe St & W 21st St",
+      "lat": 30.28381,
+      "lng": -97.74193
+    },
+    {
+      "id": "2548",
+      "name": "University Co-op",
+      "lat": 30.28616,
+      "lng": -97.74192
+    },
+    {
+      "id": "2549",
+      "name": "The Long Center for the Performing Arts",
+      "lat": 30.26025,
+      "lng": -97.75109
+    },
+    {
+      "id": "2550",
+      "name": "Guadalupe/4th",
+      "lat": 30.26733,
+      "lng": -97.74704
+    },
+    {
+      "id": "2552",
+      "name": "W 3rd St & West Ave",
+      "lat": 30.26764,
+      "lng": -97.7516
+    },
+    {
+      "id": "2561",
+      "name": "Capitol Visitors Parking Garage",
+      "lat": 30.27364,
+      "lng": -97.73743
+    },
+    {
+      "id": "2562",
+      "name": "E 8th St & San Jacinto Blvd",
+      "lat": 30.26925,
+      "lng": -97.73974
+    },
+    {
+      "id": "2563",
+      "name": "Rainey St & Davis St",
+      "lat": 30.26009,
+      "lng": -97.7383
+    },
+    {
+      "id": "2564",
+      "name": "E 5th St. & San Marcos St",
+      "lat": 30.26418,
+      "lng": -97.73295
+    },
+    {
+      "id": "2565",
+      "name": "Trinity St & E 6th St",
+      "lat": 30.26709,
+      "lng": -97.73934
+    },
+    {
+      "id": "2566",
+      "name": "Pfluger Pedestrian Bridge",
+      "lat": 30.26536,
+      "lng": -97.75599
+    },
+    {
+      "id": "2567",
+      "name": "Palmer Events Center",
+      "lat": 30.26038,
+      "lng": -97.75326
+    },
+    {
+      "id": "2568",
+      "name": "Victory East",
+      "lat": 30.26917,
+      "lng": -97.72856
+    },
+    {
+      "id": "2569",
+      "name": "E 11th St & San Marcos St",
+      "lat": 30.26978,
+      "lng": -97.73083
+    },
+    {
+      "id": "2570",
+      "name": "S Congress Ave & Academy Dr",
+      "lat": 30.25216,
+      "lng": -97.74874
+    },
+    {
+      "id": "2571",
+      "name": "E 8th St & Red River St",
+      "lat": 30.26834,
+      "lng": -97.73652
+    },
+    {
+      "id": "2572",
+      "name": "Barton Springs Pool",
+      "lat": 30.26373,
+      "lng": -97.7714
+    },
+    {
+      "id": "2574",
+      "name": "Zilker Metropolitan Park",
+      "lat": 30.26698,
+      "lng": -97.77297
+    },
+    {
+      "id": "2575",
+      "name": "W Riverside Dr & S Lamar Blvd",
+      "lat": 30.26446,
+      "lng": -97.75706
+    },
+    {
+      "id": "2576",
+      "name": "River St",
+      "lat": 30.25758,
+      "lng": -97.73813
+    },
+    {
+      "id": "2707",
+      "name": "Rainey St & Cummings St",
+      "lat": 30.25579,
+      "lng": -97.73988
+    },
+    {
+      "id": "2711",
+      "name": "Kinney Ave & Barton Springs Rd",
+      "lat": 30.26204,
+      "lng": -97.76145
+    },
+    {
+      "id": "2712",
+      "name": "S Lamar Blvd & Toomey Rd",
+      "lat": 30.26292,
+      "lng": -97.75769
+    },
+    {
+      "id": "2822",
+      "name": "Robert T Martinez Jr St & E 6th St",
+      "lat": 30.26029,
+      "lng": -97.71861
+    },
+    {
+      "id": "2823",
+      "name": "CapMetro",
+      "lat": 30.25644,
+      "lng": -97.70987
+    },
+    {
+      "id": "3291",
+      "name": "E 11th St & San Jacinto Blvd",
+      "lat": 30.27206,
+      "lng": -97.73866
+    },
+    {
+      "id": "3292",
+      "name": "Chicon St & E 4th St",
+      "lat": 30.25981,
+      "lng": -97.7234
+    },
+    {
+      "id": "3293",
+      "name": "W Riverside Dr & Barton Springs Rd",
+      "lat": 30.25866,
+      "lng": -97.74847
+    },
+    {
+      "id": "3294",
+      "name": "W 6th St & Lavaca St",
+      "lat": 30.26874,
+      "lng": -97.74521
+    },
+    {
+      "id": "3377",
+      "name": "Mopac Mobility Bike and Pedestrian Bridge",
+      "lat": 30.24272,
+      "lng": -97.81065
+    },
+    {
+      "id": "3381",
+      "name": "N Pleasant Valley Rd & E 7th St",
+      "lat": 30.2601,
+      "lng": -97.70949
+    },
+    {
+      "id": "3390",
+      "name": "Brazos St & E 6th St",
+      "lat": 30.26769,
+      "lng": -97.74149
+    },
+    {
+      "id": "3455",
+      "name": "Guadalupe/4th",
+      "lat": 30.26733,
+      "lng": -97.74704
+    },
+    {
+      "id": "3456",
+      "name": "5th/Guadalupe (Republic Square)",
+      "lat": 30.26807,
+      "lng": -97.7469
+    },
+    {
+      "id": "3464",
+      "name": "Pease District Park",
+      "lat": 30.28142,
+      "lng": -97.75167
+    },
+    {
+      "id": "3513",
+      "name": "Austin American-Statesman",
+      "lat": 30.25854,
+      "lng": -97.74416
+    },
+    {
+      "id": "3619",
+      "name": "W 6th St & N Congress Ave",
+      "lat": 30.26806,
+      "lng": -97.74282
+    },
+    {
+      "id": "3621",
+      "name": "The Quarters Nueces House",
+      "lat": 30.28681,
+      "lng": -97.74407
+    },
+    {
+      "id": "3635",
+      "name": "San Antonio St & W 13th St",
+      "lat": 30.27631,
+      "lng": -97.74478
+    },
+    {
+      "id": "3660",
+      "name": "Medina St & E 6th St",
+      "lat": 30.26476,
+      "lng": -97.73152
+    },
+    {
+      "id": "3684",
+      "name": "W Cesar Chavez St & N Congress Ave",
+      "lat": 30.26339,
+      "lng": -97.74455
+    },
+    {
+      "id": "3685",
+      "name": "W 9th St & Henderson St",
+      "lat": 30.27361,
+      "lng": -97.75172
+    },
+    {
+      "id": "3686",
+      "name": "Sterzing St & Barton Springs Rd",
+      "lat": 30.26385,
+      "lng": -97.76364
+    },
+    {
+      "id": "3687",
+      "name": "The Boardwalk at Lady Bird Lake",
+      "lat": 30.2483,
+      "lng": -97.73213
+    },
+    {
+      "id": "3790",
+      "name": "Deep Eddy Ave & Lake Austin Blvd",
+      "lat": 30.27796,
+      "lng": -97.77237
+    },
+    {
+      "id": "3791",
+      "name": "Enfield Rd & Lake Austin Blvd",
+      "lat": 30.29613,
+      "lng": -97.78381
+    },
+    {
+      "id": "3792",
+      "name": "Pearl St & W 22nd St",
+      "lat": 30.28533,
+      "lng": -97.74653
+    },
+    {
+      "id": "3793",
+      "name": "W 28th St & Rio Grande St",
+      "lat": 30.29341,
+      "lng": -97.74415
+    },
+    {
+      "id": "3794",
+      "name": "Speedway & E Dean Keeton St",
+      "lat": 30.28947,
+      "lng": -97.73681
+    },
+    {
+      "id": "3795",
+      "name": "W Dean Keeton St & Whitis Ave",
+      "lat": 30.28972,
+      "lng": -97.74027
+    },
+    {
+      "id": "3797",
+      "name": "W 21st St",
+      "lat": 30.28392,
+      "lng": -97.74362
+    },
+    {
+      "id": "3798",
+      "name": "Perry-Casta\u00f1eda Library",
+      "lat": 30.28266,
+      "lng": -97.73821
+    },
+    {
+      "id": "3799",
+      "name": "Darrell K Royal-Texas Memorial Stadium",
+      "lat": 30.28354,
+      "lng": -97.73252
+    },
+    {
+      "id": "3838",
+      "name": "W 26th St & Nueces St",
+      "lat": 30.29056,
+      "lng": -97.74291
+    },
+    {
+      "id": "3841",
+      "name": "W 23rd St & Rio Grande St",
+      "lat": 30.28721,
+      "lng": -97.74472
+    },
+    {
+      "id": "4047",
+      "name": "Lavaca St & W 8th St",
+      "lat": 30.2706,
+      "lng": -97.74453
+    },
+    {
+      "id": "4048",
+      "name": "S Congress Ave",
+      "lat": 30.24846,
+      "lng": -97.75011
+    },
+    {
+      "id": "4050",
+      "name": "DuBois, Bryant & Campbell",
+      "lat": 30.26588,
+      "lng": -97.74471
+    },
+    {
+      "id": "4051",
+      "name": "E 10th St & Red River St",
+      "lat": 30.27023,
+      "lng": -97.73581
+    },
+    {
+      "id": "4052",
+      "name": "Rosewood Ave & Angelina St",
+      "lat": 30.26888,
+      "lng": -97.7243
+    },
+    {
+      "id": "4054",
+      "name": "Rosewood Ave & Chicon St",
+      "lat": 30.26971,
+      "lng": -97.71905
+    },
+    {
+      "id": "4055",
+      "name": "Salina St & E 11th St",
+      "lat": 30.26638,
+      "lng": -97.72146
+    },
+    {
+      "id": "4057",
+      "name": "Chalmers Ave & E 6th St",
+      "lat": 30.26236,
+      "lng": -97.7245
+    },
+    {
+      "id": "4058",
+      "name": "Hollow Creek Dr & Barton Hills Dr",
+      "lat": 30.26174,
+      "lng": -97.77266
+    },
+    {
+      "id": "4059",
+      "name": "RBJ Public Health Center",
+      "lat": 30.25233,
+      "lng": -97.7337
+    },
+    {
+      "id": "4060",
+      "name": "Fairmont Austin",
+      "lat": 30.26208,
+      "lng": -97.73822
+    },
+    {
+      "id": "4061",
+      "name": "Firehouse Hostel",
+      "lat": 30.26821,
+      "lng": -97.74109
+    },
+    {
+      "id": "4062",
+      "name": "S Lakeshore Blvd & S Pleasant Valley Rd",
+      "lat": 30.2425,
+      "lng": -97.71721
+    },
+    {
+      "id": "4699",
+      "name": "Eastside Bus Plaza BAY A",
+      "lat": 30.25166,
+      "lng": -97.69841
+    },
+    {
+      "id": "4879",
+      "name": "San Antonio St & W 16th St",
+      "lat": 30.27916,
+      "lng": -97.74375
+    },
+    {
+      "id": "4938",
+      "name": "Twenty Two 15",
+      "lat": 30.28656,
+      "lng": -97.74455
+    },
+    {
+      "id": "7125",
+      "name": "W 23rd St & San Gabriel St",
+      "lat": 30.28718,
+      "lng": -97.74793
+    },
+    {
+      "id": "7131",
+      "name": "Waterloo Greenway",
+      "lat": 30.27159,
+      "lng": -97.73512
+    },
+    {
+      "id": "7186",
+      "name": "One Texas Center",
+      "lat": 30.25738,
+      "lng": -97.74921
+    },
+    {
+      "id": "7187",
+      "name": "S Congress Ave & E Mary St",
+      "lat": 30.24517,
+      "lng": -97.75133
+    },
+    {
+      "id": "7188",
+      "name": "Pearl St & W 22nd St",
+      "lat": 30.28533,
+      "lng": -97.74653
+    },
+    {
+      "id": "7189",
+      "name": "W 28th St & Rio Grande St",
+      "lat": 30.29341,
+      "lng": -97.74415
+    },
+    {
+      "id": "7190",
+      "name": "W 12th St & Rio Grande St",
+      "lat": 30.27572,
+      "lng": -97.74738
+    },
+    {
+      "id": "7253",
+      "name": "W Riverside Dr & Barton Springs Rd",
+      "lat": 30.25866,
+      "lng": -97.74847
+    },
+    {
+      "id": "7341",
+      "name": "Park Pl & E Dean Keeton St",
+      "lat": 30.28924,
+      "lng": -97.73274
+    },
+    {
+      "id": "7637",
+      "name": "1701 Barton Springs Rd",
+      "lat": 30.26273,
+      "lng": -97.76297
+    },
+    {
+      "id": "1001",
+      "name": "Downtown Austin",
+      "lat": 30.27033,
+      "lng": -97.74346
+    },
+    {
+      "id": "1006",
+      "name": "Zilker Metropolitan Park",
+      "lat": 30.26698,
+      "lng": -97.77297
+    },
+    {
+      "id": "1007",
+      "name": "W 6th St & Lavaca St",
+      "lat": 30.26874,
+      "lng": -97.74521
+    },
+    {
+      "id": "1008",
+      "name": "W 3rd St & Nueces St",
+      "lat": 30.26685,
+      "lng": -97.7495
+    }
+  ],
+  "memberships": {
+    "types": [
+      {
+        "type": "Student Membership",
+        "trips": 430347
+      },
+      {
+        "type": "Local365",
+        "trips": 389729
+      },
+      {
+        "type": "U.T. Student Membership",
+        "trips": 289108
+      },
+      {
+        "type": "24 Hour Walk Up Pass",
+        "trips": 272860
+      },
+      {
+        "type": "Walk Up",
+        "trips": 260044
+      },
+      {
+        "type": "Local31",
+        "trips": 162167
+      },
+      {
+        "type": "Explorer",
+        "trips": 120252
+      },
+      {
+        "type": "Pay-as-you-ride",
+        "trips": 82745
+      },
+      {
+        "type": "Local30",
+        "trips": 55777
+      },
+      {
+        "type": "3-Day Weekender",
+        "trips": 51778
+      },
+      {
+        "type": "Weekender",
+        "trips": 40500
+      },
+      {
+        "type": "Single Trip (Pay-as-you-ride)",
+        "trips": 35320
+      },
+      {
+        "type": "Local365+Guest Pass",
+        "trips": 14000
+      },
+      {
+        "type": "Single Trip",
+        "trips": 11709
+      },
+      {
+        "type": "Founding Member",
+        "trips": 6130
+      },
+      {
+        "type": "3-Day Explorer",
+        "trips": 6016
+      },
+      {
+        "type": "7-Day",
+        "trips": 5684
+      },
+      {
+        "type": "Unknown",
+        "trips": 5237
+      },
+      {
+        "type": "Single Trip",
+        "trips": 5122
+      },
+      {
+        "type": "Local365 ($80 plus tax)",
+        "trips": 3886
+      },
+      {
+        "type": "Semester Membership",
+        "trips": 3231
+      },
+      {
+        "type": "Single Trip Ride",
+        "trips": 3083
+      },
+      {
+        "type": "Local365- 1/2 off Anniversary Special",
+        "trips": 2907
+      },
+      {
+        "type": "HT Ram Membership",
+        "trips": 2686
+      },
+      {
+        "type": "Annual",
+        "trips": 2208
+      },
+      {
+        "type": "Annual Membership",
+        "trips": 1307
+      },
+      {
+        "type": "Local30 ($11 plus tax)",
+        "trips": 820
+      },
+      {
+        "type": "$1 Pay by Trip Winter Special",
+        "trips": 764
+      },
+      {
+        "type": "Local365 Youth (age 13-17 riders)",
+        "trips": 676
+      },
+      {
+        "type": "Annual",
+        "trips": 639
+      },
+      {
+        "type": "Try Before You Buy Special",
+        "trips": 595
+      },
+      {
+        "type": "Weekender ($15 plus tax)",
+        "trips": 550
+      },
+      {
+        "type": "$1 Pay by Trip Fall Special",
+        "trips": 466
+      },
+      {
+        "type": "Local365+Guest Pass- 1/2 off Anniversary Special",
+        "trips": 466
+      },
+      {
+        "type": "Annual Member",
+        "trips": 413
+      },
+      {
+        "type": "ACL Weekend Pass Special",
+        "trips": 319
+      },
+      {
+        "type": "Republic Rider (Annual)",
+        "trips": 293
+      },
+      {
+        "type": "Annual Pass",
+        "trips": 236
+      },
+      {
+        "type": "ACL 2019 Pass",
+        "trips": 207
+      },
+      {
+        "type": "Explorer ($8 plus tax)",
+        "trips": 182
+      },
+      {
+        "type": "Annual Plus",
+        "trips": 172
+      },
+      {
+        "type": "RideScout Single Tide",
+        "trips": 109
+      },
+      {
+        "type": "Aluminum Access",
+        "trips": 96
+      },
+      {
+        "type": "Local365 Youth with helmet (age 13-17 riders)",
+        "trips": 91
+      },
+      {
+        "type": "Madtown Monthly",
+        "trips": 63
+      },
+      {
+        "type": "FunFunFun Fest 3 Day Pass",
+        "trips": 27
+      },
+      {
+        "type": "Annual Pass (Original)",
+        "trips": 27
+      },
+      {
+        "type": "Annual Plus Membership",
+        "trips": 26
+      },
+      {
+        "type": "Republic Rider",
+        "trips": 16
+      },
+      {
+        "type": "Membership: pay once  one-year commitment",
+        "trips": 13
+      }
+    ],
+    "total_trips": 2271099
+  },
+  "yearly_membership": {
+    "2013": {
+      "24 Hour Walk Up Pass": 1264,
+      "7-Day": 13,
+      "Annual": 6,
+      "Annual Membership": 2,
+      "Annual Pass": 19,
+      "Founding Member": 48,
+      "Local365": 66
+    },
+    "2014": {
+      "24-Hour Membership": 1,
+      "24 Hour Walk Up Pass": 108809,
+      "7-Day": 2761,
+      "ACL Weekend Pass Special": 319,
+      "Annual": 677,
+      "Annual Membership": 389,
+      "Annual Pass": 72,
+      "Annual Pass (Original)": 10,
+      "Explorer": 795,
+      "Founding Member": 2962,
+      "FunFunFun Fest 3 Day Pass": 27,
+      "Heartland Pass (Annual Pay)": 8,
+      "Local31": 17,
+      "Local365": 30866,
+      "Semester Membership": 2893
+    },
+    "2015": {
+      "24 Hour Walk Up Pass": 107538,
+      "3-Day Weekender": 4202,
+      "7-Day": 2905,
+      "Annual": 730,
+      "Annual Membership": 293,
+      "Annual Pass": 74,
+      "Annual Pass (Original)": 17,
+      "Explorer": 2385,
+      "Founding Member": 1805,
+      "Local31": 12006,
+      "Local365": 44110,
+      "Local365 Youth (age 13-17 riders)": 14,
+      "Membership: pay once, one-year commitment": 2,
+      "RideScout Single Tide": 109,
+      "Semester Membership": 338
+    },
+    "2016": {
+      "7-Day": 5,
+      "Annual": 309,
+      "Annual Member": 186,
+      "Annual Membership": 182,
+      "Annual Pass": 4,
+      "Annual Plus": 31,
+      "Denver B-cycle Founder": 10,
+      "Explorer": 2897,
+      "Explorer ($8 plus tax)": 182,
+      "Founding Member": 1231,
+      "Local30": 12984,
+      "Local30 ($11 plus tax)": 820,
+      "Local365": 49182,
+      "Local365 ($80 plus tax)": 3886,
+      "Local365 Youth with helmet (age 13-17 riders)": 53,
+      "Membership: pay once  one-year commitment": 2,
+      "Republic Rider": 16,
+      "Republic Rider (Annual)": 21,
+      "RESTRICTED": 1,
+      "RideScout Single Ride": 4,
+      "Try Before You Buy Special": 535,
+      "Walk Up": 112743,
+      "Weekender": 8635,
+      "Weekender ($15 plus tax)": 550
+    },
+    "2017": {
+      "Annual": 275,
+      "Annual Member": 138,
+      "Annual Membership": 111,
+      "Annual Pass": 39,
+      "Annual Plus": 97,
+      "Denver B-cycle Founder": 2,
+      "Explorer": 5017,
+      "Founding Member": 84,
+      "Local30": 17844,
+      "Local365": 47291,
+      "Local365+Guest Pass": 5848,
+      "Local365 Youth (age 13-17 riders)": 49,
+      "Local365 Youth with helmet (age 13-17 riders)": 38,
+      "Membership: pay once  one-year commitment": 11,
+      "Republic Rider (Annual)": 107,
+      "Try Before You Buy Special": 60,
+      "Walk Up": 90180,
+      "Weekender": 18949,
+      "Unknown": 1728
+    },
+    "2018": {
+      "$1 Pay by Trip Fall Special": 466,
+      "$1 Pay by Trip Winter Special": 223,
+      "24 Hour Walk Up Pass": 4879,
+      "3-Day Explorer": 1231,
+      "3-Day Weekender": 1253,
+      "Aluminum Access": 82,
+      "Annual": 291,
+      "Annual Member": 89,
+      "Annual Membership": 88,
+      "Annual Pass": 12,
+      "Annual Plus": 44,
+      "Annual Plus Membership": 25,
+      "Explorer": 5828,
+      "HT Ram Membership": 1375,
+      "Local30": 13352,
+      "Local365": 28865,
+      "Local365- 1/2 off Anniversary Special": 2907,
+      "Local365+Guest Pass": 5378,
+      "Local365+Guest Pass- 1/2 off Anniversary Special": 466,
+      "Local365 Youth (age 13-17 riders)": 51,
+      "Local365 Youth (age 13-17 riders)- 1/2 off Special": 3,
+      "Madtown Monthly": 36,
+      "Republic Rider (Annual)": 112,
+      "Single Trip": 2866,
+      "U.T. Student Membership": 242383,
+      "UT Student Membership": 9,
+      "Walk Up": 57121,
+      "Weekender": 12916,
+      "Unknown": 3406
+    },
+    "2019": {
+      "$1 Pay by Trip Winter Special": 541,
+      "24 Hour Walk Up Pass": 10952,
+      "3-Day Explorer": 4783,
+      "3-Day Weekender": 1,
+      "ACL 2019 Pass": 207,
+      "Aluminum Access": 14,
+      "Annual": 425,
+      "Annual Membership": 116,
+      "Annual Pass": 16,
+      "Annual Plus Membership": 1,
+      "Explorer": 4754,
+      "Heartland Pass (Monthly Pay)": 1,
+      "HT Ram Membership": 1246,
+      "Local30": 4771,
+      "Local365": 19313,
+      "Local365+Guest Pass": 1998,
+      "Local365 Youth (age 13-17 riders)": 299,
+      "Madtown Monthly": 27,
+      "Pay-as-you-ride": 1222,
+      "Republic Rider (Annual)": 26,
+      "Single Trip": 13965,
+      "Single Trip (Pay-as-you-ride)": 2769,
+      "Single Trip Ride": 3069,
+      "U.T. Student Membership": 36212,
+      "Unknown": 36
+    },
+    "2020": {
+      "24 Hour Walk Up Pass": 13605,
+      "3-Day Weekender": 4571,
+      "Annual": 73,
+      "Annual Membership": 78,
+      "Annual Pass (30 minute)": 2,
+      "Explorer": 8377,
+      "Heartland Pass (Annual Pay)": 1,
+      "HT Ram Membership": 39,
+      "Local30": 6826,
+      "Local31": 6808,
+      "Local365": 35893,
+      "Local365+Guest Pass": 439,
+      "Local365 Youth (age 13-17 riders)": 263,
+      "Pay-as-you-ride": 8314,
+      "Republic Rider (Annual)": 27,
+      "Single Trip (Pay-as-you-ride)": 11704,
+      "Single Trip Ride": 7,
+      "U.T. Student Membership": 4583,
+      "Unknown": 49
+    },
+    "2021": {
+      "24 Hour Walk Up Pass": 18218,
+      "3-Day Weekender": 11971,
+      "Annual": 46,
+      "Annual Membership": 28,
+      "Explorer": 16188,
+      "Heartland Pass (Annual Pay)": 3,
+      "Local31": 36838,
+      "Local365": 51507,
+      "Local365+Guest Pass": 262,
+      "Pay-as-you-ride": 15915,
+      "Single Trip (Pay-as-you-ride)": 13924,
+      "Single Trip Ride": 2,
+      "Student Membership": 54908,
+      "U.T. Student Membership": 4172,
+      "Unknown": 13
+    },
+    "2022": {
+      "24 Hour Walk Up Pass": 4283,
+      "3-Day Explorer": 2,
+      "3-Day Weekender": 18380,
+      "Annual": 15,
+      "Annual Membership": 27,
+      "Explorer": 27934,
+      "HT Ram Membership": 26,
+      "Local31": 48437,
+      "Local365": 34521,
+      "Local365+Guest Pass": 64,
+      "Pay-as-you-ride": 21901,
+      "Single Trip (Pay-as-you-ride)": 3911,
+      "Single Trip Ride": 1,
+      "Student Membership": 155919,
+      "U.T. Student Membership": 1554,
+      "Unknown": 5
+    },
+    "2023": {
+      "24 Hour Walk Up Pass": 3312,
+      "3-Day Weekender": 11376,
+      "Explorer": 27487,
+      "Local31": 38427,
+      "Local365": 31869,
+      "Local365+Guest Pass": 4,
+      "Pay-as-you-ride": 22586,
+      "Single Trip (Pay-as-you-ride)": 3012,
+      "Single Trip Ride": 2,
+      "Student Membership": 145689,
+      "U.T. Student Membership": 201
+    },
+    "2024": {
+      "3-Day Weekender": 24,
+      "Explorer": 18590,
+      "Local31": 19634,
+      "Local365": 16246,
+      "Local365+Guest Pass": 7,
+      "Pay-as-you-ride": 12807,
+      "Single Trip Ride": 2,
+      "Student Membership": 73831,
+      "U.T. Student Membership": 3
+    }
+  }
+}

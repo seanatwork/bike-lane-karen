@@ -1,20 +1,19 @@
 # Austin 311
 
-A Telegram bot for exploring Austin 311 service data — graffiti, bicycle complaints, restaurant inspections, and animal services.
+A Telegram bot for Austin 311 data — alerts, graffiti, bicycle infrastructure, animal services, traffic, noise, parking, parks, water quality, permits, bars, court caseloads, and more.
 
 ## Commands
 
 | Command | Description |
 |---|---|
-| `/graffiti` | Analysis · hotspots · remediation times · trends |
-| `/bicycle` | Recent complaints · statistics |
-| `/rest` | Worst inspection scores · grade report |
-| `/rest <name>` | Search by name or address |
-| `/animal` | Hotspots · stats · response times |
-| `/traffic` | Potholes · signals · street lights · sidewalks |
-| `/noisecomplaints` | Noise hotspots · stats · response times |
-| `/parks` | Park maintenance — hotspots · stats · resolution |
-| `/ticket <id>` | Look up any 311 ticket by ID |
+| `/start` | Main menu with all services |
+| `/help` | List all commands and info |
+| `/subscribe` | Push alerts for 311 reports, animals, and crashes near you |
+| `/myalerts` | View and manage your active alerts |
+| `/unsubscribe` | Cancel all alerts |
+| `/deletedata` | Remove all your stored data |
+
+All services are accessed through inline menus from `/start`.
 
 ## Setup
 
@@ -22,8 +21,8 @@ A Telegram bot for exploring Austin 311 service data — graffiti, bicycle compl
 git clone <repo-url>
 cd austin311bot-unofficial
 python -m venv .venv && source .venv/bin/activate
-pip install -e .
-cp .env.example .env   # add your TELEGRAM_BOT_TOKEN
+pip install -r requirements.txt
+cp .env.example .env   # add your AUSTIN311_BOT_TOKEN
 python austin311_bot.py
 ```
 
@@ -31,13 +30,14 @@ python austin311_bot.py
 
 | Variable | Required | Description |
 |---|---|---|
-| `TELEGRAM_BOT_TOKEN` | Yes | From [@BotFather](https://t.me/BotFather) |
+| `AUSTIN311_BOT_TOKEN` | Yes | Telegram bot token from [@BotFather](https://t.me/BotFather) |
 | `AUSTINAPIKEY` | No | Austin Open Data token (higher rate limits) |
 
 ## Data Sources
 
 - [Austin Open311 API](https://austintexas.gov/department/311) — live service requests
-- Austin Public Health restaurant inspection dataset
+- [Austin Open Data Portal](https://data.austintexas.gov) — crash reports, permits, court data, water quality, etc.
+- [Texas Open Data Portal](https://data.texas.gov) — TABC mixed beverage sales
 
 ## License
 

@@ -139,6 +139,12 @@ def generate_animal_map(days_back: int = 90) -> tuple:
     return generate_animal_map(days_back)
 
 
+def generate_dead_animal_map(days_back: int = 90) -> tuple:
+    """Generate dead animal collection point map."""
+    from animalsvc.dead_animal_bot import generate_dead_animal_map
+    return generate_dead_animal_map(days_back)
+
+
 def generate_budget_page(days_back: int = 365) -> tuple:
     """Generate Austin budget page."""
     import io
@@ -186,6 +192,7 @@ CATEGORY_MAPS = {
     "water": (generate_water_map, "water/index.html"),
     "childcare": (generate_childcare_map, "childcare/index.html"),
     "animal": (generate_animal_map, "animal/index.html"),
+    "dead-animal": (generate_dead_animal_map, "animal/dead/index.html"),
     "homeless-trends": (generate_homeless_trends_page, "homeless/trends/index.html"),
     "budget": (generate_budget_page, "budget/index.html"),
     "nearby": (generate_nearby_page, "nearby/index.html"),
