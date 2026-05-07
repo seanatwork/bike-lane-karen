@@ -7,12 +7,9 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 ### 2. Shared Micromobility (E-scooters, Bikeshare) - WIP
 - **311 volume:** \#14 at **39,043 reports**
-
 - **Current status:** Nothing. This is a uniquely Austin pain-point (dockless scooter complaints, sidewalk obstructions, improperly parked bikes/scooters).
 
 - **Common in peer cities:** Yes, especially cities with Lime/Bird/Veo/CapMetro Bikeshare.
-
-
 
 ### 4. Debris in Street (non-storm) WIP
 
@@ -31,8 +28,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 - **Current status:** Only `/code` for building permits (4 codes). Missing the broader code enforcement picture — tall weeds, junked vehicles, substandard structures, zoning violations.
 
 - **Common in peer cities:** Code enforcement is a staple civic data category.
-
-- **Suggested approach:** Expand `/code` into a proper code-enforcement module with hotspots.
 
 
 ## 🟡 MEDIUM PRIORITY (moderate volume or high civic interest)
@@ -63,6 +58,29 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 - **Suggested approach:** Low-complexity add to `/traffic` or standalone.
 
 
+
+## ✅ COMPLETED (Fun Data page additions)
+
+### Graffiti Hall of Fame
+- **Added:** May 2026
+- **What it shows:** Most frequently tagged locations in Austin based on Open311 HHSGRAFF data
+- **Features:** Winner banner, top 15 leaderboard, repeat rate stats, link to graffiti map
+
+### Parking Shenanigans
+- **Added:** May 2026
+- **What it shows:** Hottest enforcement times by hour, most common violation types, carousel of funniest violation descriptions
+- **Features:** Peak hour highlight, hourly bar chart, top 8 violation types, prev/next carousel nav
+
+### 🗒️ Future Fun Data Ideas (not yet started)
+
+- **#7 Most Complained-About Address in Austin** — Aggregate across all 311 categories to find the single address generating the most requests
+
+### 🏗️ Infrastructure Improvements
+
+- **Pre-generate Fun Data cards via GitHub Actions workflow** — Currently all Fun Data cards (Bar of the Month, Coyotes, Graffiti, Parking, Speedrun) make live API calls from the visitor's browser. This is wasteful and slow. Instead, add a `scripts/generate_fun_data.py` script that pre-generates the JSON data for each card and saves it to `docs/fun/data.json`. Then:
+  1. Add a `generate-fun-data.yml` workflow that runs daily and regenerates the JSON
+  2. Update the Fun Data page to fetch from `data.json` instead of making live API calls
+  3. This eliminates redundant API calls, speeds up page load, and reduces Open311 API load
 
 ## 🟢 LOWER PRIORITY (niche, low volume, or already partially covered)
 
