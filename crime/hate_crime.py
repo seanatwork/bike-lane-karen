@@ -5,8 +5,14 @@ import json
 import logging
 import os
 from collections import Counter
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
+
+try:
+    from zoneinfo import ZoneInfo
+    _CENTRAL = ZoneInfo("America/Chicago")
+except ImportError:
+    _CENTRAL = None
 
 import requests
 
@@ -19,22 +25,25 @@ _session: Optional[requests.Session] = None
 
 
 def _format_central_time() -> str:
-    """Return current time formatted in US Central Time (CDT/CST)."""
+    if _CENTRAL:
+        dt = datetime.now(_CENTRAL)
+        return dt.strftime("%Y-%m-%d %I:%M %p ") + dt.strftime("%Z")
+    # Fallback without zoneinfo
     utc_now = datetime.now(timezone.utc)
-    month = utc_now.month
-    is_dst = 3 <= month <= 11
-    offset_hours = -5 if is_dst else -6
-    central_now = utc_now + timedelta(hours=offset_hours)
-    tz_abbr = "CDT" if is_dst else "CST"
-    return central_now.strftime(f"%Y-%m-%d %I:%M %p {tz_abbr}")
+    from datetime import timedelta
+    is_dst = 3 <= utc_now.month <= 11
+    central_now = utc_now + timedelta(hours=-5 if is_dst else -6)
+    return central_now.strftime("%Y-%m-%d %I:%M %p ") + ("CDT" if is_dst else "CST")
 
 
 def _get_session() -> requests.Session:
     global _session
     if _session is None:
         _session = requests.Session()
-        token = os.getenv("AUSTINAPIKEY", "")
+        # AUSTINAPIKEY / OPEN311_API_KEY are Open311 keys, NOT Socrata tokens —
+        # sending them causes a 403. Only use a dedicated SOCRATA_APP_TOKEN if set.
         headers = {"Accept": "application/json", "User-Agent": "austin311bot/0.1 (hate crime)"}
+        token = os.getenv("SOCRATA_APP_TOKEN", "")
         if token:
             headers["X-App-Token"] = token
         _session.headers.update(headers)
@@ -86,8 +95,8 @@ def _fetch_bias_breakdown() -> list:
 def _fetch_offense_breakdown() -> list:
     """Counts by offense type."""
     return _socrata_get({
-        "$select": "offense_type, count(*) as cnt",
-        "$group": "offense_type",
+        "$select": "offense_s, count(*) as cnt",
+        "$group": "offense_s",
         "$order": "cnt DESC",
         "$limit": 50,
     })
@@ -96,37 +105,61 @@ def _fetch_offense_breakdown() -> list:
 def _fetch_location_breakdown() -> list:
     """Counts by location type."""
     return _socrata_get({
-        "$select": "location_type, count(*) as cnt",
-        "$group": "location_type",
+        "$select": "offense_location, count(*) as cnt",
+        "$group": "offense_location",
         "$order": "cnt DESC",
         "$limit": 50,
     })
 
 
-def _fetch_all_rows() -> list:
-    """Fetch all hate crime records for detailed analysis."""
+def _fetch_offender_race() -> list:
+    """Counts by offender race/ethnicity."""
     return _socrata_get({
-        "$limit": 5000,
-        "$order": "date_of_incident ASC",
+        "$select": "race_ethnicity_of_offenders, count(*) as cnt",
+        "$group": "race_ethnicity_of_offenders",
+        "$order": "cnt DESC",
+        "$limit": 50,
     })
 
 
 # ── aggregation ────────────────────────────────────────────────────────────────
 
 # Bias grouping for readable labels
+# Aliases verified against actual t99n-5ib4 field values (May 2026)
 BIAS_GROUPS = {
-    "Anti-Black": ["Anti-Black", "Anti-African American"],
-    "Anti-Gay (Male)": ["Anti-Gay (Male)", "Anti-Gay Male", "Anti-Gay"],
-    "Anti-Jewish": ["Anti-Jewish", "Anti-Jewish (Anti-Semitic)"],
-    "Anti-Hispanic": ["Anti-Hispanic", "Anti-Hispanic/Latino"],
+    "Anti-Black": [
+        "Anti-Black or African American", "Anti-Black",
+    ],
+    "Anti-Gay (Male)": ["Anti-Gay (Male)", "Anti-Gay"],
+    "Anti-Jewish": ["Anti-Jewish"],
+    "Anti-Hispanic": [
+        "Anti-Hispanic or Latino", "Anti-Hispanic", "Anti-Hispanic/Latino",
+    ],
     "Anti-White": ["Anti-White"],
-    "Anti-Transgender": ["Anti-Transgender", "Anti-Transgender (Male to Female)", "Anti-Transgender (Female to Male)"],
-    "Anti-Lesbian": ["Anti-Lesbian", "Anti-Lesbian (Female)"],
-    "Anti-Asian": ["Anti-Asian", "Anti-Asian/Pacific Islander"],
-    "Anti-Muslim": ["Anti-Muslim", "Anti-Islamic (Muslim)"],
-    "Anti-Mental Disability": ["Anti-Mental Disability"],
-    "Anti-Other Race/Ethnicity": ["Anti-Other Race/Ethnicity"],
-    "Anti-Multiple (Group)": ["Anti-Multiple (Group)"],
+    "Anti-Transgender": ["Anti-Transgender"],
+    "Anti-LGBTQ+ (Mixed)": [
+        "Anti-Lesbian/Gay/Bisexual/Transgender (Mixed Group)",
+        "Anti-Lesbian/Bisexual/Transgender (Mixed Group)",
+        "Anti-Lesbian/Gay/Transgender",
+    ],
+    "Anti-Lesbian": ["Anti-Lesbian (Female)", "Anti-Lesbian"],
+    "Anti-Asian": ["Anti-Asian"],
+    "Anti-Muslim": ["Anti-Islamic (Muslim)", "Anti-Islamic(Muslim)", "Anti-Muslim"],
+    "Anti-Arab": ["Anti-Arab"],
+    "Anti-Female": ["Anti-Female"],
+    "Anti-Bisexual": ["Anti-Bisexual"],
+    "Anti-Religion (Other)": [
+        "Anti-Other Religion", "Anti-Other Christian", "Anti-Buddhist",
+        "Anti-Protestant", "Anti-Religion (Other)",
+    ],
+    "Anti-Disability": [
+        "Anti-Mental Disability", "Anti-Physical Disability", "Anti-Disability",
+    ],
+    "Anti-Other Race/Ethnicity": [
+        "Anti-Other Race/Ethnicity", "Anti-Other Race/Ethnicity/Ancestry",
+        "Anti-American Indian/Alaskan Native",
+    ],
+    "Anti-Multiple Biases": [],  # catch-all for semicolon-joined multi-bias strings
 }
 
 BIAS_COLORS = {
@@ -136,24 +169,32 @@ BIAS_COLORS = {
     "Anti-Hispanic": "#ff6f00",
     "Anti-White": "#78909c",
     "Anti-Transgender": "#9c27b0",
+    "Anti-LGBTQ+ (Mixed)": "#ad1457",
     "Anti-Lesbian": "#f06292",
     "Anti-Asian": "#00838f",
     "Anti-Muslim": "#2e7d32",
-    "Anti-Mental Disability": "#6a1b9a",
+    "Anti-Arab": "#558b2f",
+    "Anti-Female": "#c62828",
+    "Anti-Bisexual": "#ce93d8",
+    "Anti-Religion (Other)": "#4a148c",
+    "Anti-Disability": "#6a1b9a",
     "Anti-Other Race/Ethnicity": "#546e7a",
-    "Anti-Multiple (Group)": "#37474f",
+    "Anti-Multiple Biases": "#37474f",
 }
 
 BIAS_ORDER = [
     "Anti-Black", "Anti-Gay (Male)", "Anti-Jewish", "Anti-Hispanic",
-    "Anti-White", "Anti-Transgender", "Anti-Lesbian", "Anti-Asian",
-    "Anti-Muslim", "Anti-Mental Disability", "Anti-Other Race/Ethnicity",
-    "Anti-Multiple (Group)",
+    "Anti-White", "Anti-Transgender", "Anti-LGBTQ+ (Mixed)", "Anti-Lesbian",
+    "Anti-Asian", "Anti-Muslim", "Anti-Arab", "Anti-Female", "Anti-Bisexual",
+    "Anti-Religion (Other)", "Anti-Disability", "Anti-Other Race/Ethnicity",
+    "Anti-Multiple Biases",
 ]
 
 
 def _group_bias(raw_bias: str) -> str:
-    """Map a raw bias string to its group label."""
+    """Map a raw bias string to its group label. Semicolon-joined multi-bias → Anti-Multiple Biases."""
+    if ";" in raw_bias:
+        return "Anti-Multiple Biases"
     for group, aliases in BIAS_GROUPS.items():
         if raw_bias in aliases:
             return group
@@ -161,7 +202,7 @@ def _group_bias(raw_bias: str) -> str:
 
 
 def _aggregate(yearly_rows: list, bias_rows: list, offense_rows: list,
-               location_rows: list, all_rows: list) -> dict:
+               location_rows: list, offender_race_rows: list) -> dict:
     """Aggregate hate crime data into a structured dict."""
     # Yearly trend
     years = []
@@ -212,26 +253,20 @@ def _aggregate(yearly_rows: list, bias_rows: list, offense_rows: list,
 
     # Offense breakdown
     offense_data = [
-        {"name": (r.get("offense_type") or "").title(), "count": int(r.get("cnt", 0))}
-        for r in offense_rows if r.get("offense_type")
+        {"name": (r.get("offense_s") or "").title(), "count": int(r.get("cnt", 0))}
+        for r in offense_rows if r.get("offense_s")
     ][:15]
 
     # Location breakdown
     location_data = [
-        {"name": (r.get("location_type") or "").title(), "count": int(r.get("cnt", 0))}
-        for r in location_rows if r.get("location_type")
+        {"name": (r.get("offense_location") or "").title(), "count": int(r.get("cnt", 0))}
+        for r in location_rows if r.get("offense_location")
     ][:15]
 
-    # Offender race breakdown
-    offender_race = Counter()
-    for r in all_rows:
-        race = r.get("race_ethnicity_of_offenders", "Unknown")
-        if race:
-            offender_race[race] += 1
-    
+    # Offender race breakdown (pre-grouped by API)
     offender_data = [
-        {"name": race, "count": cnt}
-        for race, cnt in offender_race.most_common()
+        {"name": (r.get("race_ethnicity_of_offenders") or "Unknown"), "count": int(r.get("cnt", 0))}
+        for r in offender_race_rows if r.get("race_ethnicity_of_offenders")
     ]
 
     # Most recent year
@@ -619,11 +654,11 @@ def _render_html(data: dict, fetched_at: str) -> str:
 
 def generate_hate_crime() -> tuple[Optional[io.BytesIO], str]:
     try:
-        yearly_rows     = _fetch_yearly()
-        bias_rows       = _fetch_bias_breakdown()
-        offense_rows    = _fetch_offense_breakdown()
-        location_rows   = _fetch_location_breakdown()
-        all_rows        = _fetch_all_rows()
+        yearly_rows       = _fetch_yearly()
+        bias_rows         = _fetch_bias_breakdown()
+        offense_rows      = _fetch_offense_breakdown()
+        location_rows     = _fetch_location_breakdown()
+        offender_race_rows = _fetch_offender_race()
     except Exception as e:
         logger.error(f"hate crime fetch: {e}")
         return None, f"⚠️ Error fetching hate crime data: {e}"
@@ -631,7 +666,7 @@ def generate_hate_crime() -> tuple[Optional[io.BytesIO], str]:
     if not yearly_rows:
         return None, "⚠️ No hate crime data found."
 
-    data = _aggregate(yearly_rows, bias_rows, offense_rows, location_rows, all_rows)
+    data = _aggregate(yearly_rows, bias_rows, offense_rows, location_rows, offender_race_rows)
     fetched_at = _format_central_time()
     html = _render_html(data, fetched_at)
 

@@ -9,13 +9,14 @@ Service codes (from 311categories.txt):
 - PRGRDISS: Park Maintenance - Grounds (36,598)
 - PRGRDPLB: Park Maintenance - Grounds Plumbing Issues (7,324)
 - PRGRDELC: Park Maintenance - Grounds Electrical Issues (4,514)
-- PATRISPA: Park - Tree Issues (4,409)
 - PRBLDPLB: Park Maintenance - Building Plumbing Issues (2,767)
 - PRBLDISS: Park Building Issues (1,478)
 - PRBLDACH: Parks - Building A/C & Heating Issues (958)
 - PRBLDELE: Parks - Building Electric Issues (532)
 - COMPARLN: Commercial Use of Parkland (356)
 - PRCEMET1: Park Cemeteries (343)
+
+Note: PATRISPA (Park - Tree Issues) moved to trees/ module under Environment.
 """
 
 import io
@@ -46,7 +47,6 @@ SERVICE_CODES = {
     "PRGRDISS": "Grounds Maintenance",
     "PRGRDPLB": "Grounds Plumbing",
     "PRGRDELC": "Grounds Electrical",
-    "PATRISPA": "Tree Issues",
     "PRBLDPLB": "Building Plumbing",
     "PRBLDISS": "Building Issues",
     "PRBLDACH": "Building A/C & Heating",
@@ -706,16 +706,15 @@ _TYPE_FILTER_HTML = r"""
     var _tm={},_tt={},_at=new Set(),_built=false;
     var _groups=[
       {g:'Grounds',   types:['Grounds Maintenance','Grounds Plumbing','Grounds Electrical']},
-      {g:'Trees',     types:['Tree Issues']},
       {g:'Buildings', types:['Building Plumbing','Building Issues','Building A/C & Heating','Building Electric']},
       {g:'Other',     types:['Commercial Use of Parkland','Park Cemeteries']}
     ];
     var _icons={'Grounds Maintenance':'\u{1F33F}','Grounds Plumbing':'\u{1F4A7}','Grounds Electrical':'⚡',
-      'Tree Issues':'\u{1F333}','Building Plumbing':'\u{1F527}','Building Issues':'\u{1F3D7}',
+      'Building Plumbing':'\u{1F527}','Building Issues':'\u{1F3D7}',
       'Building A/C & Heating':'❄','Building Electric':'\u{1F4A1}',
       'Commercial Use of Parkland':'\u{1F3EA}','Park Cemeteries':'⚰'};
     var _short={'Grounds Maintenance':'Grounds Maint.','Grounds Plumbing':'Grnds Plumbing',
-      'Grounds Electrical':'Grnds Electric','Tree Issues':'Tree Issues',
+      'Grounds Electrical':'Grnds Electric',
       'Building Plumbing':'Bldg Plumbing','Building Issues':'Bldg Issues',
       'Building A/C & Heating':'Bldg A/C & Heat','Building Electric':'Bldg Electric',
       'Commercial Use of Parkland':'Commercial Use','Park Cemeteries':'Cemeteries'};
@@ -1059,3 +1058,277 @@ def generate_parks_map(days_back: int = 90) -> tuple:
         f"Tap markers to see details. Use buttons to filter by time window."
     )
     return buffer, summary
+
+
+# =============================================================================
+# PARKS HUB PAGE — searchable landing page at docs/parks/index.html
+# =============================================================================
+
+def generate_parks_hub(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
+    """Generate a searchable hub page listing all parks with recent 311 activity."""
+    data = get_park_hotspots(days_back)
+    hotspots = data.get("hotspots", [])
+    park_types = data.get("park_types", {})
+    total_reports = data.get("total", 0)
+    total_open = sum(c["open"] for _, c in hotspots)
+    park_count = len(hotspots)
+
+    if not hotspots:
+        return None, "No park data available."
+
+    import json as _json
+
+    parks_json = []
+    for park_name, counts in hotspots:
+        types_dict = park_types.get(park_name, {})
+        top_type = max(types_dict.items(), key=lambda x: x[1])[0] if types_dict else ""
+        parks_json.append({
+            "name": park_name,
+            "open": counts["open"],
+            "closed": counts["closed"],
+            "total": counts["total"],
+            "top_type": top_type,
+            "types": types_dict,
+        })
+
+    parks_data_js = _json.dumps(parks_json, ensure_ascii=False)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Austin Parks — 311 Maintenance Reports</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Austin Parks — 311 Maintenance Reports" />
+  <meta property="og:description" content="Search {park_count} Austin parks to see open maintenance issues, complaint history, and resolution trends." />
+  <meta property="og:url" content="https://austin311.com/parks/" />
+  <meta property="og:image" content="https://austin311.com/og-default.png" />
+  <meta property="og:site_name" content="Austin 311" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="description" content="Search Austin parks to see open maintenance issues reported via 311." />
+  <style>
+    *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    :root {{
+      --bg:           #f8fafc;
+      --bg-card:      #ffffff;
+      --bg-card-hover:#f1f5f9;
+      --bg-search:    #ffffff;
+      --border:       #e2e8f0;
+      --border-hover: #94a3b8;
+      --text:         #1e293b;
+      --text-head:    #0f172a;
+      --text-muted:   #64748b;
+      --text-label:   #0f172a;
+      --text-footer:  #94a3b8;
+      --accent:       #2563eb;
+      --open-bg:      #fee2e2;
+      --open-text:    #dc2626;
+      --bar-bg:       #e2e8f0;
+      --bar-fill:     #2563eb;
+    }}
+    html.dark {{
+      --bg:           #0f1117;
+      --bg-card:      #1e2230;
+      --bg-card-hover:#252b3b;
+      --bg-search:    #1e2230;
+      --border:       #2d3348;
+      --border-hover: #4a5568;
+      --text:         #e2e8f0;
+      --text-head:    #f8fafc;
+      --text-muted:   #64748b;
+      --text-label:   #f1f5f9;
+      --text-footer:  #475569;
+      --open-bg:      #3b1f1f;
+      --open-text:    #f87171;
+      --bar-bg:       #2d3348;
+      --bar-fill:     #3b82f6;
+    }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+      padding: 2.5rem 1rem 3rem; transition: background 0.2s, color 0.2s;
+    }}
+    #theme-toggle {{
+      position: fixed; top: 14px; right: 16px; z-index: 200;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+      padding: 5px 10px; font-size: 0.75rem; color: var(--text-muted);
+      cursor: pointer; transition: background 0.15s; user-select: none;
+    }}
+    .page-wrap {{ width: 100%; max-width: 860px; }}
+    header {{ text-align: center; margin-bottom: 2rem; }}
+    header h1 {{ font-size: 2rem; font-weight: 800; color: var(--text-head); margin-bottom: 0.4rem; }}
+    header p {{ color: var(--text-muted); font-size: 0.95rem; }}
+    .stat-row {{
+      display: flex; justify-content: center; gap: 2rem;
+      margin: 1.2rem 0; flex-wrap: wrap;
+    }}
+    .stat {{ text-align: center; }}
+    .stat .val {{ font-size: 1.6rem; font-weight: 700; color: var(--text-head); line-height: 1; }}
+    .stat .lbl {{ font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }}
+    .controls {{
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 1.5rem; flex-wrap: wrap;
+    }}
+    #park-search {{
+      flex: 1; min-width: 200px; padding: 0.55rem 0.9rem;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg-search); color: var(--text);
+      font-size: 0.95rem; outline: none; transition: border-color 0.15s;
+    }}
+    #park-search:focus {{ border-color: var(--accent); }}
+    #match-count {{ font-size: 0.82rem; color: var(--text-muted); white-space: nowrap; }}
+    .map-btn {{
+      display: inline-block; padding: 0.5rem 1rem;
+      background: var(--accent); color: white; border-radius: 8px;
+      font-size: 0.88rem; font-weight: 600; text-decoration: none;
+      white-space: nowrap; transition: opacity 0.15s;
+    }}
+    .map-btn:hover {{ opacity: 0.85; }}
+    #park-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 0.85rem;
+    }}
+    .park-card {{
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 0.9rem 1rem;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+    }}
+    .park-card:hover {{ border-color: var(--border-hover); background: var(--bg-card-hover); }}
+    .park-card.expanded {{ border-color: var(--accent); }}
+    .card-header {{ display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }}
+    .park-name {{ font-weight: 700; font-size: 0.97rem; color: var(--text-label); line-height: 1.25; }}
+    .open-badge {{
+      flex-shrink: 0; font-size: 0.72rem; font-weight: 700;
+      background: var(--open-bg); color: var(--open-text);
+      padding: 2px 7px; border-radius: 99px;
+    }}
+    .card-meta {{ margin-top: 0.35rem; font-size: 0.8rem; color: var(--text-muted); }}
+    .top-type {{
+      margin-top: 0.4rem; font-size: 0.78rem; color: var(--text-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }}
+    .type-breakdown {{
+      display: none; margin-top: 0.75rem;
+      border-top: 1px solid var(--border); padding-top: 0.65rem;
+    }}
+    .park-card.expanded .type-breakdown {{ display: block; }}
+    .type-row {{ margin-bottom: 0.45rem; }}
+    .type-row-label {{ font-size: 0.78rem; color: var(--text-muted); margin-bottom: 2px;
+      display: flex; justify-content: space-between; }}
+    .type-bar-track {{
+      height: 5px; background: var(--bar-bg); border-radius: 99px; overflow: hidden;
+    }}
+    .type-bar-fill {{
+      height: 100%; background: var(--bar-fill); border-radius: 99px; transition: width 0.3s;
+    }}
+    .no-results {{
+      text-align: center; color: var(--text-muted); padding: 3rem 0; grid-column: 1 / -1;
+    }}
+    footer {{
+      margin-top: 3rem; font-size: 0.78rem; color: var(--text-footer); text-align: center;
+    }}
+    footer a {{ color: inherit; text-decoration: underline; }}
+    footer a:hover {{ color: var(--border-hover); }}
+  </style>
+</head>
+<body>
+<button id="theme-toggle">🌙 Dark</button>
+<div class="page-wrap">
+  <header>
+    <h1>🏞️ Austin Parks</h1>
+    <p>311 maintenance reports · last {days_back} days</p>
+    <div class="stat-row">
+      <div class="stat"><div class="val">{total_reports:,}</div><div class="lbl">Total reports</div></div>
+      <div class="stat"><div class="val">{total_open:,}</div><div class="lbl">Open issues</div></div>
+      <div class="stat"><div class="val">{park_count:,}</div><div class="lbl">Parks with activity</div></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <input type="search" id="park-search" placeholder="Search parks…" autocomplete="off" />
+    <span id="match-count">{park_count} parks</span>
+    <a class="map-btn" href="./map/">View all on map →</a>
+  </div>
+
+  <div id="park-grid"></div>
+</div>
+
+<footer>
+  Data: <a href="https://311.austintexas.gov" target="_blank" rel="noopener">Austin 311</a>
+  &nbsp;·&nbsp;
+  <a href="https://austin311.com" target="_blank" rel="noopener">austin311.com</a>
+</footer>
+
+<script>
+  var PARKS = {parks_data_js};
+
+  function renderCards(list) {{
+    var grid = document.getElementById('park-grid');
+    document.getElementById('match-count').textContent = list.length + ' park' + (list.length === 1 ? '' : 's');
+    if (!list.length) {{
+      grid.innerHTML = '<div class="no-results">No parks match your search.</div>';
+      return;
+    }}
+    grid.innerHTML = list.map(function(p, i) {{
+      var openBadge = p.open > 0
+        ? '<span class="open-badge">' + p.open + ' open</span>'
+        : '';
+      var topType = p.top_type ? '<div class="top-type">🔧 ' + p.top_type + '</div>' : '';
+      var breakdown = buildBreakdown(p.types);
+      return '<div class="park-card" id="card-' + i + '" onclick="toggleCard(this)">' +
+        '<div class="card-header">' +
+          '<div class="park-name">' + p.name + '</div>' +
+          openBadge +
+        '</div>' +
+        '<div class="card-meta">' + p.total + ' report' + (p.total === 1 ? '' : 's') +
+          (p.open > 0 ? ' · ' + p.closed + ' resolved' : ' · all resolved') + '</div>' +
+        topType +
+        '<div class="type-breakdown">' + breakdown + '</div>' +
+      '</div>';
+    }}).join('');
+  }}
+
+  function buildBreakdown(types) {{
+    if (!types || !Object.keys(types).length) return '';
+    var entries = Object.entries(types).sort(function(a,b){{return b[1]-a[1];}});
+    var max = entries[0][1];
+    return entries.map(function(e) {{
+      var pct = Math.round(e[1] / max * 100);
+      return '<div class="type-row">' +
+        '<div class="type-row-label"><span>' + e[0] + '</span><span>' + e[1] + '</span></div>' +
+        '<div class="type-bar-track"><div class="type-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+    }}).join('');
+  }}
+
+  function toggleCard(el) {{
+    el.classList.toggle('expanded');
+  }}
+
+  var _current = PARKS;
+  document.getElementById('park-search').addEventListener('input', function() {{
+    var q = this.value.trim().toLowerCase();
+    _current = q ? PARKS.filter(function(p) {{ return p.name.toLowerCase().indexOf(q) !== -1; }}) : PARKS;
+    renderCards(_current);
+  }});
+
+  renderCards(PARKS);
+
+  var btn = document.getElementById('theme-toggle');
+  var html = document.documentElement;
+  if (localStorage.getItem('theme') === 'dark') {{ html.classList.add('dark'); btn.textContent = '☀️ Light'; }}
+  btn.addEventListener('click', function() {{
+    var d = html.classList.toggle('dark');
+    btn.textContent = d ? '☀️ Light' : '🌙 Dark';
+    localStorage.setItem('theme', d ? 'dark' : 'light');
+  }});
+</script>
+</body>
+</html>"""
+
+    buffer = io.BytesIO(html.encode("utf-8"))
+    buffer.seek(0)
+    return buffer, f"🏞️ Parks hub: {park_count} parks · {total_reports:,} reports · {total_open} open"

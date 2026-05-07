@@ -7,6 +7,7 @@ from .parks_bot import (
     format_stats,
     format_hotspots,
     format_resolution,
+    generate_parks_hub,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "format_stats",
     "format_hotspots",
     "format_resolution",
+    "generate_parks_hub",
 ]

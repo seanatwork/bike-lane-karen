@@ -55,13 +55,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Suggested approach:** `/trash` or `/recycling` command tracking missed collections, bulk pickup, etc.
 
-### 8. Obstruction in Right of Way
-
-- **311 volume:** \#21 at **22,316 reports**
-
-- **Current status:** Nothing dedicated.
-
-- **Suggested approach:** Sub-view under traffic or code enforcement.
 
 ### 9. Fireworks Complaints
 
@@ -79,13 +72,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Suggested approach:** Low-complexity add to `/traffic` or standalone.
 
-### 11. Environmental Spills & Harmful Algae
-
-- **311 volume:** \#91 Environmental Spills (796), \#109 Harmful Algae (56)
-
-- **Current status:** Surface water quality only. Algae blooms are a recurring Austin concern (Lady Bird Lake, red algae dog deaths).
-
-- **Suggested approach:** Sub-view under `/water` — "Algae & Spill Watch."
 
 
 ## 🟢 LOWER PRIORITY (niche, low volume, or already partially covered)

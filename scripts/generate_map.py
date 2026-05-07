@@ -127,6 +127,12 @@ def generate_parks_map(days_back: int = 90) -> tuple:
     return generate_parks_map(days_back)
 
 
+def generate_parks_hub(days_back: int = 90) -> tuple:
+    """Generate searchable parks hub landing page."""
+    from parks.parks_bot import generate_parks_hub
+    return generate_parks_hub(days_back)
+
+
 def generate_water_map(days_back: int = 90) -> tuple:
     """Generate water conservation violations point map."""
     from waterconservation.water_conservation_bot import generate_water_map
@@ -175,6 +181,12 @@ def generate_storm_map(days_back: int = 90) -> tuple:
     return generate_storm_map(days_back)
 
 
+def generate_tree_map(days_back: int = 90) -> tuple:
+    """Generate urban trees & canopy point map."""
+    from trees.trees_bot import generate_tree_map
+    return generate_tree_map(days_back)
+
+
 def generate_nearby_page(days_back: int = 180) -> tuple:
     """Generate "311 Near You" dynamic map page with embedded request data."""
     import io
@@ -201,7 +213,8 @@ CATEGORY_MAPS = {
     "noise": (generate_noise_map, "noise/index.html"),
     "noise-trends": (generate_noise_trends_page, "noise/trends/index.html"),
     "graffiti-trends": (generate_graffiti_trends_page, "graffiti/trends/index.html"),
-    "parks": (generate_parks_map, "parks/index.html"),
+    "parks": (generate_parks_map, "parks/map/index.html"),
+    "parks-hub": (generate_parks_hub, "parks/index.html"),
     "water": (generate_water_map, "water/index.html"),
     "childcare": (generate_childcare_map, "childcare/index.html"),
     "animal": (generate_animal_map, "animal/index.html"),
@@ -210,6 +223,7 @@ CATEGORY_MAPS = {
     "budget": (generate_budget_page, "budget/index.html"),
     "nearby": (generate_nearby_page, "nearby/index.html"),
     "storm": (generate_storm_map, "storm/index.html"),
+    "trees": (generate_tree_map, "trees/index.html"),
 }
 
 

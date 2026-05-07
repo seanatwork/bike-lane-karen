@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Austin 311 — Hate Crime Incidents</title>
+  <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f8fafc; --bg-panel: #f1f5f9; --bg-card: #ffffff;
+      --border: #e2e8f0; --text: #1e293b; --text-head: #0f172a;
+      --text-sub: #64748b; --text-muted: #94a3b8;
+      --btn-bg: #e2e8f0; --btn-border: #cbd5e1; --btn-color: #475569;
+      --btn-hover-bg: #d1dae3; --btn-hover-color: #1e293b;
+      --chart-title: #374151; --footer-border: #e2e8f0; --footer-color: #94a3b8;
+    }
+    html.dark {
+      --bg: #0f1117; --bg-panel: #1e2230; --bg-card: #161a24;
+      --border: #2d3348; --text: #e2e8f0; --text-head: #f1f5f9;
+      --text-sub: #64748b; --text-muted: #475569;
+      --btn-bg: #252b3b; --btn-border: #3d4868; --btn-color: #94a3b8;
+      --btn-hover-bg: #2d3453; --btn-hover-color: #e2e8f0;
+      --chart-title: #e2e8f0; --footer-border: #1e2230; --footer-color: #475569;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; transition: background 0.2s, color 0.2s; }
+    #panel { position: sticky; top: 0; z-index: 100; background: var(--bg-panel); border-bottom: 1px solid var(--border); padding: 10px 16px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    #panel-title { font-size: 15px; font-weight: 700; color: var(--text-head); }
+    #panel-subtitle { font-size: 12px; color: var(--text-sub); text-align: center; }
+    #last-ran { font-size: 11px; color: var(--text-muted); }
+    .btn-row { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+    .fbtn { background: var(--btn-bg); border: 1px solid var(--btn-border); color: var(--btn-color); padding: 5px 13px; border-radius: 4px; font-size: 12px; white-space: nowrap; text-decoration: none; display: inline-block; cursor: pointer; transition: background 0.12s, color 0.12s; }
+    .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+    #theme-toggle { position: fixed; top: 10px; right: 12px; z-index: 200; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; font-size: 11px; color: var(--text-sub); cursor: pointer; }
+    #stats { border-bottom: 1px solid var(--border); }
+    .stats-inner { display: flex; justify-content: center; flex-wrap: wrap; }
+    .stat { flex: 1; min-width: 100px; max-width: 200px; text-align: center; padding: 10px 8px 9px; border-right: 1px solid var(--border); }
+    .stat:last-child { border-right: none; }
+    .stat-value { font-size: 1.2rem; font-weight: 700; line-height: 1.1; }
+    .stat-label { font-size: 0.67rem; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 3px; }
+    .stat-sub { font-size: 0.67rem; color: var(--text-muted); margin-top: 1px; }
+    #chart-wrap { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
+    .chart-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .chart-title { font-size: 13px; font-weight: 600; color: var(--chart-title); margin-bottom: 4px; }
+    .chart-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+    .chart-container { position: relative; }
+    .disclaimer { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #92400e; line-height: 1.5; }
+    html.dark .disclaimer { background: #2d2a1a; border-color: #a16207; color: #fde68a; }
+    footer { text-align: center; padding: 14px 16px; font-size: 0.74rem; color: var(--footer-color); border-top: 1px solid var(--footer-border); }
+    footer a { color: var(--text-sub); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+    @media (max-width: 520px) { .stat-value { font-size: 1rem; } }
+  </style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TS158R7XSN');
+</script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-TS158R7XSN"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-TS158R7XSN');
+</script>
+</head>
+<body>
+
+  <button id="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+
+  <div id="panel">
+    <div id="panel-title">⚠️ APD Hate Crime Incidents</div>
+    <div id="panel-subtitle">Austin Police Department — 2017 to present</div>
+    <div id="last-ran">Last ran: 2026-05-06 06:16 PM CDT</div>
+    <div class="btn-row">
+      <a class="fbtn" href="../">← Crime Map</a>
+      <a class="fbtn" href="../trends/">← Crime Trends</a>
+      <a class="fbtn" href="../../">Austin 311 Home</a>
+    </div>
+  </div>
+
+  <div id="stats">
+    <div class="stats-inner">
+      <div class="stat">
+        <div class="stat-value" style="color:#ef4444;">304</div>
+        <div class="stat-label">Total incidents</div>
+        <div class="stat-sub">2017–2026</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#f59e0b;">30</div>
+        <div class="stat-label">Avg per year</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#22c55e;">2</div>
+        <div class="stat-label">2026 incidents</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#3b82f6;font-size:0.95rem;">+133%</div>
+        <div class="stat-label">3-yr growth</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" style="color:#8b5cf6;font-size:0.85rem;">Anti-Black</div>
+        <div class="stat-label">Most targeted</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chart-wrap">
+
+    <div class="disclaimer">
+      <strong>⚠️ Note:</strong> Hate crimes are underreported. These figures reflect only incidents reported to and classified as hate crimes by APD.
+      Actual incidence is likely higher. Data source: <a href="https://data.austintexas.gov/d/t99n-5ib4" target="_blank" rel="noopener" style="color:#92400e;">data.austintexas.gov</a>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title">📈 Yearly trend — hate crimes in Austin</div>
+      <div class="chart-sub">2017 to present · +133% growth (3-year avg comparison)</div>
+      <div class="chart-container" style="height:300px;"><canvas id="yearlyChart"></canvas></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title">🎯 Bias / motivation</div>
+      <div class="chart-sub">Which groups are most frequently targeted</div>
+      <div class="chart-container" style="height:684px;"><canvas id="biasChart"></canvas></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title">🔪 Offense type</div>
+      <div class="chart-sub">Most common hate crime offenses</div>
+      <div class="chart-container" style="height:420px;"><canvas id="offenseChart"></canvas></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title">📍 Where hate crimes occur</div>
+      <div class="chart-sub">Top location types</div>
+      <div class="chart-container" style="height:420px;"><canvas id="locationChart"></canvas></div>
+    </div>
+
+    <div class="chart-block">
+      <div class="chart-title">👤 Offender demographics</div>
+      <div class="chart-sub">Race/ethnicity of offenders as reported by APD</div>
+      <div class="chart-container" style="height:280px;"><canvas id="offenderChart"></canvas></div>
+    </div>
+
+  </div>
+
+  <footer>
+    Data: <a href="https://data.austintexas.gov/d/t99n-5ib4" target="_blank" rel="noopener">APD Hate Crime Incidents (Socrata · t99n-5ib4)</a>
+    &nbsp;·&nbsp; <a href="../">← Crime Map</a>
+    &nbsp;·&nbsp; <a href="../trends/">← Crime Trends</a>
+    &nbsp;·&nbsp; <a href="../../">← Austin 311</a>
+  </footer>
+
+  <script>
+    const DATA = {"years": ["2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"], "yearlyCounts": [17, 20, 11, 24, 26, 43, 51, 60, 50, 2], "biasData": [{"name": "Anti-Black", "count": 75, "color": "#1a1a2e"}, {"name": "Anti-Gay (Male)", "count": 61, "color": "#e91e63"}, {"name": "Anti-Jewish", "count": 42, "color": "#1565c0"}, {"name": "Anti-Hispanic", "count": 24, "color": "#ff6f00"}, {"name": "Anti-LGBTQ+ (Mixed)", "count": 21, "color": "#ad1457"}, {"name": "Anti-White", "count": 15, "color": "#78909c"}, {"name": "Anti-Transgender", "count": 15, "color": "#9c27b0"}, {"name": "Anti-Multiple Biases", "count": 11, "color": "#37474f"}, {"name": "Anti-Muslim", "count": 10, "color": "#2e7d32"}, {"name": "Anti-Asian", "count": 9, "color": "#00838f"}, {"name": "Anti-Religion (Other)", "count": 6, "color": "#4a148c"}, {"name": "Anti-Lesbian", "count": 3, "color": "#f06292"}, {"name": "Anti-Arab", "count": 3, "color": "#558b2f"}, {"name": "Anti-Female", "count": 2, "color": "#c62828"}, {"name": "Anti-Disability", "count": 2, "color": "#6a1b9a"}, {"name": "Anti-Other Race/Ethnicity", "count": 2, "color": "#546e7a"}, {"name": "Anti-Bisexual", "count": 1, "color": "#ce93d8"}, {"name": "Anti-White/Anti-Hispanic or Latino", "count": 1, "color": "#94a3b8"}, {"name": "Anti-Multi Races, Group", "count": 1, "color": "#94a3b8"}], "offenseData": [{"name": "Criminal Mischief", "count": 59}, {"name": "Assault", "count": 55}, {"name": "Harassment", "count": 28}, {"name": "Assault With Injury", "count": 28}, {"name": "Terroristic Threat", "count": 27}, {"name": "Aggravated Assault", "count": 27}, {"name": "Assault By Threat", "count": 13}, {"name": "Simple Assault", "count": 8}, {"name": "Theft", "count": 8}, {"name": "Intimidation", "count": 7}, {"name": "Robbery", "count": 6}, {"name": "Assault By Contact", "count": 5}, {"name": "Bomb Threat", "count": 4}, {"name": "Murder", "count": 4}, {"name": "Vandalism", "count": 4}], "locationData": [{"name": "Residence/Home", "count": 76}, {"name": "Hwy/Road/Alley/Street/Sidewalk", "count": 40}, {"name": "Parking/Drop Lot/Garage", "count": 21}, {"name": "Bar/Nightclub", "count": 20}, {"name": "Streets/Highway/Road/Alley", "count": 20}, {"name": "Church/Synagogue/Temple/Mosque", "count": 17}, {"name": "Commercial/Office Building", "count": 11}, {"name": "Park/Playground", "count": 8}, {"name": "Air/Bus/Train Terminal", "count": 7}, {"name": "Convenience Store", "count": 7}, {"name": "Highway/Road/Alley/Street/Sidewalk", "count": 6}, {"name": "Parking Lot/Garage", "count": 5}, {"name": "Restaurant", "count": 5}, {"name": "Other/Unknown", "count": 5}, {"name": "Highway/Road/Street", "count": 4}], "offenderData": [{"name": "Unknown", "count": 82}, {"name": "White/Non-Hispanic", "count": 75}, {"name": "White/Hispanic", "count": 44}, {"name": "Black or African American/Non-Hispanic", "count": 21}, {"name": "White/Unknown", "count": 19}, {"name": "Black/Non-Hispanic", "count": 16}, {"name": "White/NotHispanic", "count": 10}, {"name": "White/Not Hispanic", "count": 9}, {"name": "Asian/Non-Hispanic", "count": 5}, {"name": "White/Hispanic or Latino", "count": 5}, {"name": "Group of Multiple Races", "count": 3}, {"name": "Black/Unknown", "count": 3}, {"name": "White/Hispanic (2) White/NonHispanic (2)", "count": 1}, {"name": "Black or African American/Not Hispanic", "count": 1}, {"name": "White/Non-Hispanic/Hispanic", "count": 1}, {"name": "White/Hispanic & Non-Hispanic", "count": 1}, {"name": "White & Asian/Hispanic & Non-Hispanic", "count": 1}, {"name": "Asian/NotHispanic", "count": 1}, {"name": "White/Black/Non-Hispanic", "count": 1}, {"name": "Unknown/Hispanic", "count": 1}, {"name": "Black/Not Hispanic", "count": 1}, {"name": "White/Hispanic (3)", "count": 1}, {"name": "Black/NotHispanic", "count": 1}, {"name": "Black and White/Non-Hispanic", "count": 1}]};
+
+    const isDark   = document.documentElement.classList.contains("dark");
+    const grid     = isDark ? "#252b3b" : "#e8ecf0";
+    const tick     = isDark ? "#64748b" : "#6b7280";
+    const leg      = isDark ? "#94a3b8" : "#4b5563";
+    const tipBg    = isDark ? "#1e2230" : "#ffffff";
+    const tipBdr   = isDark ? "#3d4868" : "#e2e8f0";
+    const tipTitle = isDark ? "#f1f5f9" : "#111827";
+    const tipBody  = isDark ? "#e2e8f0" : "#374151";
+
+    const TIP = { backgroundColor:tipBg, borderColor:tipBdr, borderWidth:1, titleColor:tipTitle, bodyColor:tipBody };
+
+    const toggleBtn = document.getElementById("theme-toggle");
+    toggleBtn.textContent = isDark ? "☀️ Light" : "🌙 Dark";
+    function toggleTheme() {
+      const dark = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("theme", dark ? "dark" : "light");
+      location.reload();
+    }
+
+    const fmt = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : n.toLocaleString();
+    const pct = (a, b) => b ? ((a / b) * 100).toFixed(1) + "%" : "—";
+
+    // ── yearly bar chart ─────────────────────────────────────────────────────
+    new Chart(document.getElementById("yearlyChart"), {
+      type: "bar",
+      data: {
+        labels: DATA.years,
+        datasets: [{
+          label: "Hate crime incidents",
+          data: DATA.yearlyCounts,
+          backgroundColor: DATA.yearlyCounts.map((v, i) =>
+            i === DATA.yearlyCounts.length - 1 ? "#ef4444" : "#3b82f6"
+          ),
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...TIP,
+            callbacks: {
+              label: ctx => ` ${fmt(ctx.parsed.y)} incidents`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: tick, font: { size: 11 } }, grid: { color: grid } },
+          y: { ticks: { color: tick, font: { size: 11 }, callback: v => fmt(v) }, grid: { color: grid }, beginAtZero: true },
+        },
+      },
+    });
+
+    // ── bias bar chart ───────────────────────────────────────────────────────
+    new Chart(document.getElementById("biasChart"), {
+      type: "bar",
+      data: {
+        labels: DATA.biasData.map(b => b.name),
+        datasets: [{
+          data: DATA.biasData.map(b => b.count),
+          backgroundColor: DATA.biasData.map(b => b.color),
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...TIP,
+            callbacks: {
+              label: ctx => ` ${fmt(ctx.parsed.x)} incidents (${pct(ctx.parsed.x, DATA.biasData.reduce((a,b)=>a+b.count,0))})`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: tick, font: { size: 11 }, callback: v => fmt(v) }, grid: { color: grid }, beginAtZero: true },
+          y: { ticks: { color: tick, font: { size: 11 } }, grid: { color: grid } },
+        },
+      },
+    });
+
+    // ── offense bar chart ────────────────────────────────────────────────────
+    new Chart(document.getElementById("offenseChart"), {
+      type: "bar",
+      data: {
+        labels: DATA.offenseData.map(o => o.name),
+        datasets: [{
+          data: DATA.offenseData.map(o => o.count),
+          backgroundColor: "#f97316",
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...TIP,
+            callbacks: {
+              label: ctx => ` ${fmt(ctx.parsed.x)} incidents (${pct(ctx.parsed.x, DATA.offenseData.reduce((a,o)=>a+o.count,0))})`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: tick, font: { size: 11 }, callback: v => fmt(v) }, grid: { color: grid }, beginAtZero: true },
+          y: { ticks: { color: tick, font: { size: 11 } }, grid: { color: grid } },
+        },
+      },
+    });
+
+    // ── location bar chart ───────────────────────────────────────────────────
+    new Chart(document.getElementById("locationChart"), {
+      type: "bar",
+      data: {
+        labels: DATA.locationData.map(l => l.name),
+        datasets: [{
+          data: DATA.locationData.map(l => l.count),
+          backgroundColor: "#8b5cf6",
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...TIP,
+            callbacks: {
+              label: ctx => ` ${fmt(ctx.parsed.x)} incidents (${pct(ctx.parsed.x, DATA.locationData.reduce((a,l)=>a+l.count,0))})`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: tick, font: { size: 11 }, callback: v => fmt(v) }, grid: { color: grid }, beginAtZero: true },
+          y: { ticks: { color: tick, font: { size: 11 } }, grid: { color: grid } },
+        },
+      },
+    });
+
+    // ── offender race bar chart ──────────────────────────────────────────────
+    const offTotal = DATA.offenderData.reduce((a, o) => a + o.count, 0);
+    const offColors = ["#64748b", "#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6", "#06b6d4"];
+    new Chart(document.getElementById("offenderChart"), {
+      type: "bar",
+      data: {
+        labels: DATA.offenderData.map(o => o.name),
+        datasets: [{
+          data: DATA.offenderData.map(o => o.count),
+          backgroundColor: DATA.offenderData.map((_, i) => offColors[i % offColors.length]),
+          borderRadius: 3,
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            ...TIP,
+            callbacks: {
+              label: ctx => ` ${fmt(ctx.parsed.x)} offenders (${pct(ctx.parsed.x, offTotal)})`,
+            },
+          },
+        },
+        scales: {
+          x: { ticks: { color: tick, font: { size: 11 }, callback: v => fmt(v) }, grid: { color: grid }, beginAtZero: true },
+          y: { ticks: { color: tick, font: { size: 11 } }, grid: { color: grid } },
+        },
+      },
+    });
+  </script>
+</body>
+</html>

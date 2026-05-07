@@ -61,9 +61,21 @@ jobs:
         env:
           AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
 
+      - name: Generate parks hub
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'parks')
+        run: python scripts/generate_map.py parks-hub
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
+
       - name: Generate storm map
         if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'storm')
         run: python scripts/generate_map.py storm
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
+
+      - name: Generate trees map
+        if: github.event_name != 'workflow_dispatch' || github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'trees')
+        run: python scripts/generate_map.py trees
         env:
           AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
 
@@ -78,7 +90,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/graffiti/index.html docs/noise/index.html docs/parking/index.html docs/parks/index.html docs/storm/index.html
+          git add docs/graffiti/index.html docs/noise/index.html docs/parking/index.html docs/parks/index.html docs/parks/map/index.html docs/storm/index.html docs/trees/index.html
           git diff --cached --quiet || git commit -m "chore: refresh weekly Open311 maps [skip ci]"
           git pull --rebase origin main
           git push
