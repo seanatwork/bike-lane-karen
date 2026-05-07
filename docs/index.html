@@ -487,11 +487,14 @@
       <span class="label">CapMetro</span>
       <span class="desc">Bikeshare, routes &amp; transit data — coming soon</span>
     </a>
-    <a class="card" href="noise/">
-      <span class="icon">🔊</span>
-      <span class="label">Noise</span>
-      <span class="desc">Noise complaint reports — updated daily</span>
-    </a>
+    <div class="card-group">
+      <a class="card" href="noise/">
+        <span class="icon">🔊</span>
+        <span class="label">Noise</span>
+        <span class="desc">Noise complaint reports — updated daily</span>
+      </a>
+      <a class="trends-pill" href="noise/trends/">📈 Trends</a>
+    </div>
     <a class="card" href="fun/" style="border-color:#fde68a;background:var(--bg-card);">
       <span class="icon">🎉</span>
       <span class="label" style="color:#d97706;">Fun Data!</span>
@@ -500,11 +503,19 @@
     <button class="card more-btn" id="more-btn" onclick="toggleMore()" aria-expanded="false" type="button">
       <span class="icon" id="more-icon">→</span>
       <span class="label" id="more-label">More…</span>
-      <span class="desc">Environment · Bicycle · Child Care · Restaurants · Dead Animal · Courts · Code Enforcement · Micromobility</span>
+      <span class="desc">Hate Crimes · Environment · Bicycle · Child Care · Restaurants · Dead Animal · Courts · Code Enforcement · Micromobility</span>
     </button>
   </div>
 
   <div class="grid" id="more-grid" hidden>
+    <div class="card-group">
+      <a class="card" href="crime/hatecrime/">
+        <span class="icon">⚠️</span>
+        <span class="label">Hate Crimes</span>
+        <span class="desc">APD hate crime incidents — bias, offense &amp; trend data</span>
+      </a>
+      <a class="trends-pill" href="crime/trends/">📈 Crime Trends</a>
+    </div>
     <a class="card" href="court/">
       <span class="icon">⚖️</span>
       <span class="label">Courts</span>
