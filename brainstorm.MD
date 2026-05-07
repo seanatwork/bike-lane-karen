@@ -24,16 +24,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Suggested approach:** Either break it out as its own command or give it a sub-view in `/traffic`/`/code`.
 
-### 5. Tree Issues (Right-of-Way, Parks, Environmental)
-
-- **311 volume:** Combined across \#37, \#45, \#64, \#108, \#114 = **~18K+ reports**
-
-- **Current status:** Only parks tree issues buried inside `/parks`. No dedicated tree view.
-
-- **Common in peer cities:** Tree canopy, hazardous limbs, urban forestry is a common 311 category.
-
-- **Suggested approach:** A `/trees` command or sub-view under parks/environmental.
-
 ### 6. Code Violations & Property Standards (full scope) -WIP Needs anaylsis
 
 - **311 volume:** \#26 DSD Follow-Up (16,270), \#27 Concerns in ROW (15,827), \#40 Billboard (10,407), \#58 Construction Concerns (5,275), \#42 Construction in ROW (8,465) = **~46K+ reports**
@@ -126,6 +116,18 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Suggested approach:** Add census tract overlays to existing map pages for equity analysis (e.g., "are 311 response times worse in lower-income tracts?").
 
+
+## 🛠️ Known Technical Debt
+
+### Parks hub — address-based park name extraction
+
+The `_extract_park_name()` function in `parks/parks_bot.py` relies on a park keyword appearing in the first segment of the 311 address field (e.g. `"Zilker Park, 2100 Barton Springs Rd"`). Many parks are filed with only a bare street address — e.g. Parque Zaragoza (2608 Gonzales St) has no park name in the address at all, so its complaints get bucketed as "Gonzales St" in the hub and can't be found by searching the park name.
+
+**Fix:** Build a `_PARK_ADDRESS_MAP` lookup dict keyed by street address → canonical park name. Seed it from the [Austin Parks Locations dataset](https://data.austintexas.gov) which has official addresses for all city parks. Apply the lookup in `_extract_park_name()` before falling back to keyword matching.
+
+**Secondary issue:** Parks with no complaints in the last 90 days don't appear in the hub at all. Consider extending the hub window to 365 days, or showing a "no recent activity" state for known parks once the address map exists.
+
+---
 
 ## 📊 Summary Table
 

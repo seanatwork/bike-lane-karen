@@ -992,6 +992,10 @@ def generate_parks_map(days_back: int = 90) -> tuple:
             leafletMap = {map_var};
             updateLayers();
             updateSummary();
+            var params = new URLSearchParams(window.location.search);
+            var lat = parseFloat(params.get('lat'));
+            var lon = parseFloat(params.get('lon'));
+            if (lat && lon) {{ leafletMap.setView([lat, lon], 17); }}
         }}
 
         function updateLayers() {{
@@ -1069,6 +1073,7 @@ def generate_parks_hub(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
     data = get_park_hotspots(days_back)
     hotspots = data.get("hotspots", [])
     park_types = data.get("park_types", {})
+    park_coords = data.get("park_coords", {})
     total_reports = data.get("total", 0)
     total_open = sum(c["open"] for _, c in hotspots)
     park_count = len(hotspots)
@@ -1082,14 +1087,19 @@ def generate_parks_hub(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
     for park_name, counts in hotspots:
         types_dict = park_types.get(park_name, {})
         top_type = max(types_dict.items(), key=lambda x: x[1])[0] if types_dict else ""
-        parks_json.append({
+        coords = park_coords.get(park_name)
+        entry = {
             "name": park_name,
             "open": counts["open"],
             "closed": counts["closed"],
             "total": counts["total"],
             "top_type": top_type,
             "types": types_dict,
-        })
+        }
+        if coords:
+            entry["lat"] = round(float(coords[0]), 6)
+            entry["lon"] = round(float(coords[1]), 6)
+        parks_json.append(entry)
 
     parks_data_js = _json.dumps(parks_json, ensure_ascii=False)
 
@@ -1224,6 +1234,13 @@ def generate_parks_hub(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
     .type-bar-fill {{
       height: 100%; background: var(--bar-fill); border-radius: 99px; transition: width 0.3s;
     }}
+    .map-link-btn {{
+      display: inline-block; margin-top: 0.65rem;
+      padding: 0.35rem 0.8rem; background: var(--accent); color: white;
+      border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+      text-decoration: none; transition: opacity 0.15s;
+    }}
+    .map-link-btn:hover {{ opacity: 0.82; }}
     .no-results {{
       text-align: center; color: var(--text-muted); padding: 3rem 0; grid-column: 1 / -1;
     }}
@@ -1277,7 +1294,7 @@ def generate_parks_hub(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
         ? '<span class="open-badge">' + p.open + ' open</span>'
         : '';
       var topType = p.top_type ? '<div class="top-type">🔧 ' + p.top_type + '</div>' : '';
-      var breakdown = buildBreakdown(p.types);
+      var breakdown = buildBreakdown(p.types, p.lat, p.lon);
       return '<div class="park-card" id="card-' + i + '" onclick="toggleCard(this)">' +
         '<div class="card-header">' +
           '<div class="park-name">' + p.name + '</div>' +
@@ -1291,17 +1308,21 @@ def generate_parks_hub(days_back: int = 90) -> tuple[Optional[io.BytesIO], str]:
     }}).join('');
   }}
 
-  function buildBreakdown(types) {{
+  function buildBreakdown(types, lat, lon) {{
     if (!types || !Object.keys(types).length) return '';
     var entries = Object.entries(types).sort(function(a,b){{return b[1]-a[1];}});
     var max = entries[0][1];
-    return entries.map(function(e) {{
+    var bars = entries.map(function(e) {{
       var pct = Math.round(e[1] / max * 100);
       return '<div class="type-row">' +
         '<div class="type-row-label"><span>' + e[0] + '</span><span>' + e[1] + '</span></div>' +
         '<div class="type-bar-track"><div class="type-bar-fill" style="width:' + pct + '%"></div></div>' +
       '</div>';
     }}).join('');
+    var mapBtn = (lat && lon)
+      ? '<a class="map-link-btn" href="./map/?lat=' + lat + '&lon=' + lon + '" onclick="event.stopPropagation()">📍 View on map</a>'
+      : '';
+    return bars + mapBtn;
   }}
 
   function toggleCard(el) {{
