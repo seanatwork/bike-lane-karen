@@ -34,8 +34,25 @@ wheels/
 # Claude Code
 .claude/settings.local.json
 
-# Local notes
+# Local notes and scratch files
 brainstorm.md
+brainstorm.MD
+notes.md
+notes.odt
+*.odt
+*.ods
+*.odp
+deepseek.md
+GEMINI.md
+hatecrimes.md
+addressneighborhoodfeature.md
+*_session.md
+*.js.bak
+home/
+tmp/
+data/
+# LibreOffice lock files
+.~lock.*
 
 # IDE
 .idea/
