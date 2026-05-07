@@ -492,6 +492,14 @@
       <span class="label">CapMetro</span>
       <span class="desc">Bikeshare, routes &amp; transit data — coming soon</span>
     </a>
+    <button class="card more-btn" id="more-btn" onclick="toggleMore()" aria-expanded="false" type="button">
+      <span class="icon" id="more-icon">→</span>
+      <span class="label" id="more-label">More…</span>
+      <span class="desc">Noise · Hate Crimes · Environment · Bicycle · Child Care · Restaurants · Dead Animal · Courts · Code Enforcement · Micromobility</span>
+    </button>
+  </div>
+
+  <div class="grid" id="more-grid" hidden>
     <div class="card-group">
       <a class="card" href="noise/">
         <span class="icon">🔊</span>
@@ -500,14 +508,6 @@
       </a>
       <a class="trends-pill" href="noise/trends/">📈 Trends</a>
     </div>
-    <button class="card more-btn" id="more-btn" onclick="toggleMore()" aria-expanded="false" type="button">
-      <span class="icon" id="more-icon">→</span>
-      <span class="label" id="more-label">More…</span>
-      <span class="desc">Hate Crimes · Environment · Bicycle · Child Care · Restaurants · Dead Animal · Courts · Code Enforcement · Micromobility</span>
-    </button>
-  </div>
-
-  <div class="grid" id="more-grid" hidden>
     <div class="card-group">
       <a class="card" href="crime/hatecrime/">
         <span class="icon">⚠️</span>
