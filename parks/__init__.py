@@ -8,6 +8,7 @@ from .parks_bot import (
     format_hotspots,
     format_resolution,
     generate_parks_hub,
+    fetch_parks_monthly,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "format_hotspots",
     "format_resolution",
     "generate_parks_hub",
+    "fetch_parks_monthly",
 ]
