@@ -61,6 +61,30 @@ jobs:
         env:
           AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
 
+      - name: Generate parks trends
+        if: github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'parks')
+        run: python scripts/generate_map.py parks-trends
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
+
+      - name: Generate animal trends
+        if: github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'animal')
+        run: python scripts/generate_map.py animal-trends
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
+
+      - name: Generate storm trends
+        if: github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'storm')
+        run: python scripts/generate_map.py storm-trends
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
+
+      - name: Generate dead animal trends
+        if: github.event.inputs.categories == 'all' || contains(github.event.inputs.categories, 'dead-animal')
+        run: python scripts/generate_map.py dead-animal-trends
+        env:
+          AUSTINAPIKEY: ${{ secrets.AUSTINAPIKEY }}
+
       - name: Save Open311 cache
         uses: actions/cache@v4
         if: always()
@@ -72,7 +96,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/graffiti/trends/index.html docs/noise/trends/index.html docs/homeless/trends/index.html docs/parking/trends/index.html
+          git add docs/graffiti/trends/index.html docs/noise/trends/index.html docs/homeless/trends/index.html docs/parking/trends/index.html docs/parks/trends/index.html docs/animal/trends/index.html docs/storm/trends/index.html docs/animal/dead/trends/index.html
           git diff --cached --quiet || git commit -m "chore: refresh all Open311 trends [skip ci]"
           git pull --rebase origin main
           git push

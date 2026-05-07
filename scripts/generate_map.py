@@ -181,6 +181,26 @@ def generate_storm_map(days_back: int = 90) -> tuple:
     return generate_storm_map(days_back)
 
 
+def generate_storm_trends_page(days_back: int = 365) -> tuple:
+    from storm.trends import generate_storm_trends
+    return generate_storm_trends(days_back)
+
+
+def generate_parks_trends_page(days_back: int = 365) -> tuple:
+    from parks.trends import generate_parks_trends
+    return generate_parks_trends(days_back)
+
+
+def generate_animal_trends_page(days_back: int = 365) -> tuple:
+    from animalsvc.trends import generate_animal_trends
+    return generate_animal_trends(days_back)
+
+
+def generate_dead_animal_trends_page(days_back: int = 365) -> tuple:
+    from animalsvc.dead_animal_trends import generate_dead_animal_trends
+    return generate_dead_animal_trends(days_back)
+
+
 def generate_tree_map(days_back: int = 90) -> tuple:
     """Generate urban trees & canopy point map."""
     from trees.trees_bot import generate_tree_map
@@ -220,6 +240,10 @@ CATEGORY_MAPS = {
     "animal": (generate_animal_map, "animal/index.html"),
     "dead-animal": (generate_dead_animal_map, "animal/dead/index.html"),
     "homeless-trends": (generate_homeless_trends_page, "homeless/trends/index.html"),
+    "storm-trends": (generate_storm_trends_page, "storm/trends/index.html"),
+    "parks-trends": (generate_parks_trends_page, "parks/trends/index.html"),
+    "animal-trends": (generate_animal_trends_page, "animal/trends/index.html"),
+    "dead-animal-trends": (generate_dead_animal_trends_page, "animal/dead/trends/index.html"),
     "budget": (generate_budget_page, "budget/index.html"),
     "nearby": (generate_nearby_page, "nearby/index.html"),
     "storm": (generate_storm_map, "storm/index.html"),
