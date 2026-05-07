@@ -259,6 +259,7 @@ def _render_html(data: dict, fetched_at: str) -> str:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="google" content="notranslate" />
   <title>Austin 311 — Crime Trends</title>
   <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>

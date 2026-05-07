@@ -203,6 +203,7 @@ def generate_homeless_trends(days_back: int = 365) -> tuple:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="google" content="notranslate" />
   <title>Austin 311 — Homeless Report Trends</title>
   {GA_SNIPPET}
   <script>if(localStorage.getItem("theme")==="dark")document.documentElement.classList.add("dark");</script>
