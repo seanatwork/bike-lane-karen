@@ -58,7 +58,7 @@ The repo also contains a Telegram bot (`austin311_bot.py`) that exposes the same
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
-cp .env.example .env   # add OPEN311_API_KEY (optional but recommended)
+cp .env.example .env   # add AUSTINAPIKEY (optional, for Socrata rate limits)
 python scripts/generate_map.py graffiti
 ```
 
@@ -68,7 +68,7 @@ Generated maps are written to `docs/<category>/index.html`.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPEN311_API_KEY` | No | Austin Open Data token — higher rate limits |
+| `AUSTINAPIKEY` | No | Socrata app token — higher rate limits for crime, budget, court, restaurant, water pages |
 | `TELEGRAM_BOT_TOKEN` | Bot only | Telegram bot token from [@BotFather](https://t.me/BotFather) |
 
 ---
