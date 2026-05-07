@@ -672,15 +672,6 @@
 
     // ── Parking Shenanigans ────────────────────────────────────────────────────
 
-    // Funny violation descriptions to look for
-    const FUNNY_KEYWORDS = [
-      "bike lane", "sidewalk", "fire hydrant", "handicap", "driveway",
-      "crosswalk", "bus stop", "alley", "blocking", "no parking",
-      "abandoned", "overnight", "loading zone", "construction",
-      "street sweeping", "tow zone", "grass", "hydrant", "dumpster",
-      "double park", "fire lane", "truck", "rv", "trailer", "boat",
-    ];
-
     function extractViolationType(desc) {
       if (!desc) return "Other";
       var d = desc.toLowerCase();
@@ -706,25 +697,6 @@
       if (d.indexOf("dumpster") !== -1) return "Dumpster";
       if (d.indexOf("blocking") !== -1) return "Blocking";
       return "Other";
-    }
-
-    function isFunnyDescription(desc) {
-      if (!desc) return false;
-      var d = desc.toLowerCase();
-      // Look for descriptions that are unusually specific or have a tone
-      var funnyPatterns = [
-        /living in/i, /camping/i, /\bboat\b/i, /abandoned/i,
-        /blocking (my|our|the) (driveway|garage)/i, /can't (get|park)/i,
-        /been there (for|since)/i, /every (day|night|morning)/i,
-        /no (parking|stopping|standing)/i, /parked (in|on|across)/i,
-        /fire (hydrant|lane)/i, /handicap/i, /bike lane/i,
-        /double park/i, /tow/i, /trash/i, /dumpster/i,
-        /suv/i, /truck/i, /\brv\b/i, /trailer/i,
-      ];
-      for (var i = 0; i < funnyPatterns.length; i++) {
-        if (funnyPatterns[i].test(d)) return true;
-      }
-      return false;
     }
 
     function fmtHour(h) {
@@ -778,7 +750,6 @@
       // Analyze records
       var hourlyCounts = {};
       var violationTypes = {};
-      var funnyDescriptions = [];
       var total = 0;
 
       for (var i = 0; i < records.length; i++) {
@@ -799,16 +770,6 @@
         if (desc) {
           var vtype = extractViolationType(desc);
           violationTypes[vtype] = (violationTypes[vtype] || 0) + 1;
-
-          // Collect funny descriptions
-          if (isFunnyDescription(desc)) {
-            funnyDescriptions.push({
-              desc: desc,
-              address: (r.address || "").replace(", Austin", "").replace(", TX", "").trim(),
-              date: ts.split("T")[0],
-              id: r.service_request_id,
-            });
-          }
         }
       }
 
@@ -825,22 +786,6 @@
       // Sort violation types
       var sortedTypes = Object.entries(violationTypes).sort(function(a, b) { return b[1] - a[1]; });
       var maxType = sortedTypes.length ? sortedTypes[0][1] : 1;
-
-      // Pick 3 funny descriptions (random-ish, pick from different parts of the list)
-      var funnySamples = [];
-      if (funnyDescriptions.length > 0) {
-        // Sort by length descending to get the most specific ones
-        funnyDescriptions.sort(function(a, b) { return b.desc.length - a.desc.length; });
-        // Take top 3 that are different
-        var seen = {};
-        for (var i = 0; i < funnyDescriptions.length && funnySamples.length < 3; i++) {
-          var key = funnyDescriptions[i].desc.slice(0, 40);
-          if (!seen[key]) {
-            seen[key] = true;
-            funnySamples.push(funnyDescriptions[i]);
-          }
-        }
-      }
 
       var cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
 
@@ -868,29 +813,6 @@
         </div>`;
       }).join("");
 
-      // Build funny description carousel
-      var funnyHtml = funnySamples.length > 0
-        ? funnySamples.map(function(f, i) {
-            var descShort = f.desc.length > 120 ? f.desc.slice(0, 117) + "…" : f.desc;
-            var ticketUrl = "https://311.austintexas.gov/tickets/" + f.id;
-            return `<div class="funny-item" style="${i > 0 ? 'display:none;' : ''}">
-              <div style="font-size:13px;font-style:italic;color:var(--text-head);line-height:1.4;">
-                "${descShort}"</div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
-                📍 ${f.address} · ${f.date} · <a href="${ticketUrl}" target="_blank" rel="noopener" style="color:var(--text-sub);">#${f.id}</a>
-              </div>
-            </div>`;
-          }).join("")
-        : '<div style="font-size:12px;color:var(--text-muted);">No particularly colorful descriptions found this period.</div>';
-
-      var funnyNav = funnySamples.length > 1
-        ? `<div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
-            <button class="fbtn" onclick="prevFunny()" style="font-size:10px;padding:2px 8px;">‹ Prev</button>
-            <span id="funny-counter" style="font-size:10px;color:var(--text-muted);">1 / ${funnySamples.length}</span>
-            <button class="fbtn" onclick="nextFunny()" style="font-size:10px;padding:2px 8px;">Next ›</button>
-          </div>`
-        : '';
-
       el.innerHTML = `
         <div class="winner" style="background:var(--bg-panel);border-color:var(--border);">
           <div style="font-size:0.85rem;font-weight:700;color:var(--text-head);margin-bottom:6px;">
@@ -917,42 +839,11 @@
         <div class="section-title">Most Common Violation Types</div>
         <div class="bar-rows">${typeRows}</div>
 
-        <div class="section-title">🎭 Funniest Violation Descriptions
-          <span style="font-weight:400;font-size:10px;color:var(--text-muted);"> (${funnyDescriptions.length} found)</span>
-        </div>
-        <div id="funny-carousel" style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-          ${funnyHtml}
-          ${funnyNav}
-        </div>
-
         <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
           Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code PARKINGV
           · <a href="../parking/" target="_blank" rel="noopener" style="color:var(--text-sub);">🗺️ View map</a>
         </div>`;
 
-      // Store funny samples count for navigation
-      window._funnyCount = funnySamples.length;
-    }
-
-    // Funny carousel navigation
-    var _funnyIndex = 0;
-    function nextFunny() {
-      var items = document.querySelectorAll('.funny-item');
-      if (!items.length) return;
-      items[_funnyIndex].style.display = 'none';
-      _funnyIndex = (_funnyIndex + 1) % items.length;
-      items[_funnyIndex].style.display = '';
-      var counter = document.getElementById('funny-counter');
-      if (counter) counter.textContent = (_funnyIndex + 1) + ' / ' + items.length;
-    }
-    function prevFunny() {
-      var items = document.querySelectorAll('.funny-item');
-      if (!items.length) return;
-      items[_funnyIndex].style.display = 'none';
-      _funnyIndex = (_funnyIndex - 1 + items.length) % items.length;
-      items[_funnyIndex].style.display = '';
-      var counter = document.getElementById('funny-counter');
-      if (counter) counter.textContent = (_funnyIndex + 1) + ' / ' + items.length;
     }
 
     // kick off all

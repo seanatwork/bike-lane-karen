@@ -1,9 +1,12 @@
-# Austin 311 Bot — Prioritized Gap Analysis
+# Austin 311 Website — Prioritized Gap Analysis
 
-Cross-reference of current coverage (Telegram bot + web pages + internal modules) against the master 311 service codes (`analysis/311categories.txt`) and standard city open-data reporting categories used by comparable civic-tech projects.
+911 and police response times
+https://data.austintexas.gov/Public-Safety/APD-Computer-Aided-Dispatch-Incidents/22de-7rzg/about_data
 
+> **Focus shift (as of 2026-04-30):** The Telegram bot is on the backburner (under planning & construction). This document now prioritizes **website-only** work — new map pages, data visualizations, static content, and infrastructure improvements for https://austin311.com/. Any references to Telegram commands or bot handlers below are retained only as context for where the data lives; they are NOT actionable items.
 
-## 🔴 HIGH PRIORITY (large-volume categories, Austin-relevant, missing from your stack)
+Cross-reference of current website coverage (map pages + static content + internal modules) against the master 311 service codes (`analysis/311categories.txt`) and standard city open-data reporting categories.
+
 
 ### 2. Shared Micromobility (E-scooters, Bikeshare) - WIP
 - **311 volume:** \#14 at **39,043 reports**
@@ -11,26 +14,9 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Common in peer cities:** Yes, especially cities with Lime/Bird/Veo/CapMetro Bikeshare.
 
-### 4. Debris in Street (non-storm) WIP
-
-- **311 volume:** \#13 at **40,332 reports**
-
-- **Current status:** Mentioned in `/traffic` description but no dedicated stats, hotspots, or trends.
-
-- **Common in peer cities:** Yes — illegal dumping, construction debris, trash in right-of-way.
-
-- **Suggested approach:** Either break it out as its own command or give it a sub-view in `/traffic`/`/code`.
-
 ### 6. Code Violations & Property Standards (full scope) -WIP Needs anaylsis
 
 - **311 volume:** \#26 DSD Follow-Up (16,270), \#27 Concerns in ROW (15,827), \#40 Billboard (10,407), \#58 Construction Concerns (5,275), \#42 Construction in ROW (8,465) = **~46K+ reports**
-
-- **Current status:** Only `/code` for building permits (4 codes). Missing the broader code enforcement picture — tall weeds, junked vehicles, substandard structures, zoning violations.
-
-- **Common in peer cities:** Code enforcement is a staple civic data category.
-
-
-## 🟡 MEDIUM PRIORITY (moderate volume or high civic interest)
 
 ### 7. Trash/Recycling/Compost (Austin Resource Recovery)
 
@@ -40,15 +26,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 - **Suggested approach:** `/trash` or `/recycling` command tracking missed collections, bulk pickup, etc.
 
-
-### 9. Fireworks Complaints
-
-- **311 volume:** \#61 at **4,777 reports** — highly seasonal (July 4, NYE)
-
-- **Current status:** Nothing.
-
-- **Suggested approach:** Seasonal sub-view under noise complaints with holiday-trend analysis.
-
 ### 10. Street Sweeping
 
 - **311 volume:** \#63 at 4,770 + \#93 ARR at 780 = **~5.5K**
@@ -56,8 +33,6 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 - **Current status:** Nothing.
 
 - **Suggested approach:** Low-complexity add to `/traffic` or standalone.
-
-
 
 ## ✅ COMPLETED (Fun Data page additions)
 
@@ -68,12 +43,44 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 ### Parking Shenanigans
 - **Added:** May 2026
-- **What it shows:** Hottest enforcement times by hour, most common violation types, carousel of funniest violation descriptions
-- **Features:** Peak hour highlight, hourly bar chart, top 8 violation types, prev/next carousel nav
+- **What it shows:** Hottest enforcement times by hour, most common violation types
+- **Features:** Peak hour highlight, hourly bar chart, top 8 violation types
 
 ### 🗒️ Future Fun Data Ideas (not yet started)
 
 - **#7 Most Complained-About Address in Austin** — Aggregate across all 311 categories to find the single address generating the most requests
+
+- **"Funniest Descriptions" carousel** — A prev/next carousel surfacing the most colorful/specific free-text descriptions from a 311 service code. The mechanism was built and tested on PARKINGV but the parking descriptions weren't funny enough. Would work better on a service code where residents write more expressive complaints — good candidates: noise (NOISECMP), animal bites (ACBITE2), or homeless/encampment codes. Keep the `isFunnyDescription()` pattern-matching approach; tune the keyword list for the chosen category.
+
+### 🤖 Austin 311 Chatbot — "Clippy but make it Austin"
+
+A chatbot embedded on the homepage as an animated Clippy-style character — but with a tattoo and a Hammer & Sickle shirt. Lives in the corner of the page and can answer questions about Austin 311 data.
+
+**Character design:**
+- Clippy-inspired paperclip guy, but visibly working-class — tattoo sleeve, red H&S tee
+- Small animated SVG or sprite in the bottom-right corner of the homepage
+- Speech bubble UI, not a full chat modal
+
+**What it can do:**
+- Query live datasets on the user's behalf (e.g. "how many graffiti reports last month?", "what neighborhood has the most noise complaints?")
+- Refer to a knowledge base (static markdown or JSON hosted on the site) for FAQ-style questions ("what is 311?", "how do I file a report?", "what does 'open' status mean?")
+- Translate plain-English questions into the appropriate data page or API call
+- Respond with a short answer + a "see full data →" link to the relevant map/trends page
+
+**Abuse protection:**
+- Rate-limit by IP (e.g. 10 queries/minute)
+- Restrict to pre-approved query types — no free-form SQL, only parameterized lookups against known datasets
+- Cap dataset query window (e.g. max 90 days, max 1,000 records returned to the LLM context)
+- Knowledge base queries are free (static content, no API calls)
+
+**Knowledge base:**
+- Hosted as static JSON/markdown under `docs/kb/` — covers service codes, what each 311 category means, how response times work, data sources, etc.
+- Generated once and updated on the weekly workflow run
+
+**Tech approach (tentative):**
+- Serverless function (Cloudflare Worker or Vercel Edge) as the backend — keeps it cheap/free
+- Claude API (Haiku for cost) with tool use: one tool for dataset queries, one tool for knowledge base lookup
+- Frontend: vanilla JS speech bubble widget, no framework
 
 ### 🏗️ Infrastructure Improvements
 
