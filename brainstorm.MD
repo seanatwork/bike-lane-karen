@@ -77,10 +77,12 @@ Cross-reference of current coverage (Telegram bot + web pages + internal modules
 
 ### 🏗️ Infrastructure Improvements
 
-- **Pre-generate Fun Data cards via GitHub Actions workflow** — Currently all Fun Data cards (Bar of the Month, Coyotes, Graffiti, Parking, Speedrun) make live API calls from the visitor's browser. This is wasteful and slow. Instead, add a `scripts/generate_fun_data.py` script that pre-generates the JSON data for each card and saves it to `docs/fun/data.json`. Then:
+- **Pre-generate Fun Data cards via GitHub Actions workflow** — Currently all Fun Data cards (Bar of the Month, Coyotes, Graffiti Hall of Fame, Parking Shenanigans) make live API calls from the visitor's browser. This is wasteful and slow. Instead, add a `scripts/generate_fun_data.py` script that pre-generates the JSON data for each card and saves it to `docs/fun/data.json`. Then:
   1. Add a `generate-fun-data.yml` workflow that runs daily and regenerates the JSON
   2. Update the Fun Data page to fetch from `data.json` instead of making live API calls
   3. This eliminates redundant API calls, speeds up page load, and reduces Open311 API load
+
+- **Graffiti Speedrun Leaderboard (to include in pre-generation)** — Once the pre-generation workflow exists, add speedrun stats (avg/median resolution time, fastest-resolved tickets with medals, resolution time distribution buckets, longest-open ticket) to the graffiti card. The data is already fetched for the Hall of Fame — just needs to be computed and displayed. This was built and then removed because it added a duplicate client-side API call.
 
 ## 🟢 LOWER PRIORITY (niche, low volume, or already partially covered)
 
