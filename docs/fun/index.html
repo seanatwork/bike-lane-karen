@@ -183,12 +183,26 @@
       <div id="coyote-content"><div class="loading">Loading coyote data…</div></div>
     </div>
 
+    <!-- ── Graffiti Hall of Fame ── -->
+    <div class="card" id="graffiti-card">
+      <div class="card-header">
+        <span class="card-icon">🎨</span>
+        <div>
+          <div class="card-title">Graffiti Hall of Fame</div>
+          <div class="card-sub">Which locations get tagged the most — Open311 HHSGRAFF</div>
+        </div>
+      </div>
+      <div id="graffiti-content"><div class="loading">Loading graffiti data…</div></div>
+    </div>
+
   </div>
 
   <footer>
     Data: <a href="https://data.texas.gov/d/g5bj-yb6k" target="_blank" rel="noopener">TABC Mixed Beverage Sales</a>
     &nbsp;·&nbsp;
     <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener">Austin Open311 API</a>
+    &nbsp;·&nbsp;
+    <a href="../graffiti/" target="_blank" rel="noopener">🎨 Graffiti Map</a>
   </footer>
 
   <script>
@@ -499,9 +513,146 @@
         </div>`;
     }
 
-    // kick off both
+    // ── Graffiti Hall of Fame ──────────────────────────────────────────────────
+
+    async function loadGraffiti() {
+      const el = document.getElementById("graffiti-content");
+      
+      const cached = get_cached_records("graffiti");
+      if (cached) {
+        renderGraffiti(cached, true);
+      }
+
+      try {
+        const now   = new Date();
+        const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
+        const startZ = start.toISOString().replace(".000Z", "Z").replace(/\.\d+Z/, "Z");
+
+        // Fetch first page — 500 records should be plenty for a hall of fame
+        const res = await fetch(
+          `https://311.austintexas.gov/open311/v2/requests.json` +
+          `?service_code=HHSGRAFF` +
+          `&start_date=${encodeURIComponent(startZ)}` +
+          `&per_page=500&page=1`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const records = await res.json();
+        if (!Array.isArray(records)) throw new Error("Unexpected response format");
+
+        // Save to cache (6 hours)
+        cache_records("graffiti", records, 6);
+
+        renderGraffiti(records, false);
+      } catch (err) {
+        if (!cached) {
+          el.innerHTML = `<div class="error">Couldn't load graffiti data: ${err.message}</div>`;
+        }
+      }
+    }
+
+    function renderGraffiti(records, isCached) {
+      const el = document.getElementById("graffiti-content");
+      if (!records.length) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No graffiti reports found in the last year.</div>`;
+        return;
+      }
+
+      // Count by address
+      const addrCount = {};
+      const addrDetails = {};
+      let total = 0;
+
+      for (const r of records) {
+        const addr = (r.address || "").replace(", Austin", "").replace(", TX", "").trim().toUpperCase();
+        if (!addr) continue;
+        total++;
+        addrCount[addr] = (addrCount[addr] || 0) + 1;
+        // Keep the most recent status for display
+        if (!addrDetails[addr] || (r.requested_datetime || "") > (addrDetails[addr].lastDate || "")) {
+          addrDetails[addr] = {
+            address: titleCase(r.address || "").replace(", Austin", "").replace(", Tx", ""),
+            status: (r.status || "").toLowerCase() === "closed" ? "✅ Cleaned" : "🔴 Tagged",
+            lastDate: r.requested_datetime || "",
+            lat: r.lat,
+            lon: r.long,
+          };
+        }
+      }
+
+      // Sort by count descending
+      const sorted = Object.entries(addrCount)
+        .map(([addr, count]) => ({
+          address: addrDetails[addr]?.address || titleCase(addr),
+          count,
+          status: addrDetails[addr]?.status || "",
+          lat: addrDetails[addr]?.lat,
+          lon: addrDetails[addr]?.lon,
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      const top15 = sorted.slice(0, 15);
+      const winner = top15[0];
+      const maxCount = winner.count;
+
+      const cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
+
+      // Build a maps URL for the winner
+      const mapsUrl = winner.lat && winner.lon
+        ? `https://www.google.com/maps/search/?api=1&query=${winner.lat},${winner.lon}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(winner.address)}`;
+
+      const barRows = top15.map((r, i) => {
+        const pct = Math.round(r.count / maxCount * 100);
+        const isWinner = i === 0;
+        const fillColor = isWinner ? "#ea580c" : (i < 3 ? "#9333ea" : "var(--bar-fill)");
+        return `<div class="bar-row">
+          <span class="bar-rank">${i + 1}</span>
+          <span class="bar-name" title="${r.address}">${r.address.length > 22 ? r.address.slice(0, 20) + '…' : r.address}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fillColor}"></div></div>
+          <span class="bar-val" style="flex:0 0 32px;">${r.count}x</span>
+        </div>`;
+      }).join("");
+
+      // Fun facts
+      const uniqueLocations = Object.keys(addrCount).length;
+      const repeatRate = (total - uniqueLocations) / total * 100;
+
+      el.innerHTML = `
+        <div class="winner">
+          <div class="winner-crown">🏆 Most Tagged Location${cacheNote}</div>
+          <div class="winner-name" style="font-size:0.9rem;">${winner.address}</div>
+          <div class="winner-sales">${winner.count}x</div>
+          <div class="winner-label">graffiti reports in the last year</div>
+          <div style="font-size:11px;color:var(--text-sub);margin-top:6px;">
+            ${winner.status} · <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:var(--text-sub);">📍 View on map</a>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val">${total}</div>
+            <div class="stat-label">Reports total</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${uniqueLocations}</div>
+            <div class="stat-label">Unique locations</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${repeatRate.toFixed(0)}%</div>
+            <div class="stat-label">Repeat rate</div>
+          </div>
+        </div>
+        <div class="section-title">Top 15 Most Tagged Locations</div>
+        <div class="bar-rows">${barRows}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code HHSGRAFF
+          · <a href="../graffiti/" target="_blank" rel="noopener" style="color:var(--text-sub);">🗺️ View map</a>
+        </div>`;
+    }
+
+    // kick off all
     loadBars();
     loadCoyotes();
+    loadGraffiti();
   </script>
 </body>
 </html>
