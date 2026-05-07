@@ -11,7 +11,6 @@ from .animal_bot import (
     format_hotspots,
     format_stats,
     format_response_times,
-    fetch_animals_monthly,
 )
 
 from .coyote_bot import (
@@ -23,6 +22,8 @@ from .coyote_bot import (
     format_overview as format_coyote_overview,
 )
 
+from .dead_animal_bot import fetch_dead_animal_monthly
+
 __all__ = [
     "get_hotspots",
     "get_stats",
@@ -30,7 +31,6 @@ __all__ = [
     "format_hotspots",
     "format_stats",
     "format_response_times",
-    "fetch_animals_monthly",
     # Coyote complaints
     "get_seasonal_patterns",
     "get_coyote_hotspots",
@@ -38,4 +38,6 @@ __all__ = [
     "format_seasonal_patterns",
     "format_coyote_hotspots",
     "format_coyote_overview",
+    # Dead animal trends
+    "fetch_dead_animal_monthly",
 ]
