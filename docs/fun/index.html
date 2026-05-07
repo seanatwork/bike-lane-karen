@@ -139,6 +139,13 @@
     }
     html.dark .pupping-badge { background: #2e1065; border-color: #581c87; color: #d8b4fe; }
 
+    .fbtn {
+      padding: 3px 9px; border: 1px solid var(--border); border-radius: 4px;
+      background: var(--btn-bg); cursor: pointer; font-size: 12px; color: var(--btn-color);
+      transition: background 0.12s, color 0.12s;
+    }
+    .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
+
     footer { margin-top: 2.5rem; font-size: 0.74rem; color: var(--text-muted); text-align: center; }
     footer a { color: var(--text-sub); text-decoration: none; }
     footer a:hover { color: var(--text); }
@@ -193,6 +200,18 @@
         </div>
       </div>
       <div id="graffiti-content"><div class="loading">Loading graffiti data…</div></div>
+    </div>
+
+    <!-- ── Parking Shenanigans ── -->
+    <div class="card" id="parking-card">
+      <div class="card-header">
+        <span class="card-icon">🅿️</span>
+        <div>
+          <div class="card-title">Parking Shenanigans</div>
+          <div class="card-sub">Funniest violations &amp; hottest enforcement times — Open311 PARKINGV</div>
+        </div>
+      </div>
+      <div id="parking-content"><div class="loading">Loading parking data…</div></div>
     </div>
 
   </div>
@@ -649,10 +668,296 @@
         </div>`;
     }
 
+    // ── Parking Shenanigans ────────────────────────────────────────────────────
+
+    // Funny violation descriptions to look for
+    const FUNNY_KEYWORDS = [
+      "bike lane", "sidewalk", "fire hydrant", "handicap", "driveway",
+      "crosswalk", "bus stop", "alley", "blocking", "no parking",
+      "abandoned", "overnight", "loading zone", "construction",
+      "street sweeping", "tow zone", "grass", "hydrant", "dumpster",
+      "double park", "fire lane", "truck", "rv", "trailer", "boat",
+    ];
+
+    function extractViolationType(desc) {
+      if (!desc) return "Other";
+      var d = desc.toLowerCase();
+      if (d.indexOf("bike lane") !== -1 || d.indexOf("bicycle") !== -1) return "Bike Lane";
+      if (d.indexOf("sidewalk") !== -1) return "Sidewalk";
+      if (d.indexOf("fire hydrant") !== -1 || d.indexOf("hydrant") !== -1) return "Fire Hydrant";
+      if (d.indexOf("handicap") !== -1 || d.indexOf("ada") !== -1 || d.indexOf("accessible") !== -1) return "Handicap";
+      if (d.indexOf("driveway") !== -1) return "Driveway";
+      if (d.indexOf("crosswalk") !== -1) return "Crosswalk";
+      if (d.indexOf("bus stop") !== -1) return "Bus Stop";
+      if (d.indexOf("alley") !== -1) return "Alley";
+      if (d.indexOf("no parking") !== -1) return "No Parking Zone";
+      if (d.indexOf("abandoned") !== -1) return "Abandoned";
+      if (d.indexOf("overnight") !== -1 || d.indexOf("camping") !== -1 || d.indexOf("living in") !== -1) return "Overnight/Camping";
+      if (d.indexOf("loading") !== -1) return "Loading Zone";
+      if (d.indexOf("construction") !== -1) return "Construction Zone";
+      if (d.indexOf("street sweeping") !== -1) return "Street Sweeping";
+      if (d.indexOf("tow zone") !== -1) return "Tow Zone";
+      if (d.indexOf("double park") !== -1) return "Double Parking";
+      if (d.indexOf("fire lane") !== -1) return "Fire Lane";
+      if (d.indexOf("truck") !== -1 || d.indexOf("rv") !== -1 || d.indexOf("trailer") !== -1 || d.indexOf("boat") !== -1) return "Oversized Vehicle";
+      if (d.indexOf("grass") !== -1 || d.indexOf("yard") !== -1) return "On Grass/Yard";
+      if (d.indexOf("dumpster") !== -1) return "Dumpster";
+      if (d.indexOf("blocking") !== -1) return "Blocking";
+      return "Other";
+    }
+
+    function isFunnyDescription(desc) {
+      if (!desc) return false;
+      var d = desc.toLowerCase();
+      // Look for descriptions that are unusually specific or have a tone
+      var funnyPatterns = [
+        /living in/i, /camping/i, /\bboat\b/i, /abandoned/i,
+        /blocking (my|our|the) (driveway|garage)/i, /can't (get|park)/i,
+        /been there (for|since)/i, /every (day|night|morning)/i,
+        /no (parking|stopping|standing)/i, /parked (in|on|across)/i,
+        /fire (hydrant|lane)/i, /handicap/i, /bike lane/i,
+        /double park/i, /tow/i, /trash/i, /dumpster/i,
+        /suv/i, /truck/i, /\brv\b/i, /trailer/i,
+      ];
+      for (var i = 0; i < funnyPatterns.length; i++) {
+        if (funnyPatterns[i].test(d)) return true;
+      }
+      return false;
+    }
+
+    function fmtHour(h) {
+      if (h === 0) return "12am";
+      if (h < 12) return h + "am";
+      if (h === 12) return "12pm";
+      return (h - 12) + "pm";
+    }
+
+    async function loadParking() {
+      const el = document.getElementById("parking-content");
+      
+      const cached = get_cached_records("parking");
+      if (cached) {
+        renderParking(cached, true);
+      }
+
+      try {
+        const now   = new Date();
+        const start = new Date(now); start.setDate(start.getDate() - 90);
+        const startZ = start.toISOString().replace(".000Z", "Z").replace(/\.\d+Z/, "Z");
+
+        const res = await fetch(
+          `https://311.austintexas.gov/open311/v2/requests.json` +
+          `?service_code=PARKINGV` +
+          `&start_date=${encodeURIComponent(startZ)}` +
+          `&per_page=500&page=1`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const records = await res.json();
+        if (!Array.isArray(records)) throw new Error("Unexpected response format");
+
+        // Save to cache (6 hours)
+        cache_records("parking", records, 6);
+
+        renderParking(records, false);
+      } catch (err) {
+        if (!cached) {
+          el.innerHTML = `<div class="error">Couldn't load parking data: ${err.message}</div>`;
+        }
+      }
+    }
+
+    function renderParking(records, isCached) {
+      const el = document.getElementById("parking-content");
+      if (!records.length) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No parking data found in the last 90 days.</div>`;
+        return;
+      }
+
+      // Analyze records
+      var hourlyCounts = {};
+      var violationTypes = {};
+      var funnyDescriptions = [];
+      var total = 0;
+
+      for (var i = 0; i < records.length; i++) {
+        var r = records[i];
+        var ts = r.requested_datetime || "";
+        if (!ts) continue;
+        total++;
+
+        // Hourly breakdown
+        try {
+          var d = new Date(ts.replace("Z", "+00:00"));
+          var localHour = (d.getUTCHours() - 5 + 24) % 24; // Approximate CDT
+          hourlyCounts[localHour] = (hourlyCounts[localHour] || 0) + 1;
+        } catch (e) {}
+
+        // Violation types from description
+        var desc = r.description || "";
+        if (desc) {
+          var vtype = extractViolationType(desc);
+          violationTypes[vtype] = (violationTypes[vtype] || 0) + 1;
+
+          // Collect funny descriptions
+          if (isFunnyDescription(desc)) {
+            funnyDescriptions.push({
+              desc: desc,
+              address: (r.address || "").replace(", Austin", "").replace(", TX", "").trim(),
+              date: ts.split("T")[0],
+              id: r.service_request_id,
+            });
+          }
+        }
+      }
+
+      // Sort hourly
+      var sortedHours = Object.entries(hourlyCounts).sort(function(a, b) { return parseInt(a[0]) - parseInt(b[0]); });
+      var maxHourly = Math.max.apply(null, sortedHours.map(function(e) { return e[1]; }), 1);
+
+      // Find peak hours
+      var peakEntries = Object.entries(hourlyCounts).sort(function(a, b) { return b[1] - a[1]; });
+      var peakHour = peakEntries.length ? parseInt(peakEntries[0][0]) : null;
+      var peakCount = peakEntries.length ? peakEntries[0][1] : 0;
+      var peakLabel = peakHour !== null ? fmtHour(peakHour) : "—";
+
+      // Sort violation types
+      var sortedTypes = Object.entries(violationTypes).sort(function(a, b) { return b[1] - a[1]; });
+      var maxType = sortedTypes.length ? sortedTypes[0][1] : 1;
+
+      // Pick 3 funny descriptions (random-ish, pick from different parts of the list)
+      var funnySamples = [];
+      if (funnyDescriptions.length > 0) {
+        // Sort by length descending to get the most specific ones
+        funnyDescriptions.sort(function(a, b) { return b.desc.length - a.desc.length; });
+        // Take top 3 that are different
+        var seen = {};
+        for (var i = 0; i < funnyDescriptions.length && funnySamples.length < 3; i++) {
+          var key = funnyDescriptions[i].desc.slice(0, 40);
+          if (!seen[key]) {
+            seen[key] = true;
+            funnySamples.push(funnyDescriptions[i]);
+          }
+        }
+      }
+
+      var cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
+
+      // Build hourly bar chart
+      var hourRows = sortedHours.map(function(e) {
+        var h = parseInt(e[0]);
+        var cnt = e[1];
+        var pct = Math.round(cnt / maxHourly * 100);
+        var isPeak = h === peakHour;
+        var fill = isPeak ? "#ea580c" : "var(--bar-fill)";
+        return `<div class="bar-row">
+          <span class="bar-name" style="flex:0 0 36px;font-size:10px;">${fmtHour(h)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fill}"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${cnt}</span>
+        </div>`;
+      }).join("");
+
+      // Build violation type bars
+      var typeRows = sortedTypes.slice(0, 8).map(function(e) {
+        var pct = Math.round(e[1] / maxType * 100);
+        return `<div class="bar-row">
+          <span class="bar-name" style="flex:0 0 100px;font-size:10px;">${e[0]}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${e[1]}</span>
+        </div>`;
+      }).join("");
+
+      // Build funny description carousel
+      var funnyHtml = funnySamples.length > 0
+        ? funnySamples.map(function(f, i) {
+            var descShort = f.desc.length > 120 ? f.desc.slice(0, 117) + "…" : f.desc;
+            var ticketUrl = "https://311.austintexas.gov/tickets/" + f.id;
+            return `<div class="funny-item" style="${i > 0 ? 'display:none;' : ''}">
+              <div style="font-size:13px;font-style:italic;color:var(--text-head);line-height:1.4;">
+                "${descShort}"</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">
+                📍 ${f.address} · ${f.date} · <a href="${ticketUrl}" target="_blank" rel="noopener" style="color:var(--text-sub);">#${f.id}</a>
+              </div>
+            </div>`;
+          }).join("")
+        : '<div style="font-size:12px;color:var(--text-muted);">No particularly colorful descriptions found this period.</div>';
+
+      var funnyNav = funnySamples.length > 1
+        ? `<div style="display:flex;gap:6px;align-items:center;margin-top:6px;">
+            <button class="fbtn" onclick="prevFunny()" style="font-size:10px;padding:2px 8px;">‹ Prev</button>
+            <span id="funny-counter" style="font-size:10px;color:var(--text-muted);">1 / ${funnySamples.length}</span>
+            <button class="fbtn" onclick="nextFunny()" style="font-size:10px;padding:2px 8px;">Next ›</button>
+          </div>`
+        : '';
+
+      el.innerHTML = `
+        <div class="winner" style="background:var(--bg-panel);border-color:var(--border);">
+          <div style="font-size:0.85rem;font-weight:700;color:var(--text-head);margin-bottom:6px;">
+            🔥 Hottest Enforcement Time${cacheNote}</div>
+          <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
+            <div>
+              <span style="font-size:1.5rem;font-weight:700;color:#ea580c;">${peakLabel}</span>
+              <span style="font-size:0.78rem;color:var(--text-muted);"> peak hour</span>
+            </div>
+            <div>
+              <span style="font-size:1.1rem;font-weight:700;color:var(--text-head);">${peakCount}</span>
+              <span style="font-size:0.78rem;color:var(--text-muted);"> citations at peak</span>
+            </div>
+            <div>
+              <span style="font-size:1.1rem;font-weight:700;color:var(--text-head);">${total}</span>
+              <span style="font-size:0.78rem;color:var(--text-muted);"> total (90 days)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:4px;">Citations by Hour of Day <span style="color:#ea580c;">■</span> = peak</div>
+        <div class="bar-rows">${hourRows}</div>
+
+        <div class="section-title">Most Common Violation Types</div>
+        <div class="bar-rows">${typeRows}</div>
+
+        <div class="section-title">🎭 Funniest Violation Descriptions
+          <span style="font-weight:400;font-size:10px;color:var(--text-muted);"> (${funnyDescriptions.length} found)</span>
+        </div>
+        <div id="funny-carousel" style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+          ${funnyHtml}
+          ${funnyNav}
+        </div>
+
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code PARKINGV
+          · <a href="../parking/" target="_blank" rel="noopener" style="color:var(--text-sub);">🗺️ View map</a>
+        </div>`;
+
+      // Store funny samples count for navigation
+      window._funnyCount = funnySamples.length;
+    }
+
+    // Funny carousel navigation
+    var _funnyIndex = 0;
+    function nextFunny() {
+      var items = document.querySelectorAll('.funny-item');
+      if (!items.length) return;
+      items[_funnyIndex].style.display = 'none';
+      _funnyIndex = (_funnyIndex + 1) % items.length;
+      items[_funnyIndex].style.display = '';
+      var counter = document.getElementById('funny-counter');
+      if (counter) counter.textContent = (_funnyIndex + 1) + ' / ' + items.length;
+    }
+    function prevFunny() {
+      var items = document.querySelectorAll('.funny-item');
+      if (!items.length) return;
+      items[_funnyIndex].style.display = 'none';
+      _funnyIndex = (_funnyIndex - 1 + items.length) % items.length;
+      items[_funnyIndex].style.display = '';
+      var counter = document.getElementById('funny-counter');
+      if (counter) counter.textContent = (_funnyIndex + 1) + ' / ' + items.length;
+    }
+
     // kick off all
     loadBars();
     loadCoyotes();
     loadGraffiti();
+    loadParking();
   </script>
 </body>
 </html>
