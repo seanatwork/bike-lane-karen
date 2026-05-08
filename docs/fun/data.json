@@ -1,0 +1,693 @@
+{
+  "updated": "2026-05-08T06:10:53.412407+00:00",
+  "bars": {
+    "top10": [
+      {
+        "name": "Moody Center At University Of Texas",
+        "address": "2001 Robert Dedman Dr",
+        "sales": 1860926.0
+      },
+      {
+        "name": "Jw Marriott Austin",
+        "address": "110 E 2nd St",
+        "sales": 1630934.0
+      },
+      {
+        "name": "Proper Hotel",
+        "address": "600 W 2nd St",
+        "sales": 920922.0
+      },
+      {
+        "name": "Ojos Locos Sports Cantina",
+        "address": "7522 N Interstate 35 Ste B",
+        "sales": 912996.0
+      },
+      {
+        "name": "80 Proof Llc",
+        "address": "9201 Circuit Of The Americas Blvd",
+        "sales": 733313.0
+      },
+      {
+        "name": "Omni Barton Creek Resort & Spa",
+        "address": "8212 Barton Club Dr",
+        "sales": 720218.0
+      },
+      {
+        "name": "Matt's El Rancho, Inc.",
+        "address": "2613 S Lamar Blvd",
+        "sales": 690886.0
+      },
+      {
+        "name": "Wls Beverage Company",
+        "address": "304 E Cesar Chavez St",
+        "sales": 551624.0
+      },
+      {
+        "name": "De Nada Cantina",
+        "address": "4715 E Cesar Chavez St",
+        "sales": 459519.0
+      },
+      {
+        "name": "Aba Austin",
+        "address": "1011 S Congress Ave Ste 180",
+        "sales": 458565.0
+      }
+    ],
+    "top5movers": [
+      {
+        "name": "Moody Center At University Of Texas",
+        "address": "2001 Robert Dedman Dr",
+        "delta": 1451182.0,
+        "pct": 354.2
+      },
+      {
+        "name": "80 Proof Llc",
+        "address": "9201 Circuit Of The Americas Blvd",
+        "delta": 720643.0,
+        "pct": 5687.8
+      },
+      {
+        "name": "Levy At Austin Fc",
+        "address": "10414 Mckalla Pl",
+        "delta": 275444.0,
+        "pct": 661.7
+      },
+      {
+        "name": "Jw Marriott Austin",
+        "address": "110 E 2nd St",
+        "delta": 254688.0,
+        "pct": 18.5
+      },
+      {
+        "name": "Westwood Country Club Of Austin",
+        "address": "3808 W 35th St",
+        "delta": 205543.0,
+        "pct": 280.0
+      }
+    ],
+    "curDate": "2026-02-28",
+    "prevDate": "2026-01-31",
+    "curLabel": "February 2026",
+    "prevLabel": "January 2026"
+  },
+  "coyotes": {
+    "total": 93,
+    "pupping": 34,
+    "puppingPct": 37,
+    "isPeak": false,
+    "months": [
+      {
+        "label": "Aug 2025",
+        "count": 3,
+        "pct": 9,
+        "isPupping": false
+      },
+      {
+        "label": "Jul 2025",
+        "count": 35,
+        "pct": 100,
+        "isPupping": false
+      },
+      {
+        "label": "Jun 2025",
+        "count": 21,
+        "pct": 60,
+        "isPupping": false
+      },
+      {
+        "label": "May 2025",
+        "count": 34,
+        "pct": 97,
+        "isPupping": true
+      }
+    ]
+  },
+  "graffiti": {
+    "total": 100,
+    "uniqueLocations": 97,
+    "repeatRate": 3,
+    "winner": {
+      "address": "1807 Aldrich St",
+      "count": 2,
+      "status": "\ud83d\udd34 Tagged",
+      "lat": 30.298055787236382,
+      "lon": -97.70671195356192
+    },
+    "top15": [
+      {
+        "address": "1807 Aldrich St",
+        "count": 2,
+        "status": "\ud83d\udd34 Tagged",
+        "lat": 30.298055787236382,
+        "lon": -97.70671195356192
+      },
+      {
+        "address": "3421 Pecos St",
+        "count": 2,
+        "status": "\u2705 Cleaned",
+        "lat": 30.312813638748608,
+        "lon": -97.76726391653995
+      },
+      {
+        "address": "W 12th St & Possum Trot",
+        "count": 2,
+        "status": "\u2705 Cleaned",
+        "lat": 30.28595284,
+        "lon": -97.77073172
+      },
+      {
+        "address": "1903 E 5th St",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.26069675026499,
+        "lon": -97.72294342517853
+      },
+      {
+        "address": "4411 S Mopac Expy Svrd Nb",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.24025708828431,
+        "lon": -97.81493912386091
+      },
+      {
+        "address": "2001 Westlake Dr",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.30084727,
+        "lon": -97.78849223
+      },
+      {
+        "address": "Firebush Dr & Honeysuckle Ln, Pflugerville",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.44012083,
+        "lon": -97.60779678
+      },
+      {
+        "address": "1600 Purple Iris Cv, Pflugerville",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.46256747573173,
+        "lon": -97.63317149744783
+      },
+      {
+        "address": "13706 N Ih 35 Svrd Sb",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.425011436461038,
+        "lon": -97.67166184919381
+      },
+      {
+        "address": "4211 Red River St",
+        "count": 1,
+        "status": "\ud83d\udd34 Tagged",
+        "lat": 30.302214322551908,
+        "lon": -97.72102084243315
+      },
+      {
+        "address": "3816 Medical Pkwy",
+        "count": 1,
+        "status": "\u2705 Cleaned",
+        "lat": 30.306563902813977,
+        "lon": -97.74371229407078
+      },
+      {
+        "address": "1914 Barton Springs Rd",
+        "count": 1,
+        "status": "\ud83d\udd34 Tagged",
+        "lat": 30.26571003699108,
+        "lon": -97.76434198021889
+      },
+      {
+        "address": "1517 Robert Browning St",
+        "count": 1,
+        "status": "\ud83d\udd34 Tagged",
+        "lat": 30.30009186,
+        "lon": -97.70621872
+      },
+      {
+        "address": "Red River St & E 40th St",
+        "count": 1,
+        "status": "\ud83d\udd34 Tagged",
+        "lat": 30.2985812,
+        "lon": -97.72263743
+      },
+      {
+        "address": "666 E Riverside Dr",
+        "count": 1,
+        "status": "\ud83d\udd34 Tagged",
+        "lat": 30.2515565155159,
+        "lon": -97.74090986698866
+      }
+    ]
+  },
+  "parking": {
+    "total": 100,
+    "peakHour": "12pm",
+    "peakCount": 13,
+    "hours": [
+      {
+        "hour": 0,
+        "label": "12am",
+        "count": 1,
+        "pct": 8,
+        "isPeak": false
+      },
+      {
+        "hour": 6,
+        "label": "6am",
+        "count": 1,
+        "pct": 8,
+        "isPeak": false
+      },
+      {
+        "hour": 7,
+        "label": "7am",
+        "count": 3,
+        "pct": 23,
+        "isPeak": false
+      },
+      {
+        "hour": 8,
+        "label": "8am",
+        "count": 1,
+        "pct": 8,
+        "isPeak": false
+      },
+      {
+        "hour": 9,
+        "label": "9am",
+        "count": 9,
+        "pct": 69,
+        "isPeak": false
+      },
+      {
+        "hour": 10,
+        "label": "10am",
+        "count": 6,
+        "pct": 46,
+        "isPeak": false
+      },
+      {
+        "hour": 11,
+        "label": "11am",
+        "count": 4,
+        "pct": 31,
+        "isPeak": false
+      },
+      {
+        "hour": 12,
+        "label": "12pm",
+        "count": 13,
+        "pct": 100,
+        "isPeak": true
+      },
+      {
+        "hour": 13,
+        "label": "1pm",
+        "count": 2,
+        "pct": 15,
+        "isPeak": false
+      },
+      {
+        "hour": 14,
+        "label": "2pm",
+        "count": 6,
+        "pct": 46,
+        "isPeak": false
+      },
+      {
+        "hour": 15,
+        "label": "3pm",
+        "count": 8,
+        "pct": 62,
+        "isPeak": false
+      },
+      {
+        "hour": 16,
+        "label": "4pm",
+        "count": 11,
+        "pct": 85,
+        "isPeak": false
+      },
+      {
+        "hour": 17,
+        "label": "5pm",
+        "count": 11,
+        "pct": 85,
+        "isPeak": false
+      },
+      {
+        "hour": 18,
+        "label": "6pm",
+        "count": 5,
+        "pct": 38,
+        "isPeak": false
+      },
+      {
+        "hour": 19,
+        "label": "7pm",
+        "count": 5,
+        "pct": 38,
+        "isPeak": false
+      },
+      {
+        "hour": 20,
+        "label": "8pm",
+        "count": 9,
+        "pct": 69,
+        "isPeak": false
+      },
+      {
+        "hour": 21,
+        "label": "9pm",
+        "count": 1,
+        "pct": 8,
+        "isPeak": false
+      },
+      {
+        "hour": 22,
+        "label": "10pm",
+        "count": 4,
+        "pct": 31,
+        "isPeak": false
+      }
+    ],
+    "violationTypes": [
+      {
+        "type": "Other",
+        "count": 30,
+        "pct": 100
+      },
+      {
+        "type": "Sidewalk",
+        "count": 6,
+        "pct": 20
+      },
+      {
+        "type": "No Parking Zone",
+        "count": 6,
+        "pct": 20
+      },
+      {
+        "type": "Fire Hydrant",
+        "count": 5,
+        "pct": 17
+      },
+      {
+        "type": "Bike Lane",
+        "count": 4,
+        "pct": 13
+      },
+      {
+        "type": "Tow Zone",
+        "count": 3,
+        "pct": 10
+      },
+      {
+        "type": "Blocking",
+        "count": 2,
+        "pct": 7
+      },
+      {
+        "type": "Alley",
+        "count": 2,
+        "pct": 7
+      }
+    ]
+  },
+  "graffitiSpeedrun": {
+    "totalClosed": 74,
+    "avgDays": 10.6,
+    "medianDays": 3.3,
+    "fastestDays": [
+      0.0,
+      0.0,
+      0.1,
+      0.1,
+      0.4
+    ],
+    "buckets": {
+      "under1h": {
+        "count": 1,
+        "label": "Under 1 hour"
+      },
+      "1hTo6h": {
+        "count": 3,
+        "label": "1\u20136 hours"
+      },
+      "6hTo24h": {
+        "count": 11,
+        "label": "6\u201324 hours"
+      },
+      "1dTo3d": {
+        "count": 20,
+        "label": "1\u20133 days"
+      },
+      "3dTo7d": {
+        "count": 18,
+        "label": "3\u20137 days"
+      },
+      "7dTo30d": {
+        "count": 15,
+        "label": "7\u201330 days"
+      },
+      "over30d": {
+        "count": 6,
+        "label": "Over 30 days"
+      }
+    },
+    "longestOpen": {
+      "days": 308.4,
+      "address": "619 E 6th St, Austin"
+    }
+  },
+  "topAddress": {
+    "winner": {
+      "address": "424 S Lamar Blvd Sb",
+      "total": 16,
+      "breakdown": [
+        {
+          "category": "Parking",
+          "count": 15
+        },
+        {
+          "category": "Obstruction",
+          "count": 1
+        }
+      ],
+      "lat": 30.261355569591686,
+      "lon": -97.75889877229929
+    },
+    "top15": [
+      {
+        "address": "424 S Lamar Blvd Sb",
+        "total": 16,
+        "breakdown": [
+          {
+            "category": "Parking",
+            "count": 15
+          },
+          {
+            "category": "Obstruction",
+            "count": 1
+          }
+        ],
+        "lat": 30.261355569591686,
+        "lon": -97.75889877229929
+      },
+      {
+        "address": "5200 Bolm Rd",
+        "total": 10,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 10
+          }
+        ],
+        "lat": 30.25983402,
+        "lon": -97.69193198
+      },
+      {
+        "address": "5605 Ainez Dr",
+        "total": 9,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 9
+          }
+        ],
+        "lat": 30.18800115,
+        "lon": -97.73802271
+      },
+      {
+        "address": "2106 Cimarron Trl",
+        "total": 7,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 7
+          }
+        ],
+        "lat": 30.22866334975642,
+        "lon": -97.79217729152457
+      },
+      {
+        "address": "7000 Ardath St",
+        "total": 7,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 7
+          }
+        ],
+        "lat": 30.34868164,
+        "lon": -97.74242852
+      },
+      {
+        "address": "3427 Parker Ln",
+        "total": 7,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 7
+          }
+        ],
+        "lat": 30.22046054,
+        "lon": -97.74029255
+      },
+      {
+        "address": "3918 S Mopac Expy Svrd Sb",
+        "total": 6,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 4
+          },
+          {
+            "category": "Graffiti",
+            "count": 2
+          }
+        ],
+        "lat": 30.24418373,
+        "lon": -97.81009532
+      },
+      {
+        "address": "4800 Fairview Dr",
+        "total": 5,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 4
+          },
+          {
+            "category": "Graffiti",
+            "count": 1
+          }
+        ],
+        "lat": 30.32950933,
+        "lon": -97.76043229
+      },
+      {
+        "address": "301 W 2nd St",
+        "total": 5,
+        "breakdown": [
+          {
+            "category": "Parking",
+            "count": 4
+          },
+          {
+            "category": "Homeless",
+            "count": 1
+          }
+        ],
+        "lat": 30.26487985,
+        "lon": -97.74698867
+      },
+      {
+        "address": "1811 W 11th St",
+        "total": 5,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 5
+          }
+        ],
+        "lat": 30.28197202,
+        "lon": -97.76420268
+      },
+      {
+        "address": "1380 W 34th St",
+        "total": 5,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 5
+          }
+        ],
+        "lat": 30.30492019,
+        "lon": -97.74850942
+      },
+      {
+        "address": "6301 W Slaughter Ln",
+        "total": 5,
+        "breakdown": [
+          {
+            "category": "Homeless",
+            "count": 5
+          }
+        ],
+        "lat": 30.20229131,
+        "lon": -97.88551339
+      },
+      {
+        "address": "3811 Avenue G",
+        "total": 5,
+        "breakdown": [
+          {
+            "category": "Obstruction",
+            "count": 5
+          }
+        ],
+        "lat": 30.30031541257127,
+        "lon": -97.7308730187295
+      },
+      {
+        "address": "1813 E 6th St",
+        "total": 4,
+        "breakdown": [
+          {
+            "category": "Parking",
+            "count": 4
+          }
+        ],
+        "lat": 30.26171855892455,
+        "lon": -97.72284293697952
+      },
+      {
+        "address": "310 Attayac St",
+        "total": 4,
+        "breakdown": [
+          {
+            "category": "Parking",
+            "count": 4
+          }
+        ],
+        "lat": 30.261912825330434,
+        "lon": -97.73050709411712
+      }
+    ],
+    "totalReports": 2285,
+    "totalAddresses": 1941,
+    "codesSearched": 6,
+    "categories": [
+      "Graffiti",
+      "Parking",
+      "Noise",
+      "Homeless",
+      "Obstruction",
+      "Debris"
+    ],
+    "days": 90
+  }
+}

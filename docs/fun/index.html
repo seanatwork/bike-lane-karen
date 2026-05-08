@@ -178,6 +178,18 @@
       <div id="bar-content"><div class="loading">Loading TABC data…</div></div>
     </div>
 
+    <!-- ── Most Complained-About Address ── -->
+    <div class="card" id="complaints-card">
+      <div class="card-header">
+        <span class="card-icon">📍</span>
+        <div>
+          <div class="card-title">Most Complained-About Address</div>
+          <div class="card-sub">Graffiti, parking, noise &amp; more — last 90 days</div>
+        </div>
+      </div>
+      <div id="complaints-content"><div class="loading">Loading complaint data…</div></div>
+    </div>
+
     <!-- ── Coyote Sightings ── -->
     <div class="card" id="coyote-card">
       <div class="card-header">
@@ -214,7 +226,17 @@
       <div id="parking-content"><div class="loading">Loading parking data…</div></div>
     </div>
 
-
+    <!-- ── Graffiti Speedrun ── -->
+    <div class="card" id="speedrun-card">
+      <div class="card-header">
+        <span class="card-icon">⚡</span>
+        <div>
+          <div class="card-title">Graffiti Speedrun</div>
+          <div class="card-sub">How fast does Austin clean up graffiti? — HHSGRAFF resolution times</div>
+        </div>
+      </div>
+      <div id="speedrun-content"><div class="loading">Loading speedrun data…</div></div>
+    </div>
 
   </div>
 
@@ -254,132 +276,114 @@
       return (s || "").replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
     }
 
-    // ── cache ──────────────────────────────────────────────────────────────────
+    function fmtDays(days) {
+      if (days < 1) {
+        var hours = Math.round(days * 24);
+        return hours + "h";
+      }
+      if (days < 30) return days.toFixed(1) + "d";
+      if (days < 365) return Math.round(days / 30) + "mo";
+      return (days / 365).toFixed(1) + "y";
+    }
 
-    function cache_records(key, data, ttl_hours = 12) {
+    // ── load all from pre-generated data.json ──────────────────────────────────
+
+    async function loadAll() {
       try {
-        const payload = {
-          timestamp: Date.now(),
-          ttl: ttl_hours * 3600 * 1000,
-          data: data
-        };
-        localStorage.setItem(`cache_${key}`, JSON.stringify(payload));
-      } catch (e) {
-        console.warn("Cache save failed", e);
+        const res = await fetch("data.json");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        if (data.bars) renderBars(data.bars);
+        if (data.topAddress) renderTopAddress(data.topAddress);
+        if (data.coyotes) renderCoyotes(data.coyotes);
+        if (data.graffiti) renderGraffiti(data.graffiti);
+        if (data.parking) renderParking(data.parking);
+        if (data.graffitiSpeedrun) renderSpeedrun(data.graffitiSpeedrun);
+      } catch (err) {
+        document.querySelectorAll(".loading").forEach(function(el) {
+          el.innerHTML = '<div class="error">Failed to load: ' + err.message + '</div>';
+        });
       }
     }
 
-    function get_cached_records(key) {
-      try {
-        const item = localStorage.getItem(`cache_${key}`);
-        if (!item) return null;
-        const payload = JSON.parse(item);
-        if (Date.now() - payload.timestamp > payload.ttl) return null;
-        return payload.data;
-      } catch (e) {
-        return null;
+    // ── Most Complained-About Address ────────────────────────────────────────
+
+    function renderTopAddress(d) {
+      const el = document.getElementById("complaints-content");
+      const winner = d.winner;
+      const top15 = d.top15;
+
+      if (!winner) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No data available.</div>`;
+        return;
       }
+
+      const mapsUrl = winner.lat && winner.lon
+        ? `https://www.google.com/maps/search/?api=1&query=${winner.lat},${winner.lon}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(winner.address + ", Austin TX")}`;
+
+      const breakdownStr = winner.breakdown.map(function(b) {
+        return b.category + ": " + b.count;
+      }).join(" &nbsp;·&nbsp; ");
+
+      const maxTotal = top15[0].total;
+      const barRows = top15.map(function(r, i) {
+        const pct = Math.round(r.total / maxTotal * 100);
+        const fill = i === 0 ? "#ea580c" : (i < 3 ? "#9333ea" : "var(--bar-fill)");
+        const label = r.address.length > 22 ? r.address.slice(0, 20) + "…" : r.address;
+        return `<div class="bar-row">
+          <span class="bar-rank">${i + 1}</span>
+          <span class="bar-name" title="${r.address}">${label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fill}"></div></div>
+          <span class="bar-val" style="flex:0 0 32px;">${r.total}x</span>
+        </div>`;
+      }).join("");
+
+      el.innerHTML = `
+        <div class="winner">
+          <div class="winner-crown">🏆 Austin's Most Complained-About Address</div>
+          <div class="winner-name" style="font-size:0.9rem;">${winner.address}</div>
+          <div class="winner-sales">${winner.total}x</div>
+          <div class="winner-label">complaints in 90 days</div>
+          <div style="font-size:11px;color:var(--text-sub);margin-top:6px;">${breakdownStr}</div>
+          <div style="font-size:11px;margin-top:4px;">
+            <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:var(--text-sub);">📍 View on map</a>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val">${d.totalReports.toLocaleString()}</div>
+            <div class="stat-label">Reports searched</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${d.totalAddresses.toLocaleString()}</div>
+            <div class="stat-label">Unique addresses</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${d.codesSearched}</div>
+            <div class="stat-label">Categories</div>
+          </div>
+        </div>
+        <div class="section-title">Top 15 Most Complained-About Addresses</div>
+        <div class="bar-rows">${barRows}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Covers: ${d.categories.join(", ")} · Last ${d.days} days
+          · Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a>
+        </div>`;
     }
 
     // ── Bar of the Month ──────────────────────────────────────────────────────
 
-    async function loadBars() {
+    function renderBars(d) {
       const el = document.getElementById("bar-content");
-      
-      // Try cache first
-      const cached = get_cached_records("bars");
-      if (cached) {
-        renderBars(cached.top10, cached.top5movers, cached.curDate, cached.prevDate, true);
-      }
-
-      try {
-        const TABC = "https://data.texas.gov/resource/g5bj-yb6k.json";
-
-        // Get the 4 most recent months
-        const mRes = await fetch(
-          `${TABC}?$select=obligation_end_date,count(*) as cnt` +
-          `&$where=${encodeURIComponent("upper(location_city)='AUSTIN'")}` +
-          `&$group=obligation_end_date&$order=obligation_end_date DESC&$limit=4`
-        );
-        if (!mRes.ok) throw new Error(`HTTP ${mRes.status}`);
-        const months = (await mRes.json()).sort((a, b) =>
-          b.obligation_end_date.localeCompare(a.obligation_end_date)
-        );
-        if (months.length < 2) throw new Error("Not enough monthly data");
-
-        // Skip most recent if incomplete (< 50% of next month's count)
-        const counts = months.map(m => parseInt(m.cnt));
-        const startIdx = (counts[0] < counts[1] * 0.5) ? 1 : 0;
-        const curDate  = months[startIdx].obligation_end_date.slice(0, 10);
-        const prevDate = months[startIdx + 1].obligation_end_date.slice(0, 10);
-
-        // Fetch current and prior month in parallel
-        const buildWhere = date =>
-          encodeURIComponent(`upper(location_city)='AUSTIN' AND obligation_end_date='${date}T00:00:00.000'`);
-
-        const [curRes, prevRes] = await Promise.all([
-          fetch(`${TABC}?$select=tabc_permit_number,location_name,location_address,total_sales_receipts&$where=${buildWhere(curDate)}&$order=total_sales_receipts DESC&$limit=5000`),
-          fetch(`${TABC}?$select=tabc_permit_number,location_name,location_address,total_sales_receipts&$where=${buildWhere(prevDate)}&$order=total_sales_receipts DESC&$limit=5000`),
-        ]);
-        if (!curRes.ok || !prevRes.ok) throw new Error("Failed fetching monthly data");
-        const [curRows, prevRows] = await Promise.all([curRes.json(), prevRes.json()]);
-
-        // Dedup by (address, sales) — same logic as the bot
-        function dedup(rows) {
-          const seen = new Set();
-          const result = new Map();
-          for (const r of rows) {
-            const addr  = (r.location_address || "").trim().toUpperCase();
-            const sales = parseFloat(r.total_sales_receipts || 0);
-            const key   = addr + "|" + sales;
-            if (seen.has(key)) continue;
-            seen.add(key);
-            result.set(r.tabc_permit_number, {
-              name:    titleCase(r.location_name || "Unknown"),
-              address: titleCase(r.location_address || ""),
-              sales,
-            });
-          }
-          return result;
-        }
-
-        const cur  = dedup(curRows);
-        const prev = dedup(prevRows);
-
-        const top10 = [...cur.values()].sort((a, b) => b.sales - a.sales).slice(0, 10);
-
-        // Biggest movers by $ increase
-        const movers = [];
-        for (const [permit, c] of cur) {
-          if (prev.has(permit)) {
-            const delta = c.sales - prev.get(permit).sales;
-            if (delta > 0 && prev.get(permit).sales > 0) {
-              movers.push({ ...c, delta, pct: delta / prev.get(permit).sales * 100 });
-            }
-          }
-        }
-        movers.sort((a, b) => b.delta - a.delta);
-        const top5movers = movers.slice(0, 5);
-
-        // Save to cache
-        cache_records("bars", { top10, top5movers, curDate, prevDate }, 12);
-
-        renderBars(top10, top5movers, curDate, prevDate, false);
-      } catch (err) {
-        if (!cached) {
-          el.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
-        }
-      }
-    }
-
-    function renderBars(top10, movers, curDate, prevDate, isCached) {
-      const el = document.getElementById("bar-content");
+      const top10 = d.top10;
+      const movers = d.top5movers;
+      const curLabel = d.curLabel;
+      const prevLabel = d.prevLabel;
       if (!top10.length) { el.innerHTML = `<div class="error">No data available.</div>`; return; }
 
       const winner  = top10[0];
       const maxSales = winner.sales;
-      const curLabel = monthLabel(curDate);
-      const prevLabel = monthLabel(prevDate);
 
       const barRows = top10.map((r, i) => {
         const pct = Math.round(r.sales / maxSales * 100);
@@ -401,11 +405,9 @@
         </div>`
       ).join("") : `<div style="font-size:12px;color:var(--text-muted);">No significant movers this month.</div>`;
 
-      const cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
-
       el.innerHTML = `
         <div class="winner">
-          <div class="winner-crown">🏆 Bar of the Month — ${curLabel}${cacheNote}</div>
+          <div class="winner-crown">🏆 Bar of the Month — ${curLabel}</div>
           <div class="winner-name">${winner.name}</div>
           <div class="winner-addr">${winner.address}</div>
           <div class="winner-sales">${fmtDollars(winner.sales)}</div>
@@ -422,96 +424,33 @@
 
     // ── Coyote Sightings ──────────────────────────────────────────────────────
 
-    async function loadCoyotes() {
+    function renderCoyotes(d) {
       const el = document.getElementById("coyote-content");
-      
-      const cached = get_cached_records("coyotes");
-      if (cached) {
-        renderCoyotes(cached, true);
-      }
+      const total = d.total;
+      const pupping = d.pupping;
+      const puppingPct = d.puppingPct;
+      const isPeak = d.isPeak;
+      const months = d.months;
 
-      try {
-        const now   = new Date();
-        const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
-        const startZ = start.toISOString().replace(".000Z", "Z").replace(/\.\d+Z/, "Z");
-
-        const res = await fetch(
-          `https://311.austintexas.gov/open311/v2/requests.json` +
-          `?service_code=ACCOYTE` +
-          `&start_date=${encodeURIComponent(startZ)}` +
-          `&per_page=500&page=1`
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const records = await res.json();
-        if (!Array.isArray(records)) throw new Error("Unexpected response format");
-
-        // Save to cache (6 hours)
-        cache_records("coyotes", records, 6);
-
-        renderCoyotes(records, false);
-      } catch (err) {
-        if (!cached) {
-          document.getElementById("coyote-content").innerHTML =
-            `<div class="error">Couldn't load live data: ${err.message}<br/>
-            <span style="color:var(--text-muted);font-size:11px;">
-              The Open311 API may not support browser requests.
-              Try the <a href="https://austin311bot.netlify.app" target="_blank" style="color:var(--text-sub);">Telegram bot</a> for coyote data.
-            </span></div>`;
-        }
-      }
-    }
-
-    function renderCoyotes(records, isCached) {
-      const el = document.getElementById("coyote-content");
-      if (!records.length) {
+      if (!months.length) {
         el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No coyote complaints found in the last year. 🤔</div>`;
         return;
       }
 
-      // Monthly counts
-      const monthly = {};
-      let pupping = 0;
-      for (const r of records) {
-        const ts = r.requested_datetime || "";
-        if (!ts) continue;
-        try {
-          const d = new Date(ts.replace("Z", "+00:00"));
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-          monthly[key] = (monthly[key] || 0) + 1;
-          if ([3, 4, 5].includes(d.getMonth() + 1)) pupping++;
-        } catch {}
-      }
-
-      const sorted = Object.entries(monthly).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 12);
-      const maxMonthly = Math.max(...sorted.map(([, c]) => c), 1);
-      const total = records.length;
-      const puppingPct = Math.round(pupping / total * 100);
-      const isPeak = sorted.slice(0, 3).some(([k]) => k.endsWith("-03") || k.endsWith("-04") || k.endsWith("-05"));
-
-      const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-      function mLabel(key) {
-        const [y, m] = key.split("-");
-        return `${MONTH_NAMES[parseInt(m) - 1]} ${y}`;
-      }
-
-      const monthRows = sorted.map(([key, cnt]) => {
-        const pct = Math.round(cnt / maxMonthly * 100);
-        const isPuppingMonth = key.endsWith("-03") || key.endsWith("-04") || key.endsWith("-05");
-        const fill = isPuppingMonth ? "#a855f7" : "var(--bar-fill)";
+      const monthRows = months.map(function(m) {
+        const fill = m.isPupping ? "#a855f7" : "var(--bar-fill)";
         return `<div class="bar-row">
-          <span class="bar-name" style="flex:0 0 70px;font-size:10px;">${mLabel(key)}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fill}"></div></div>
-          <span class="bar-val" style="flex:0 0 28px;">${cnt}</span>
+          <span class="bar-name" style="flex:0 0 70px;font-size:10px;">${m.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${m.pct}%;background:${fill}"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${m.count}</span>
         </div>`;
       }).join("");
-
-      const cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);font-weight:normal;margin-left:4px;">(cached)</span>' : '';
 
       el.innerHTML = `
         <div class="stat-row">
           <div class="stat-box">
             <div class="stat-val">${total}</div>
-            <div class="stat-label">Last 12 months${cacheNote}</div>
+            <div class="stat-label">Last 12 months</div>
           </div>
           <div class="stat-box">
             <div class="stat-val">${pupping}</div>
@@ -525,7 +464,7 @@
         <div class="pupping-badge">
           ${isPeak ? "📈 <b>Pupping season is currently peak activity.</b>" : "🌸 <b>Pupping season (Mar–May):</b>"}
           Coyote pups are born in spring — parents become more active and visible while hunting for food and defending dens.
-          ${isPeak ? `${puppingPct}% of all complaints this year fall in Mar–May.` : ""}
+          ${isPeak ? puppingPct + "% of all complaints this year fall in Mar–May." : ""}
         </div>
         <div class="section-title">Monthly complaints <span style="color:#a855f7;">■</span> = pupping season</div>
         <div class="bar-rows">${monthRows}</div>
@@ -536,88 +475,21 @@
 
     // ── Graffiti Hall of Fame ──────────────────────────────────────────────────
 
-    async function loadGraffiti() {
+    function renderGraffiti(d) {
       const el = document.getElementById("graffiti-content");
-      
-      const cached = get_cached_records("graffiti");
-      if (cached) {
-        renderGraffiti(cached, true);
-      }
+      const top15 = d.top15;
+      const winner = d.winner;
+      const total = d.total;
+      const uniqueLocations = d.uniqueLocations;
+      const repeatRate = d.repeatRate;
 
-      try {
-        const now   = new Date();
-        const start = new Date(now); start.setFullYear(start.getFullYear() - 1);
-        const startZ = start.toISOString().replace(".000Z", "Z").replace(/\.\d+Z/, "Z");
-
-        // Fetch first page — 500 records should be plenty for a hall of fame
-        const res = await fetch(
-          `https://311.austintexas.gov/open311/v2/requests.json` +
-          `?service_code=HHSGRAFF` +
-          `&start_date=${encodeURIComponent(startZ)}` +
-          `&per_page=500&page=1`
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const records = await res.json();
-        if (!Array.isArray(records)) throw new Error("Unexpected response format");
-
-        // Save to cache (6 hours)
-        cache_records("graffiti", records, 6);
-
-        renderGraffiti(records, false);
-      } catch (err) {
-        if (!cached) {
-          el.innerHTML = `<div class="error">Couldn't load graffiti data: ${err.message}</div>`;
-        }
-      }
-    }
-
-    function renderGraffiti(records, isCached) {
-      const el = document.getElementById("graffiti-content");
-      if (!records.length) {
+      if (!top15.length) {
         el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No graffiti reports found in the last year.</div>`;
         return;
       }
 
-      // Count by address
-      const addrCount = {};
-      const addrDetails = {};
-      let total = 0;
-
-      for (const r of records) {
-        const addr = (r.address || "").replace(", Austin", "").replace(", TX", "").trim().toUpperCase();
-        if (!addr) continue;
-        total++;
-        addrCount[addr] = (addrCount[addr] || 0) + 1;
-        // Keep the most recent status for display
-        if (!addrDetails[addr] || (r.requested_datetime || "") > (addrDetails[addr].lastDate || "")) {
-          addrDetails[addr] = {
-            address: titleCase(r.address || "").replace(", Austin", "").replace(", Tx", ""),
-            status: (r.status || "").toLowerCase() === "closed" ? "✅ Cleaned" : "🔴 Tagged",
-            lastDate: r.requested_datetime || "",
-            lat: r.lat,
-            lon: r.long,
-          };
-        }
-      }
-
-      // Sort by count descending
-      const sorted = Object.entries(addrCount)
-        .map(([addr, count]) => ({
-          address: addrDetails[addr]?.address || titleCase(addr),
-          count,
-          status: addrDetails[addr]?.status || "",
-          lat: addrDetails[addr]?.lat,
-          lon: addrDetails[addr]?.lon,
-        }))
-        .sort((a, b) => b.count - a.count);
-
-      const top15 = sorted.slice(0, 15);
-      const winner = top15[0];
       const maxCount = winner.count;
 
-      const cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
-
-      // Build a maps URL for the winner
       const mapsUrl = winner.lat && winner.lon
         ? `https://www.google.com/maps/search/?api=1&query=${winner.lat},${winner.lon}`
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(winner.address)}`;
@@ -634,13 +506,9 @@
         </div>`;
       }).join("");
 
-      // Fun facts
-      const uniqueLocations = Object.keys(addrCount).length;
-      const repeatRate = (total - uniqueLocations) / total * 100;
-
       el.innerHTML = `
         <div class="winner">
-          <div class="winner-crown">🏆 Most Tagged Location${cacheNote}</div>
+          <div class="winner-crown">🏆 Most Tagged Location</div>
           <div class="winner-name" style="font-size:0.9rem;">${winner.address}</div>
           <div class="winner-sales">${winner.count}x</div>
           <div class="winner-label">graffiti reports in the last year</div>
@@ -658,7 +526,7 @@
             <div class="stat-label">Unique locations</div>
           </div>
           <div class="stat-box">
-            <div class="stat-val">${repeatRate.toFixed(0)}%</div>
+            <div class="stat-val">${repeatRate}%</div>
             <div class="stat-label">Repeat rate</div>
           </div>
         </div>
@@ -672,151 +540,40 @@
 
     // ── Parking Shenanigans ────────────────────────────────────────────────────
 
-    function extractViolationType(desc) {
-      if (!desc) return "Other";
-      var d = desc.toLowerCase();
-      if (d.indexOf("bike lane") !== -1 || d.indexOf("bicycle") !== -1) return "Bike Lane";
-      if (d.indexOf("sidewalk") !== -1) return "Sidewalk";
-      if (d.indexOf("fire hydrant") !== -1 || d.indexOf("hydrant") !== -1) return "Fire Hydrant";
-      if (d.indexOf("handicap") !== -1 || d.indexOf("ada") !== -1 || d.indexOf("accessible") !== -1) return "Handicap";
-      if (d.indexOf("driveway") !== -1) return "Driveway";
-      if (d.indexOf("crosswalk") !== -1) return "Crosswalk";
-      if (d.indexOf("bus stop") !== -1) return "Bus Stop";
-      if (d.indexOf("alley") !== -1) return "Alley";
-      if (d.indexOf("no parking") !== -1) return "No Parking Zone";
-      if (d.indexOf("abandoned") !== -1) return "Abandoned";
-      if (d.indexOf("overnight") !== -1 || d.indexOf("camping") !== -1 || d.indexOf("living in") !== -1) return "Overnight/Camping";
-      if (d.indexOf("loading") !== -1) return "Loading Zone";
-      if (d.indexOf("construction") !== -1) return "Construction Zone";
-      if (d.indexOf("street sweeping") !== -1) return "Street Sweeping";
-      if (d.indexOf("tow zone") !== -1) return "Tow Zone";
-      if (d.indexOf("double park") !== -1) return "Double Parking";
-      if (d.indexOf("fire lane") !== -1) return "Fire Lane";
-      if (d.indexOf("truck") !== -1 || d.indexOf("rv") !== -1 || d.indexOf("trailer") !== -1 || d.indexOf("boat") !== -1) return "Oversized Vehicle";
-      if (d.indexOf("grass") !== -1 || d.indexOf("yard") !== -1) return "On Grass/Yard";
-      if (d.indexOf("dumpster") !== -1) return "Dumpster";
-      if (d.indexOf("blocking") !== -1) return "Blocking";
-      return "Other";
-    }
-
-    function fmtHour(h) {
-      if (h === 0) return "12am";
-      if (h < 12) return h + "am";
-      if (h === 12) return "12pm";
-      return (h - 12) + "pm";
-    }
-
-    async function loadParking() {
+    function renderParking(d) {
       const el = document.getElementById("parking-content");
-      
-      const cached = get_cached_records("parking");
-      if (cached) {
-        renderParking(cached, true);
-      }
+      const hours = d.hours;
+      const violationTypes = d.violationTypes;
+      const total = d.total;
+      const peakLabel = d.peakHour;
+      const peakCount = d.peakCount;
 
-      try {
-        const now   = new Date();
-        const start = new Date(now); start.setDate(start.getDate() - 90);
-        const startZ = start.toISOString().replace(".000Z", "Z").replace(/\.\d+Z/, "Z");
-
-        const res = await fetch(
-          `https://311.austintexas.gov/open311/v2/requests.json` +
-          `?service_code=PARKINGV` +
-          `&start_date=${encodeURIComponent(startZ)}` +
-          `&per_page=500&page=1`
-        );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const records = await res.json();
-        if (!Array.isArray(records)) throw new Error("Unexpected response format");
-
-        // Save to cache (6 hours)
-        cache_records("parking", records, 6);
-
-        renderParking(records, false);
-      } catch (err) {
-        if (!cached) {
-          el.innerHTML = `<div class="error">Couldn't load parking data: ${err.message}</div>`;
-        }
-      }
-    }
-
-    function renderParking(records, isCached) {
-      const el = document.getElementById("parking-content");
-      if (!records.length) {
+      if (!hours.length) {
         el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No parking data found in the last 90 days.</div>`;
         return;
       }
 
-      // Analyze records
-      var hourlyCounts = {};
-      var violationTypes = {};
-      var total = 0;
-
-      for (var i = 0; i < records.length; i++) {
-        var r = records[i];
-        var ts = r.requested_datetime || "";
-        if (!ts) continue;
-        total++;
-
-        // Hourly breakdown
-        try {
-          var d = new Date(ts.replace("Z", "+00:00"));
-          var localHour = (d.getUTCHours() - 5 + 24) % 24; // Approximate CDT
-          hourlyCounts[localHour] = (hourlyCounts[localHour] || 0) + 1;
-        } catch (e) {}
-
-        // Violation types from description
-        var desc = r.description || "";
-        if (desc) {
-          var vtype = extractViolationType(desc);
-          violationTypes[vtype] = (violationTypes[vtype] || 0) + 1;
-        }
-      }
-
-      // Sort hourly
-      var sortedHours = Object.entries(hourlyCounts).sort(function(a, b) { return parseInt(a[0]) - parseInt(b[0]); });
-      var maxHourly = Math.max.apply(null, sortedHours.map(function(e) { return e[1]; }), 1);
-
-      // Find peak hours
-      var peakEntries = Object.entries(hourlyCounts).sort(function(a, b) { return b[1] - a[1]; });
-      var peakHour = peakEntries.length ? parseInt(peakEntries[0][0]) : null;
-      var peakCount = peakEntries.length ? peakEntries[0][1] : 0;
-      var peakLabel = peakHour !== null ? fmtHour(peakHour) : "—";
-
-      // Sort violation types
-      var sortedTypes = Object.entries(violationTypes).sort(function(a, b) { return b[1] - a[1]; });
-      var maxType = sortedTypes.length ? sortedTypes[0][1] : 1;
-
-      var cacheNote = isCached ? '<span style="font-size:9px;color:var(--text-muted);margin-left:8px;">(cached)</span>' : '';
-
-      // Build hourly bar chart
-      var hourRows = sortedHours.map(function(e) {
-        var h = parseInt(e[0]);
-        var cnt = e[1];
-        var pct = Math.round(cnt / maxHourly * 100);
-        var isPeak = h === peakHour;
-        var fill = isPeak ? "#ea580c" : "var(--bar-fill)";
+      var hourRows = hours.map(function(e) {
+        var fill = e.isPeak ? "#ea580c" : "var(--bar-fill)";
         return `<div class="bar-row">
-          <span class="bar-name" style="flex:0 0 36px;font-size:10px;">${fmtHour(h)}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fill}"></div></div>
-          <span class="bar-val" style="flex:0 0 28px;">${cnt}</span>
+          <span class="bar-name" style="flex:0 0 36px;font-size:10px;">${e.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${e.pct}%;background:${fill}"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${e.count}</span>
         </div>`;
       }).join("");
 
-      // Build violation type bars
-      var typeRows = sortedTypes.slice(0, 8).map(function(e) {
-        var pct = Math.round(e[1] / maxType * 100);
+      var typeRows = violationTypes.map(function(e) {
         return `<div class="bar-row">
-          <span class="bar-name" style="flex:0 0 100px;font-size:10px;">${e[0]}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-          <span class="bar-val" style="flex:0 0 28px;">${e[1]}</span>
+          <span class="bar-name" style="flex:0 0 100px;font-size:10px;">${e.type}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${e.pct}%"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${e.count}</span>
         </div>`;
       }).join("");
 
       el.innerHTML = `
         <div class="winner" style="background:var(--bg-panel);border-color:var(--border);">
           <div style="font-size:0.85rem;font-weight:700;color:var(--text-head);margin-bottom:6px;">
-            🔥 Hottest Enforcement Time${cacheNote}</div>
+            🔥 Hottest Enforcement Time</div>
           <div style="display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;">
             <div>
               <span style="font-size:1.5rem;font-weight:700;color:#ea580c;">${peakLabel}</span>
@@ -843,14 +600,71 @@
           Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code PARKINGV
           · <a href="../parking/" target="_blank" rel="noopener" style="color:var(--text-sub);">🗺️ View map</a>
         </div>`;
+    }
 
+    // ── Graffiti Speedrun ──────────────────────────────────────────────────────
+
+    function renderSpeedrun(d) {
+      const el = document.getElementById("speedrun-content");
+      const avgDays = d.avgDays;
+      const medianDays = d.medianDays;
+      const totalClosed = d.totalClosed;
+      const buckets = d.buckets;
+      const longestOpen = d.longestOpen;
+      const fastestDays = d.fastestDays;
+
+      if (!totalClosed) {
+        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No closed graffiti reports found in the last year.</div>`;
+        return;
+      }
+
+      // Build distribution bars
+      var bucketKeys = ["under1h", "1hTo6h", "6hTo24h", "1dTo3d", "3dTo7d", "7dTo30d", "over30d"];
+      var maxBucket = 1;
+      bucketKeys.forEach(function(k) { if (buckets[k] && buckets[k].count > maxBucket) maxBucket = buckets[k].count; });
+
+      var bucketRows = bucketKeys.map(function(k) {
+        var b = buckets[k];
+        if (!b) return "";
+        var pct = Math.round(b.count / maxBucket * 100);
+        return `<div class="bar-row">
+          <span class="bar-name" style="flex:0 0 80px;font-size:10px;">${b.label}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+          <span class="bar-val" style="flex:0 0 28px;">${b.count}</span>
+        </div>`;
+      }).join("");
+
+      var fastestStr = fastestDays.map(function(d) { return fmtDays(d); }).join(", ");
+
+      el.innerHTML = `
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val">${fmtDays(avgDays)}</div>
+            <div class="stat-label">Average resolution</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${fmtDays(medianDays)}</div>
+            <div class="stat-label">Median resolution</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">${totalClosed}</div>
+            <div class="stat-label">Closed tickets</div>
+          </div>
+        </div>
+        <div class="section-title">Resolution Time Distribution</div>
+        <div class="bar-rows">${bucketRows}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Fastest: ${fastestStr}
+          ${longestOpen ? `· Longest open: ${fmtDays(longestOpen.days)} at ${longestOpen.address}` : ""}
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+          Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code HHSGRAFF
+          · <a href="../graffiti/" target="_blank" rel="noopener" style="color:var(--text-sub);">🗺️ View map</a>
+        </div>`;
     }
 
     // kick off all
-    loadBars();
-    loadCoyotes();
-    loadGraffiti();
-    loadParking();
+    loadAll();
   </script>
 </body>
 </html>
