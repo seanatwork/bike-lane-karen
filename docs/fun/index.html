@@ -146,58 +146,6 @@
     }
     .fbtn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-color); }
 
-    /* funny descriptions ticker */
-    .ticker-card { grid-column: 1 / -1; }
-    .ticker-content {
-      min-height: 100px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 8px;
-    }
-    .ticker-text {
-      font-size: 1rem;
-      line-height: 1.5;
-      color: var(--text-head);
-      transition: opacity 0.3s ease;
-    }
-    .ticker-meta {
-      font-size: 0.75rem;
-      color: var(--text-sub);
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    .ticker-badge {
-      background: var(--btn-bg);
-      border: 1px solid var(--btn-border);
-      border-radius: 4px;
-      padding: 2px 8px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      color: var(--btn-color);
-    }
-    .ticker-nav {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      justify-content: center;
-      margin-top: 4px;
-    }
-    .ticker-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--bar-bg);
-      transition: background 0.2s;
-    }
-    .ticker-dot.active { background: var(--bar-fill); }
-    .ticker-count {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-left: auto;
-    }
-
     footer { margin-top: 2.5rem; font-size: 0.74rem; color: var(--text-muted); text-align: center; }
     footer a { color: var(--text-sub); text-decoration: none; }
     footer a:hover { color: var(--text); }
@@ -217,30 +165,6 @@
   </nav>
 
   <div class="cards">
-
-    <!-- ── Funniest Descriptions Ticker ── -->
-    <div class="card ticker-card" id="funny-card">
-      <div class="card-header">
-        <span class="card-icon">⚡</span>
-        <div>
-          <div class="card-title">Shocking 311 Descriptions</div>
-          <div class="card-sub" id="ticker-sub">Sampled from 2,400 recent 311 requests</div>
-        </div>
-      </div>
-      <div id="funny-content">
-        <div class="ticker-content">
-          <div class="ticker-text" id="ticker-text">Loading funniest descriptions…</div>
-          <div class="ticker-meta">
-            <span class="ticker-badge" id="ticker-badge">—</span>
-            <span id="ticker-address"></span>
-            <span id="ticker-date"></span>
-            <span class="ticker-count" id="ticker-count"></span>
-          </div>
-
-          <div class="ticker-nav" id="ticker-nav"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- ── Bar of the Month ── -->
     <div class="card" id="bar-card">
@@ -361,7 +285,7 @@
         if (data.coyotes) renderCoyotes(data.coyotes);
         if (data.graffiti) renderGraffiti(data.graffiti);
         if (data.parking) renderParking(data.parking);
-        if (data.funnyDescriptions) renderFunnyDescriptions(data.funnyDescriptions);
+
       } catch (err) {
         document.querySelectorAll(".loading").forEach(function(el) {
           el.innerHTML = '<div class="error">Failed to load: ' + err.message + '</div>';
@@ -658,115 +582,6 @@
           Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a> · service code HHSGRAFF
           · <a href="../graffiti/" target="_blank" rel="noopener" style="color:var(--text-sub);">🗺️ View map</a>
         </div>`;
-    }
-
-    // ── Funniest Descriptions Ticker ──────────────────────────────────────────
-
-    function renderFunnyDescriptions(d) {
-      var items = d.items || [];
-      if (!items.length) {
-        document.getElementById("ticker-text").textContent = "No funny descriptions found.";
-        return;
-      }
-
-      // Shuffle items for random order on each page load
-      for (var i = items.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var tmp = items[i];
-        items[i] = items[j];
-        items[j] = tmp;
-      }
-
-      var currentIndex = 0;
-      var tickerText = document.getElementById("ticker-text");
-      var tickerBadge = document.getElementById("ticker-badge");
-      var tickerAddress = document.getElementById("ticker-address");
-      var tickerDate = document.getElementById("ticker-date");
-      var tickerCount = document.getElementById("ticker-count");
-      var tickerNav = document.getElementById("ticker-nav");
-      var tickerSub = document.getElementById("ticker-sub");
-
-      tickerSub.textContent = "Sampled from " + d.totalFetched.toLocaleString() + " recent 311 requests";
-
-      // Build dots
-      var dotsHtml = "";
-      for (var i = 0; i < items.length; i++) {
-        dotsHtml += '<div class="ticker-dot" data-index="' + i + '"></div>';
-      }
-      tickerNav.innerHTML = dotsHtml;
-      var dots = tickerNav.querySelectorAll(".ticker-dot");
-
-      var timer = null;
-      var BASE_DURATION = 7000; // 7 seconds base
-      var MS_PER_CHAR = 15; // extra 15ms per character for long texts
-      var MAX_DURATION = 12000; // cap at 12 seconds
-
-      function getDuration(text) {
-        var dur = BASE_DURATION + text.length * MS_PER_CHAR;
-        return Math.min(dur, MAX_DURATION);
-      }
-
-      function showItem(index) {
-        var item = items[index];
-        var text = item.text;
-        // Add smart quotes around the text for presentation
-        var ticketUrl = item.id ? 'https://311.austintexas.gov/tickets/' + item.id : null;
-        if (ticketUrl) {
-          tickerText.innerHTML = '<a href="' + ticketUrl + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">\u201C' + text + '\u201D</a>';
-        } else {
-          tickerText.textContent = '\u201C' + text + '\u201D';
-        }
-        tickerBadge.textContent = item.category;
-        tickerAddress.textContent = item.address ? '\u2022 ' + item.address : '';
-        tickerDate.textContent = item.date ? '\u2022 ' + item.date : '';
-        tickerCount.textContent = (index + 1) + ' / ' + items.length;
-
-        // Update dots
-        for (var i = 0; i < dots.length; i++) {
-          dots[i].classList.toggle("active", i === index);
-        }
-      }
-
-      function nextItem() {
-        currentIndex = (currentIndex + 1) % items.length;
-        showItem(currentIndex);
-        resetTimers();
-      }
-
-      function prevItem() {
-        currentIndex = (currentIndex - 1 + items.length) % items.length;
-        showItem(currentIndex);
-        resetTimers();
-      }
-
-      function resetTimers() {
-        if (timer) clearTimeout(timer);
-        var duration = getDuration(items[currentIndex].text);
-        timer = setTimeout(function() {
-          nextItem();
-        }, duration);
-      }
-
-      // Click on dots to jump
-      for (var i = 0; i < dots.length; i++) {
-        (function(idx) {
-          dots[idx].addEventListener("click", function() {
-            currentIndex = idx;
-            showItem(currentIndex);
-            resetTimers();
-          });
-        })(i);
-      }
-
-      // Keyboard support: left/right arrows
-      document.addEventListener("keydown", function(e) {
-        if (e.key === "ArrowLeft") { prevItem(); }
-        if (e.key === "ArrowRight") { nextItem(); }
-      });
-
-      // Start
-      showItem(0);
-      resetTimers();
     }
 
     // kick off all
