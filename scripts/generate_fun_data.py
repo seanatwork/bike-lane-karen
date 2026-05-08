@@ -17,7 +17,7 @@ import logging
 import os
 import re
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -30,15 +30,6 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 OPEN311_URL = "https://311.austintexas.gov/open311/v2/requests.json"
 SOCRATA_BASE = "https://data.texas.gov/resource"
 TABC_DATASET = "g5bj-yb6k"
-
-COMPLAINT_CODES = [
-    ("HHSGRAFF", "Graffiti"),
-    ("PARKINGV", "Parking"),
-    ("NOISECMP", "Noise"),
-    ("PRGRDISS", "Homeless"),
-    ("OBSTMIDB", "Obstruction"),
-    ("SBDEBROW", "Debris"),
-]
 
 _session: Optional[requests.Session] = None
 
@@ -547,101 +538,6 @@ def _load_graffiti_speedrun() -> Optional[dict]:
     return result
 
 
-# ── 6. Most Complained-About Address ─────────────────────────────────────────
-
-def _normalize_address(addr: str) -> str:
-    """Strip city/state suffix and uppercase for cross-category comparison."""
-    if not addr:
-        return ""
-    addr = re.sub(r",\s*Austin.*$", "", addr, flags=re.IGNORECASE)
-    addr = re.sub(r",?\s*TX\s*\d{5}(-\d{4})?$", "", addr, flags=re.IGNORECASE)
-    return addr.strip(" ,.").upper()
-
-
-def _load_top_address() -> Optional[dict]:
-    """Find the most complained-about address across multiple 311 service codes."""
-    logger.info("Loading Most Complained-About Address…")
-    now = datetime.now(timezone.utc)
-    start = now - timedelta(days=90)
-    start_str = start.strftime("%Y-%m-%dT%H:%M:%SZ")
-
-    addr_totals: Counter = Counter()
-    addr_by_category: dict = defaultdict(lambda: defaultdict(int))
-    addr_details: dict = {}
-    total_fetched = 0
-
-    per_page = 100
-    max_pages = 5  # up to 500 records per code
-
-    for code, category in COMPLAINT_CODES:
-        page = 1
-        while page <= max_pages:
-            records = _fetch_json(OPEN311_URL, {
-                "service_code": code,
-                "start_date": start_str,
-                "per_page": per_page,
-                "page": page,
-            })
-            if not records:
-                if page == 1:
-                    logger.info(f"  No records for {code}")
-                break
-            total_fetched += len(records)
-
-            for r in records:
-                addr = _normalize_address(r.get("address", ""))
-                if not addr or len(addr) < 5:
-                    continue
-                addr_totals[addr] += 1
-                addr_by_category[addr][category] += 1
-                if addr not in addr_details or (r.get("lat") and not addr_details[addr].get("lat")):
-                    display = title_case(
-                        re.sub(r",\s*Austin.*$", "", r.get("address", ""), flags=re.IGNORECASE)
-                    ).strip(" ,")
-                    addr_details[addr] = {
-                        "display": display,
-                        "lat": r.get("lat"),
-                        "lon": r.get("long"),
-                    }
-
-            if len(records) < per_page:
-                break
-            page += 1
-            time.sleep(1.0)
-        time.sleep(1.0)
-
-    if not addr_totals:
-        return None
-
-    top15 = []
-    for addr, total in addr_totals.most_common(15):
-        details = addr_details.get(addr, {})
-        breakdown = sorted(
-            [{"category": cat, "count": cnt} for cat, cnt in addr_by_category[addr].items()],
-            key=lambda x: -x["count"],
-        )
-        top15.append({
-            "address": details.get("display", addr.title()),
-            "total": total,
-            "breakdown": breakdown,
-            "lat": details.get("lat"),
-            "lon": details.get("lon"),
-        })
-
-    winner = top15[0]
-    result = {
-        "winner": winner,
-        "top15": top15,
-        "totalReports": total_fetched,
-        "totalAddresses": len(addr_totals),
-        "codesSearched": len(COMPLAINT_CODES),
-        "categories": [cat for _, cat in COMPLAINT_CODES],
-        "days": 90,
-    }
-    logger.info(f"  ✓ Top Address: {winner['address']} with {winner['total']} complaints")
-    return result
-
-
 def _bucket_label(key: str) -> str:
     labels = {
         "under1h": "Under 1 hour",
@@ -668,7 +564,6 @@ def main() -> None:
         "graffiti": _load_graffiti(),
         "parking": _load_parking(),
         "graffitiSpeedrun": _load_graffiti_speedrun(),
-        "topAddress": _load_top_address(),
     }
 
     out_path = Path(__file__).resolve().parent.parent / "docs" / "fun" / "data.json"

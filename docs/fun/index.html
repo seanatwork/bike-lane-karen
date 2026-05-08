@@ -178,18 +178,6 @@
       <div id="bar-content"><div class="loading">Loading TABC data…</div></div>
     </div>
 
-    <!-- ── Most Complained-About Address ── -->
-    <div class="card" id="complaints-card">
-      <div class="card-header">
-        <span class="card-icon">📍</span>
-        <div>
-          <div class="card-title">Most Complained-About Address</div>
-          <div class="card-sub">Graffiti, parking, noise &amp; more — last 90 days</div>
-        </div>
-      </div>
-      <div id="complaints-content"><div class="loading">Loading complaint data…</div></div>
-    </div>
-
     <!-- ── Coyote Sightings ── -->
     <div class="card" id="coyote-card">
       <div class="card-header">
@@ -294,7 +282,6 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const data = await res.json();
         if (data.bars) renderBars(data.bars);
-        if (data.topAddress) renderTopAddress(data.topAddress);
         if (data.coyotes) renderCoyotes(data.coyotes);
         if (data.graffiti) renderGraffiti(data.graffiti);
         if (data.parking) renderParking(data.parking);
@@ -304,72 +291,6 @@
           el.innerHTML = '<div class="error">Failed to load: ' + err.message + '</div>';
         });
       }
-    }
-
-    // ── Most Complained-About Address ────────────────────────────────────────
-
-    function renderTopAddress(d) {
-      const el = document.getElementById("complaints-content");
-      const winner = d.winner;
-      const top15 = d.top15;
-
-      if (!winner) {
-        el.innerHTML = `<div style="font-size:13px;color:var(--text-muted);">No data available.</div>`;
-        return;
-      }
-
-      const mapsUrl = winner.lat && winner.lon
-        ? `https://www.google.com/maps/search/?api=1&query=${winner.lat},${winner.lon}`
-        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(winner.address + ", Austin TX")}`;
-
-      const breakdownStr = winner.breakdown.map(function(b) {
-        return b.category + ": " + b.count;
-      }).join(" &nbsp;·&nbsp; ");
-
-      const maxTotal = top15[0].total;
-      const barRows = top15.map(function(r, i) {
-        const pct = Math.round(r.total / maxTotal * 100);
-        const fill = i === 0 ? "#ea580c" : (i < 3 ? "#9333ea" : "var(--bar-fill)");
-        const label = r.address.length > 22 ? r.address.slice(0, 20) + "…" : r.address;
-        return `<div class="bar-row">
-          <span class="bar-rank">${i + 1}</span>
-          <span class="bar-name" title="${r.address}">${label}</span>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${fill}"></div></div>
-          <span class="bar-val" style="flex:0 0 32px;">${r.total}x</span>
-        </div>`;
-      }).join("");
-
-      el.innerHTML = `
-        <div class="winner">
-          <div class="winner-crown">🏆 Austin's Most Complained-About Address</div>
-          <div class="winner-name" style="font-size:0.9rem;">${winner.address}</div>
-          <div class="winner-sales">${winner.total}x</div>
-          <div class="winner-label">complaints in 90 days</div>
-          <div style="font-size:11px;color:var(--text-sub);margin-top:6px;">${breakdownStr}</div>
-          <div style="font-size:11px;margin-top:4px;">
-            <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:var(--text-sub);">📍 View on map</a>
-          </div>
-        </div>
-        <div class="stat-row">
-          <div class="stat-box">
-            <div class="stat-val">${d.totalReports.toLocaleString()}</div>
-            <div class="stat-label">Reports searched</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-val">${d.totalAddresses.toLocaleString()}</div>
-            <div class="stat-label">Unique addresses</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-val">${d.codesSearched}</div>
-            <div class="stat-label">Categories</div>
-          </div>
-        </div>
-        <div class="section-title">Top 15 Most Complained-About Addresses</div>
-        <div class="bar-rows">${barRows}</div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
-          Covers: ${d.categories.join(", ")} · Last ${d.days} days
-          · Source: <a href="https://311.austintexas.gov/open311/v2" target="_blank" rel="noopener" style="color:var(--text-sub);">Austin Open311 API</a>
-        </div>`;
     }
 
     // ── Bar of the Month ──────────────────────────────────────────────────────
