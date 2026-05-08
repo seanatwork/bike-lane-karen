@@ -1,5 +1,5 @@
 {
-  "updated": "2026-05-08T06:23:01.116219+00:00",
+  "updated": "2026-05-08T07:30:09.194600+00:00",
   "bars": {
     "top10": [
       {
@@ -461,5 +461,332 @@
       "days": 308.4,
       "address": "619 E 6th St, Austin"
     }
+  },
+  "funnyDescriptions": {
+    "totalFetched": 2500,
+    "totalCandidates": 53,
+    "selected": 40,
+    "items": [
+      {
+        "text": "I saw this man unloading 3 poorly cared for puppies (malnourished, dirty, incredibly matted into a crate to try to sell them on the south side of the Pfluger pedestrian bridge. I definitely believe these dogs are in a puppy mill situation and are not cared for. They were very nervous to be around hi",
+        "category": "Animal Care",
+        "code": "ACPROPER",
+        "address": "1124 W Riverside Dr, Austin",
+        "date": "2026-04-23",
+        "id": "26-00126623"
+      },
+      {
+        "text": "Walking past this house, I can hear roosters screaming, dogs incessantly barking, squealing pigs, and loud chickens. The noise is completely out of hand. Please investigate.",
+        "category": "Animal Care",
+        "code": "ACPROPER",
+        "address": "7205 Providence Ave, Austin",
+        "date": "2026-05-06",
+        "id": "26-00143031"
+      },
+      {
+        "text": "Three dogs left for extended period of time without adequate access to water in all weather conditions. Yard frequently has trash dogs are eating and feces. White dog looks potentially malnourished",
+        "category": "Animal Care",
+        "code": "ACPROPER",
+        "address": "11282 Taylor Draper Ln, Austin",
+        "date": "2026-05-07",
+        "id": "26-00144284"
+      },
+      {
+        "text": "Saw a juvenile coyote with mange in Dry Creek.",
+        "category": "Coyote",
+        "code": "ACCOYTE",
+        "address": "6810 Thorncliffe Dr, Austin",
+        "date": "2025-12-12",
+        "id": "25-00416177"
+      },
+      {
+        "text": "Coyote at my back fence. 3rd time I have seen him this week. I reported it to you yesterday. This morning it stared me down when I was clapping and yelling. Not too afraid of me at this point. I\u2019m afraid it might have rabies.",
+        "category": "Coyote",
+        "code": "ACCOYTE",
+        "address": "2514 Great Oaks Pkwy, Austin",
+        "date": "2026-04-30",
+        "id": "26-00134749"
+      },
+      {
+        "text": "Vagrants have moved a sofa under Lamar bridge near Azie Morton.  Trash, filth, garbage everywhere.  Near children swimming.   Can see sex acts.  Living there, apparently.",
+        "category": "Homeless/Grounds",
+        "code": "PRGRDISS",
+        "address": "2000 Barton Springs Rd, Austin",
+        "date": "2026-05-07",
+        "id": "26-00144509"
+      },
+      {
+        "text": "Someone came in and cut a ton of branches in the park and left piles everywhere. It\u2019s been a few months and these piles have not been. We\u2019re worried about animals and snakes starting to make homes out of them.",
+        "category": "Homeless/Grounds",
+        "code": "PRGRDISS",
+        "address": "4902 Fairview Dr, Austin",
+        "date": "2026-05-07",
+        "id": "26-00144070"
+      },
+      {
+        "text": "There is a black cow wandering loose in the Bolm park along 183. It has been getting closer and closer to 183 and is a definite safety hazard.",
+        "category": "Loose Animal",
+        "code": "ACLOANIM",
+        "address": "1671 Ed Bluestein Blvd Svrd NB, Austin",
+        "date": "2026-05-05",
+        "id": "26-00140554"
+      },
+      {
+        "text": "Two parakeet birds showed up. One has a ring around the ankle. They seem hungry and semi friendly",
+        "category": "Loose Animal",
+        "code": "ACLOANIM",
+        "address": "5916 Pinon Vista Dr, Austin",
+        "date": "2026-03-28",
+        "id": "26-00095049"
+      },
+      {
+        "text": "Loose roosters roaming all around goodnight ranch- they have been here 2 weeks plus and are getting increasingly hungry",
+        "category": "Loose Animal",
+        "code": "ACLOANIM",
+        "address": "5904 Comanche Moon Trl, Austin",
+        "date": "2026-03-23",
+        "id": "26-00088760"
+      },
+      {
+        "text": "Cow loose on lakeline just past the lakeline metro rail station. Closest intersection is lakeline and staked plains.",
+        "category": "Loose Animal",
+        "code": "ACLOANIM",
+        "address": "10302 Lakeline Blvd, Austin",
+        "date": "2026-03-19",
+        "id": "26-00084281"
+      },
+      {
+        "text": "TWO LOOSE DOGS PLEASE HELP THEY WERE RUNNJNG IN AND OUT OF TRAFFIC ON HOWARD AND GRAND CENTRAL, THEY ARE NOW IN UPPER EAST END COMMUNITY",
+        "category": "Loose Dog",
+        "code": "ACLONAG",
+        "address": "2924 St Regis Dr, Austin",
+        "date": "2026-05-07",
+        "id": "26-00144430"
+      },
+      {
+        "text": "Ongoing code violation issue with Double Trouble at 103 North Loop Blvd having outdoor live music events. Loud amplified noise within feet of residential property. \u201cPermits may not be issued for using sound equipment within 100 feet of the property zoned and used as residential.\u201d Please send code of",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "103 E North Loop Blvd, Austin",
+        "date": "2025-10-16",
+        "id": "25-00349256"
+      },
+      {
+        "text": "Noise complaint ordinance, disorderly conduct pedicabs playing loud music disturbing the peace of the neighborhood, past midnight sound curfew. Southbound Waller Street towards Cesar Chavez Street. https://youtu.be/361uXtc_eaA?si=BvxAVvbISeB_PMyJ.",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "1710 E 2nd St, Austin",
+        "date": "2025-10-15",
+        "id": "25-00348026"
+      },
+      {
+        "text": "-- auto translated (en) --\nIcenhauers music can be heard from 500 yards down the street. It\u2019s very loud and way last cutoff \n-- original (en) --\nIcenhauers music can be heard from 500 yards down the street. It\u2019s very loud and way last cutoff",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "83 Rainey St, Austin",
+        "date": "2024-03-03",
+        "id": "24-00074466"
+      },
+      {
+        "text": "Please help! SUPER loud amplified music coming from 1117 Lott Ave. this house has NO regard for neighbors and we are all scared of them. Please someone help me and my immediate neighbors! We are scared to talk to them bc it\u2019s several generations living in one house (and I am a single female) it\u2019s co",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "1117 Lott Ave, Austin",
+        "date": "2025-10-15",
+        "id": "25-00347981"
+      },
+      {
+        "text": "Loud as f*** exhaust cars on corner of 1st and w Riverside, driving in circles around the intersection right outside residential area",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "601 W Riverside Dr, Austin",
+        "date": "2025-10-16",
+        "id": "25-00349306"
+      },
+      {
+        "text": "Very Loud Music in the neighborhood. Please make it stop! Noise complaint!",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "915 Duncan Ln, Austin",
+        "date": "2025-03-29",
+        "id": "25-00099423"
+      },
+      {
+        "text": "Are you going to do something about the very loud music instead of just closing the complaint?",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "1209 W Anderson Ln, Austin",
+        "date": "2025-10-15",
+        "id": "25-00348655"
+      },
+      {
+        "text": "Clubs on 4th and Colorado are so loud. Can you please do something  this is unliveable",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "121 W 4th St, Austin",
+        "date": "2026-05-03",
+        "id": "26-00138169"
+      },
+      {
+        "text": "Loud music, no permit, disturbing guests at Frame Hotel - Treehouse",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "1321 S Congress Ave, Austin",
+        "date": "2026-05-08",
+        "id": "26-00144997"
+      },
+      {
+        "text": "They are getting louder please send help.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "120 W 5th St, Austin",
+        "date": "2026-04-26",
+        "id": "26-00128991"
+      },
+      {
+        "text": "It is past midnight and non compliant with city ordinance. Squash this!!!!",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "900 Red River St, Austin",
+        "date": "2026-05-08",
+        "id": "26-00145066"
+      },
+      {
+        "text": "Far out is above decibel levels again",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "8504 S Congress Ave, Austin",
+        "date": "2026-05-01",
+        "id": "26-00135734"
+      },
+      {
+        "text": "Victory Lap playing music way over decibel limit. Walking by is a hazard to our hearing.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "85 Rainey St, Austin",
+        "date": "2026-05-02",
+        "id": "26-00137056"
+      },
+      {
+        "text": "Luna too loud, sound enforcement man (or woman) please lock in and do something about it.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "120 W 5th St, Austin",
+        "date": "2026-04-26",
+        "id": "26-00128964"
+      },
+      {
+        "text": "It\u2019s 1am and still the city has done nothing about Twin Nightckub blasting music about city limits. The police do not inspect at the time the issue is reported. The city is useless to allow this to go on.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "416 Colorado St, Austin",
+        "date": "2026-05-03",
+        "id": "26-00138258"
+      },
+      {
+        "text": "after-hours audibility violation at Luna Rooftop/Aura. It is a Tuesday night, past the 10:30 p.m. curfew, and they are operating a full club-style sound system that is clearly audible inside my home and causing structural vibration. Even if this is a private event, they are past the legal cutoff for",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "118 W 5th St, Austin",
+        "date": "2026-04-29",
+        "id": "26-00132915"
+      },
+      {
+        "text": "BOOM BOOM BOOM BOOM BOOM yessssss we love when bars and clubs and do whatever they f*** they want bc 311 doesn\u2019t do sh** about it - almost 5 hours of the skybar place breaking the f***ing DBs.  Every bar around and every residential home is pissed off and 311 is f***ing useless - f*** you - I hope y",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "500 W 6th St, Austin",
+        "date": "2026-05-07",
+        "id": "26-00143717"
+      },
+      {
+        "text": "Really, really loud music\u2014it\u2019s loud in my apartment 40 floors up! Has to be over decibel limit on the street.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "92 Rainey St, Austin",
+        "date": "2026-05-02",
+        "id": "26-00137055"
+      },
+      {
+        "text": "Luna ridiculously loud I can hear it in my apt. ITS A WEDNESDAY NIGHT!!! Can this city do something about this please???? So many complaints every week.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "118 W 5th St, Austin",
+        "date": "2026-04-29",
+        "id": "26-00132921"
+      },
+      {
+        "text": "Luna playing after hours it\u2019s 2:08",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "120 W 5th St, Austin",
+        "date": "2026-04-26",
+        "id": "26-00129058"
+      },
+      {
+        "text": "Twin Nightclub is yet again blaring music above permitted decibals. Would be lovely if the city did a d*** thing about it. You should also look at the non-ADA compliance and under-age patrons",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "416 Colorado St, Austin",
+        "date": "2026-05-03",
+        "id": "26-00138219"
+      },
+      {
+        "text": "Persistent low-frequency ba** from The Loading Dock event venue is clearly audible and physically felt inside my home. The ba** continues well past 2 AM and is currently ongoing at 4:30 AM. Even with all doors and windows closed, the vibrations penetrate the structure and have made it impossible to ",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "6910 Shirley Ave, Austin",
+        "date": "2026-05-03",
+        "id": "26-00138311"
+      },
+      {
+        "text": "These trash can a are continually on the street using three parking spaces and creating an eyesore. Do they have a permit? They belong to the holiday inn express",
+        "category": "Street Misc",
+        "code": "SBGENRL",
+        "address": "810 Neches St, Austin",
+        "date": "2026-04-30",
+        "id": "26-00134279"
+      },
+      {
+        "text": "The sign at the intersection of  Horse Trap Ln and Rattlesnake Trl got damaged during the heavy winds we saw over the weekend.  Please help fix it.  Thank you.",
+        "category": "Street Sign",
+        "code": "SIGNSTRE",
+        "address": "9000 Rattlesnake Trl, Austin",
+        "date": "2026-03-19",
+        "id": "26-00083914"
+      },
+      {
+        "text": "The left turn sign from Ronald Reagan to E new Hope Drive is always pathetic( ref pic). Today, the sign comes on for just 2 seconds and turns red. Don\u2019t you guys have real time dashboard to monitor such issues at TxDoT? This has been an ongoing issue since this road opened and I am shocked that this",
+        "category": "Traffic Signal",
+        "code": "TRASIGMA",
+        "address": "157 S Old County Road 180, Cedar Park",
+        "date": "2026-05-06",
+        "id": "26-00142128"
+      },
+      {
+        "text": "A crew cut down what looked to be a protected Pecan tree at 308 Kemp St.  Lot is undeveloped, but just acquired a permit to build.",
+        "category": "Tree/Environmental",
+        "code": "DSDENVCO",
+        "address": "308 Kemp St, Austin",
+        "date": "2026-04-29",
+        "id": "26-00134186"
+      },
+      {
+        "text": "Making an update to previous report. Caught this on camera at 2am. These dogs killed a skunk this morning and have attempted to bite several neighbors and dogs.  The address dogs live is 5105 Woodmoor Dr. 78721 & just moved in a couple of months ago when dogs were 1st seen running loose (not 5101). ",
+        "category": "Vicious Dog",
+        "code": "COAACDD",
+        "address": "4410 Elmsgrove Dr, Austin",
+        "date": "2026-04-29",
+        "id": "26-00132853"
+      },
+      {
+        "text": "There is a whole family of raccoons living in a house that's about to be demolished on Tuesday the 12th. The house is at 85 Navasota, 78702. Please help relocate the family.",
+        "category": "Wildlife",
+        "code": "WILDEXPO",
+        "address": "85 Navasota St, Austin",
+        "date": "2026-05-07",
+        "id": "26-00143921"
+      }
+    ]
   }
 }
