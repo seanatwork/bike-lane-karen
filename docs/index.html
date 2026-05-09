@@ -41,6 +41,11 @@
       --text-footer:  #94a3b8;
       --text-footer-a:#64748b;
       --text-footer-hover: #475569;
+      --btn-bg:       #e2e8f0;
+      --btn-border:   #cbd5e1;
+      --btn-color:    #475569;
+      --bar-bg:       #cbd5e1;
+      --bar-fill:      #3b82f6;
       --disc-border:  #e2e8f0;
     }
 
@@ -64,6 +69,11 @@
       --text-footer:  #475569;
       --text-footer-a:#64748b;
       --text-footer-hover: #94a3b8;
+      --btn-bg:       #252b3b;
+      --btn-border:   #3d4868;
+      --btn-color:    #94a3b8;
+      --bar-bg:       #3d4868;
+      --bar-fill:      #60a5fa;
       --disc-border:  #334155;
     }
 
@@ -408,6 +418,14 @@
       color: var(--text-muted);
       margin-left: auto;
     }
+    .ticker-sub {
+      font-size: 0.72rem;
+      color: var(--text-tag);
+      text-align: center;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      margin-top: 6px;
+    }
 
     /* ── pulse bar ── */
     #pulse-bar {
@@ -540,7 +558,7 @@
         <div class="ticker-nav" id="ticker-nav"></div>
       </div>
     </div>
-    <div class="card-sub" id="ticker-sub" style="margin-top:4px;">Loading…</div>
+    <div class="ticker-sub" id="ticker-sub">Loading…</div>
   </div>
 
   <div class="grid">
@@ -623,7 +641,7 @@
     <button class="card more-btn" id="more-btn" onclick="toggleMore()" aria-expanded="false" type="button">
       <span class="icon" id="more-icon">→</span>
       <span class="label" id="more-label">More…</span>
-      <span class="desc">Noise · Hate Crimes · Storm &amp; Drainage · Bicycle · Child Care · Restaurants · Dead Animal · Courts · Code Enforcement · Micromobility</span>
+      <span class="desc">Noise · Hate Crimes · Storm &amp; Drainage · Bicycle · Child Care · Restaurants · Dead Animal · Courts · Code Enforcement · Micromobility · COVID-19 Complaints</span>
       
     </button>
   </div>
@@ -693,6 +711,11 @@
       <span class="icon">🏛️</span>
       <span class="label">Code Enforcement</span>
       <span class="desc">City of Austin code enforcement dashboard — violations &amp; inspections</span>
+    </a>
+    <a class="card" href="covid/" style="border-color:#fecaca;">
+      <span class="icon">😷</span>
+      <span class="label" style="color:#dc2626;">COVID-19 Complaints</span>
+      <span class="desc">All 964 COVID non-compliance reports filed via 311 — in Austinites' own words</span>
     </a>
   </div>
 
