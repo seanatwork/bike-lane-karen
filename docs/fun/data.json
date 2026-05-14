@@ -1,105 +1,105 @@
 {
-  "updated": "2026-05-10T10:55:14.480763+00:00",
+  "updated": "2026-05-14T23:55:37.036038+00:00",
   "bars": {
     "top10": [
       {
-        "name": "Moody Center At University Of Texas",
-        "address": "2001 Robert Dedman Dr",
-        "sales": 1860926.0
+        "name": "The Concourse",
+        "address": "8509 Burleson Rd Bldg A",
+        "sales": 610265.0
       },
       {
-        "name": "Jw Marriott Austin",
-        "address": "110 E 2nd St",
-        "sales": 1630934.0
+        "name": "Thompson Hotel",
+        "address": "506 San Jacinto Blvd",
+        "sales": 415799.0
       },
       {
-        "name": "Proper Hotel",
-        "address": "600 W 2nd St",
-        "sales": 920922.0
+        "name": "75 1/2 Rainey Street",
+        "address": "75 1/2 Rainey St",
+        "sales": 314391.0
       },
       {
-        "name": "Ojos Locos Sports Cantina",
-        "address": "7522 N Interstate 35 Ste B",
-        "sales": 912996.0
+        "name": "Regency Beverage Company",
+        "address": "208 Barton Springs Rd",
+        "sales": 308806.0
       },
       {
-        "name": "80 Proof Llc",
-        "address": "9201 Circuit Of The Americas Blvd",
-        "sales": 733313.0
+        "name": "Dh Beverage Llc",
+        "address": "604 Brazos St",
+        "sales": 307086.0
       },
       {
-        "name": "Omni Barton Creek Resort & Spa",
-        "address": "8212 Barton Club Dr",
-        "sales": 720218.0
+        "name": "Stubb's Bar-b-q",
+        "address": "801 Red River St",
+        "sales": 276813.0
       },
       {
-        "name": "Matt's El Rancho, Inc.",
-        "address": "2613 S Lamar Blvd",
-        "sales": 690886.0
+        "name": "Quince Lakehouse",
+        "address": "3825 Lake Austin Blvd # 201",
+        "sales": 270338.0
       },
       {
-        "name": "Wls Beverage Company",
-        "address": "304 E Cesar Chavez St",
-        "sales": 551624.0
+        "name": "Loro Asian Smokehouse",
+        "address": "2115 S Lamar Blvd",
+        "sales": 267630.0
       },
       {
-        "name": "De Nada Cantina",
-        "address": "4715 E Cesar Chavez St",
-        "sales": 459519.0
+        "name": "Petes Dueling Piano Bar",
+        "address": "421 E 6th St",
+        "sales": 250296.0
       },
       {
-        "name": "Aba Austin",
-        "address": "1011 S Congress Ave Ste 180",
-        "sales": 458565.0
+        "name": "The Roosevelt Room & The Eleanor",
+        "address": "307 W 5th St # 307b",
+        "sales": 243303.0
       }
     ],
     "top5movers": [
       {
-        "name": "Moody Center At University Of Texas",
-        "address": "2001 Robert Dedman Dr",
-        "delta": 1451182.0,
-        "pct": 354.2
+        "name": "Mockingbird Saloon",
+        "address": "2610 Guadalupe St",
+        "delta": 91303.0,
+        "pct": 78.2
       },
       {
-        "name": "80 Proof Llc",
-        "address": "9201 Circuit Of The Americas Blvd",
-        "delta": 720643.0,
-        "pct": 5687.8
+        "name": "Dh Beverage Llc",
+        "address": "604 Brazos St",
+        "delta": 86350.0,
+        "pct": 39.1
       },
       {
-        "name": "Levy At Austin Fc",
-        "address": "10414 Mckalla Pl",
-        "delta": 275444.0,
-        "pct": 661.7
+        "name": "Thompson Hotel",
+        "address": "506 San Jacinto Blvd",
+        "delta": 79682.0,
+        "pct": 23.7
       },
       {
-        "name": "Jw Marriott Austin",
-        "address": "110 E 2nd St",
-        "delta": 254688.0,
-        "pct": 18.5
+        "name": "75 1/2 Rainey Street",
+        "address": "75 1/2 Rainey St",
+        "delta": 65419.0,
+        "pct": 26.3
       },
       {
-        "name": "Westwood Country Club Of Austin",
-        "address": "3808 W 35th St",
-        "delta": 205543.0,
-        "pct": 280.0
+        "name": "Regency Beverage Company",
+        "address": "208 Barton Springs Rd",
+        "delta": 61188.0,
+        "pct": 24.7
       }
     ],
-    "curDate": "2026-02-28",
-    "prevDate": "2026-01-31",
-    "curLabel": "February 2026",
-    "prevLabel": "January 2026"
+    "curDate": "2026-04-30",
+    "prevDate": "2026-03-31",
+    "curLabel": "April 2026",
+    "prevLabel": "March 2026"
   },
   "coyotes": {
     "total": 90,
-    "pupping": 31,
-    "puppingPct": 34,
+    "pupping": 26,
+    "puppingPct": 29,
     "isPeak": false,
     "months": [
       {
         "label": "Aug 2025",
-        "count": 3,
-        "pct": 9,
+        "count": 8,
+        "pct": 23,
         "isPupping": false
       },
       {
@@ -116,24 +116,31 @@
       },
       {
         "label": "May 2025",
-        "count": 31,
-        "pct": 89,
+        "count": 26,
+        "pct": 74,
         "isPupping": true
       }
     ]
   },
   "graffiti": {
     "total": 100,
-    "uniqueLocations": 96,
-    "repeatRate": 4,
+    "uniqueLocations": 95,
+    "repeatRate": 5,
     "winner": {
-      "address": "6600 Arroyo Seco",
+      "address": "1275 N Lamar Blvd",
       "count": 2,
       "status": "\u2705 Cleaned",
-      "lat": 30.33872317,
-      "lon": -97.73136755
+      "lat": 30.27820072966177,
+      "lon": -97.7507472038269
     },
     "top15": [
+      {
+        "address": "1275 N Lamar Blvd",
+        "count": 2,
+        "status": "\u2705 Cleaned",
+        "lat": 30.27820072966177,
+        "lon": -97.7507472038269
+      },
       {
         "address": "6600 Arroyo Seco",
         "count": 2,
@@ -163,163 +170,177 @@
         "lon": -97.77073172
       },
       {
-        "address": "1903 E 5th St",
+        "address": "1000 Barton Springs Rd",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.26069675026499,
-        "lon": -97.72294342517853
+        "lat": 30.2604999,
+        "lon": -97.75508361
       },
       {
-        "address": "4411 S Mopac Expy Svrd Nb",
+        "address": "W Riverside Dr & S 1st St",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.24025708828431,
-        "lon": -97.81493912386091
+        "lat": 30.25975815,
+        "lon": -97.74927564
       },
       {
-        "address": "2001 Westlake Dr",
+        "address": "4104 N Ih 35 Upper Deck Sb",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.30084727,
-        "lon": -97.78849223
+        "lat": 30.298249054157157,
+        "lon": -97.71804805845022
       },
       {
-        "address": "Firebush Dr & Honeysuckle Ln, Pflugerville",
+        "address": "1265 N Lamar Blvd",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.44012083,
-        "lon": -97.60779678
+        "lat": 30.27806250569562,
+        "lon": -97.75079905344762
       },
       {
-        "address": "1600 Purple Iris Cv, Pflugerville",
+        "address": "1273 N Lamar Blvd",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.46256747573173,
-        "lon": -97.63317149744783
+        "lat": 30.278186666666628,
+        "lon": -97.750795
       },
       {
-        "address": "13706 N Ih 35 Svrd Sb",
+        "address": "903 W Riverside Dr",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.425011436461038,
-        "lon": -97.67166184919381
+        "lat": 30.26252896716609,
+        "lon": -97.75393127400537
       },
       {
-        "address": "4211 Red River St",
-        "count": 1,
-        "status": "\ud83d\udd34 Tagged",
-        "lat": 30.302214322551908,
-        "lon": -97.72102084243315
-      },
-      {
-        "address": "3816 Medical Pkwy",
+        "address": "666 E Riverside Dr",
         "count": 1,
         "status": "\u2705 Cleaned",
-        "lat": 30.306563902813977,
-        "lon": -97.74371229407078
+        "lat": 30.2515565155159,
+        "lon": -97.74090986698866
       },
       {
-        "address": "1914 Barton Springs Rd",
+        "address": "819 W Cesar Chavez St",
         "count": 1,
-        "status": "\ud83d\udd34 Tagged",
-        "lat": 30.26571003699108,
-        "lon": -97.76434198021889
+        "status": "\u2705 Cleaned",
+        "lat": 30.265900952054206,
+        "lon": -97.75363973989248
       },
       {
-        "address": "1517 Robert Browning St",
+        "address": "817 W Cesar Chavez St",
         "count": 1,
-        "status": "\ud83d\udd34 Tagged",
-        "lat": 30.30009186,
-        "lon": -97.70621872
+        "status": "\u2705 Cleaned",
+        "lat": 30.265916346143186,
+        "lon": -97.7535976683194
       },
       {
-        "address": "Red River St & E 40th St",
+        "address": "823 W Cesar Chavez St",
         "count": 1,
-        "status": "\ud83d\udd34 Tagged",
-        "lat": 30.2985812,
-        "lon": -97.72263743
+        "status": "\u2705 Cleaned",
+        "lat": 30.265963333333293,
+        "lon": -97.75367833333334
       }
     ]
   },
   "parking": {
     "total": 100,
     "peakHour": "6pm",
-    "peakCount": 13,
+    "peakCount": 21,
     "hours": [
+      {
+        "hour": 4,
+        "label": "4am",
+        "count": 1,
+        "pct": 5,
+        "isPeak": false
+      },
+      {
+        "hour": 6,
+        "label": "6am",
+        "count": 1,
+        "pct": 5,
+        "isPeak": false
+      },
       {
         "hour": 7,
         "label": "7am",
-        "count": 3,
-        "pct": 23,
+        "count": 2,
+        "pct": 10,
         "isPeak": false
       },
       {
         "hour": 8,
         "label": "8am",
         "count": 5,
-        "pct": 38,
+        "pct": 24,
         "isPeak": false
       },
       {
         "hour": 9,
         "label": "9am",
-        "count": 11,
-        "pct": 85,
+        "count": 4,
+        "pct": 19,
         "isPeak": false
       },
       {
         "hour": 10,
         "label": "10am",
-        "count": 5,
-        "pct": 38,
+        "count": 10,
+        "pct": 48,
         "isPeak": false
       },
       {
         "hour": 11,
         "label": "11am",
         "count": 6,
-        "pct": 46,
+        "pct": 29,
         "isPeak": false
       },
       {
         "hour": 12,
         "label": "12pm",
         "count": 3,
-        "pct": 23,
+        "pct": 14,
         "isPeak": false
       },
       {
         "hour": 13,
         "label": "1pm",
-        "count": 8,
-        "pct": 62,
+        "count": 2,
+        "pct": 10,
         "isPeak": false
       },
       {
         "hour": 14,
         "label": "2pm",
-        "count": 5,
-        "pct": 38,
+        "count": 1,
+        "pct": 5,
+        "isPeak": false
+      },
+      {
+        "hour": 15,
+        "label": "3pm",
+        "count": 10,
+        "pct": 48,
         "isPeak": false
       },
       {
         "hour": 16,
         "label": "4pm",
-        "count": 2,
-        "pct": 15,
+        "count": 11,
+        "pct": 52,
         "isPeak": false
       },
       {
         "hour": 17,
         "label": "5pm",
-        "count": 1,
-        "pct": 8,
+        "count": 8,
+        "pct": 38,
         "isPeak": false
       },
       {
         "hour": 18,
         "label": "6pm",
-        "count": 13,
+        "count": 21,
         "pct": 100,
         "isPeak": true
       },
@@ -327,85 +348,71 @@
         "hour": 19,
         "label": "7pm",
         "count": 8,
-        "pct": 62,
+        "pct": 38,
         "isPeak": false
       },
       {
         "hour": 20,
         "label": "8pm",
-        "count": 11,
-        "pct": 85,
+        "count": 5,
+        "pct": 24,
         "isPeak": false
       },
       {
         "hour": 21,
         "label": "9pm",
-        "count": 12,
-        "pct": 92,
-        "isPeak": false
-      },
-      {
-        "hour": 22,
-        "label": "10pm",
-        "count": 5,
-        "pct": 38,
-        "isPeak": false
-      },
-      {
-        "hour": 23,
-        "label": "11pm",
         "count": 2,
-        "pct": 15,
+        "pct": 10,
         "isPeak": false
       }
     ],
     "violationTypes": [
       {
         "type": "Other",
-        "count": 23,
+        "count": 17,
         "pct": 100
       },
       {
         "type": "Sidewalk",
-        "count": 6,
-        "pct": 26
+        "count": 16,
+        "pct": 94
+      },
+      {
+        "type": "Bike Lane",
+        "count": 8,
+        "pct": 47
       },
       {
         "type": "No Parking Zone",
         "count": 5,
-        "pct": 22
+        "pct": 29
+      },
+      {
+        "type": "Fire Lane",
+        "count": 4,
+        "pct": 24
       },
       {
         "type": "Oversized Vehicle",
         "count": 4,
-        "pct": 17
+        "pct": 24
       },
       {
         "type": "Blocking",
-        "count": 3,
-        "pct": 13
+        "count": 4,
+        "pct": 24
       },
       {
-        "type": "Driveway",
+        "type": "Handicap",
         "count": 3,
-        "pct": 13
-      },
-      {
-        "type": "Bike Lane",
-        "count": 3,
-        "pct": 13
-      },
-      {
-        "type": "Tow Zone",
-        "count": 3,
-        "pct": 13
+        "pct": 18
       }
     ]
   },
   "graffitiSpeedrun": {
-    "totalClosed": 74,
-    "avgDays": 10.2,
-    "medianDays": 3.3,
+    "totalClosed": 80,
+    "avgDays": 67.2,
+    "medianDays": 5.6,
     "fastestDays": [
       0.0,
       0.0,
@@ -415,7 +422,7 @@
     ],
     "buckets": {
       "under1h": {
-        "count": 2,
+        "count": 3,
         "label": "Under 1 hour"
       },
       "1hTo6h": {
@@ -423,15 +430,15 @@
         "label": "1\u20136 hours"
       },
       "6hTo24h": {
-        "count": 11,
+        "count": 10,
         "label": "6\u201324 hours"
       },
       "1dTo3d": {
-        "count": 19,
+        "count": 15,
         "label": "1\u20133 days"
       },
       "3dTo7d": {
-        "count": 20,
+        "count": 16,
         "label": "3\u20137 days"
       },
       "7dTo30d": {
@@ -439,27 +446,27 @@
         "label": "7\u201330 days"
       },
       "over30d": {
-        "count": 6,
+        "count": 20,
         "label": "Over 30 days"
       }
     },
     "longestOpen": {
-      "days": 310.6,
-      "address": "619 E 6th St, Austin"
+      "days": 309.3,
+      "address": "W 24th St & Longview St, Austin"
     }
   },
   "funnyDescriptions": {
-    "totalFetched": 2500,
-    "totalCandidates": 46,
-    "selected": 40,
+    "totalFetched": 2400,
+    "totalCandidates": 41,
+    "selected": 38,
     "items": [
       {
-        "text": "There is a case of animal abuse in my apartment located at 12001 metric blvd Austin Tex 78758. There is a grey Pitbull who appears to have just had puppies and the owner is not feeding them. The dog is skin and bone. The apartment the dog is located in is 810. Their downstairs neighbor has told me s",
+        "text": "Three dogs left for extended period of time without adequate access to water in all weather conditions. Yard frequently has trash dogs are eating and feces. White dog looks potentially malnourished",
         "category": "Animal Care",
         "code": "ACPROPER",
-        "address": "12001 Metric Blvd, Austin",
+        "address": "11282 Taylor Draper Ln, Austin",
         "date": "2026-05-07",
-        "id": "26-00143632"
+        "id": "26-00144284"
       },
       {
         "text": "I saw this man unloading 3 poorly cared for puppies (malnourished, dirty, incredibly matted into a crate to try to sell them on the south side of the Pfluger pedestrian bridge. I definitely believe these dogs are in a puppy mill situation and are not cared for. They were very nervous to be around hi",
@@ -470,12 +477,20 @@
         "id": "26-00126623"
       },
       {
-        "text": "Three dogs left for extended period of time without adequate access to water in all weather conditions. Yard frequently has trash dogs are eating and feces. White dog looks potentially malnourished",
+        "text": "There is a case of animal abuse in my apartment located at 12001 metric blvd Austin Tex 78758. There is a grey Pitbull who appears to have just had puppies and the owner is not feeding them. The dog is skin and bone. The apartment the dog is located in is 810. Their downstairs neighbor has told me s",
         "category": "Animal Care",
         "code": "ACPROPER",
-        "address": "11282 Taylor Draper Ln, Austin",
-        "date": "2026-05-07",
-        "id": "26-00144284"
+        "address": "12001 Metric Blvd, Austin",
+        "date": "2026-05-11",
+        "id": "26-00148417"
+      },
+      {
+        "text": "Dogs left outside as ma**ive thunderstorm approaches. This is not the first time, dogs have no shelter and are consistently left outside. They are barking and scratching at the back door. Insanely inhumane",
+        "category": "Animal Care",
+        "code": "ACPROPER",
+        "address": "5904 Silver Screen Dr, Austin",
+        "date": "2026-05-11",
+        "id": "26-00148067"
       },
       {
         "text": "Walking past this house, I can hear roosters screaming, dogs incessantly barking, squealing pigs, and loud chickens. The noise is completely out of hand. Please investigate.",
@@ -502,44 +517,12 @@
         "id": "25-00416177"
       },
       {
-        "text": "Drug use on playscape \u2014getting high on steps to slide; camping on tower slide",
+        "text": "Vagrants have moved a sofa under Lamar bridge near Azie Morton.  Trash, filth, garbage everywhere.  Near children swimming.   Can see sex acts.  Living there, apparently.",
         "category": "Homeless/Grounds",
         "code": "PRGRDISS",
-        "address": "2106 Cimarron Trl, Austin",
-        "date": "2026-05-09",
-        "id": "26-00146223"
-      },
-      {
-        "text": "Escalating danger \u2014 Second man and second dog camping in the JJ Seabrook neighborhood. Both dogs are still loose and aggressive. They have charged my elderly neighbor while he was walking his dog.",
-        "category": "Homeless/Grounds",
-        "code": "PRGRDISS",
-        "address": "2106 Palo Pinto Dr, Austin",
-        "date": "2026-01-05",
-        "id": "26-00004387"
-      },
-      {
-        "text": "Illegal camping in a bird sanctuary",
-        "category": "Homeless/Grounds",
-        "code": "PRGRDISS",
-        "address": "7705 Ponoma Trl, Austin",
-        "date": "2026-03-13",
-        "id": "26-00077861"
-      },
-      {
-        "text": "Illegal camping in park while kids playing in park",
-        "category": "Homeless/Grounds",
-        "code": "PRGRDISS",
-        "address": "1401 Sunset Ln, Austin",
-        "date": "2026-02-21",
-        "id": "26-00054269"
-      },
-      {
-        "text": "There is a black cow wandering loose in the Bolm park along 183. It has been getting closer and closer to 183 and is a definite safety hazard.",
-        "category": "Loose Animal",
-        "code": "ACLOANIM",
-        "address": "1671 Ed Bluestein Blvd Svrd NB, Austin",
-        "date": "2026-05-05",
-        "id": "26-00140554"
+        "address": "2000 Barton Springs Rd, Austin",
+        "date": "2026-05-07",
+        "id": "26-00144509"
       },
       {
         "text": "Cow loose on lakeline just past the lakeline metro rail station. Closest intersection is lakeline and staked plains.",
@@ -558,12 +541,20 @@
         "id": "26-00095049"
       },
       {
-        "text": "Ongoing code violation issue with Double Trouble at 103 North Loop Blvd having outdoor live music events. Loud amplified noise within feet of residential property. \u201cPermits may not be issued for using sound equipment within 100 feet of the property zoned and used as residential.\u201d Please send code of",
-        "category": "Noise Complaint",
-        "code": "APDNONNO",
-        "address": "103 E North Loop Blvd, Austin",
-        "date": "2025-10-16",
-        "id": "25-00349256"
+        "text": "There is a black cow wandering loose in the Bolm park along 183. It has been getting closer and closer to 183 and is a definite safety hazard.",
+        "category": "Loose Animal",
+        "code": "ACLOANIM",
+        "address": "1671 Ed Bluestein Blvd Svrd NB, Austin",
+        "date": "2026-05-05",
+        "id": "26-00140554"
+      },
+      {
+        "text": "Two dogs. The large tan shepherd mix has a history of attacking my dogs and I. This is the 5th time. Second report. This time he was accompanied by a small dog I have never seen before.",
+        "category": "Loose Dog",
+        "code": "ACLONAG",
+        "address": "1113 Crown Oaks Dr, Austin",
+        "date": "2026-05-14",
+        "id": "26-00153214"
       },
       {
         "text": "Loud as f*** exhaust cars on corner of 1st and w Riverside, driving in circles around the intersection right outside residential area",
@@ -574,20 +565,12 @@
         "id": "25-00349306"
       },
       {
-        "text": "-- auto translated (en) --\nIcenhauers music can be heard from 500 yards down the street. It\u2019s very loud and way last cutoff \n-- original (en) --\nIcenhauers music can be heard from 500 yards down the street. It\u2019s very loud and way last cutoff",
+        "text": "A band has been practicing in the adu of 2303 e 17th st for over six hours nonstop. The decibel level is regularly over 80 inside my housebecause of this.",
         "category": "Noise Complaint",
         "code": "APDNONNO",
-        "address": "83 Rainey St, Austin",
-        "date": "2024-03-03",
-        "id": "24-00074466"
-      },
-      {
-        "text": "Very Loud Music in the neighborhood. Please make it stop! Noise complaint!",
-        "category": "Noise Complaint",
-        "code": "APDNONNO",
-        "address": "915 Duncan Ln, Austin",
-        "date": "2025-03-29",
-        "id": "25-00099423"
+        "address": "1605 Chestnut Ave, Austin",
+        "date": "2025-10-16",
+        "id": "25-00349276"
       },
       {
         "text": "Please help! SUPER loud amplified music coming from 1117 Lott Ave. this house has NO regard for neighbors and we are all scared of them. Please someone help me and my immediate neighbors! We are scared to talk to them bc it\u2019s several generations living in one house (and I am a single female) it\u2019s co",
@@ -598,28 +581,44 @@
         "id": "25-00347981"
       },
       {
+        "text": "Very Loud Music in the neighborhood. Please make it stop! Noise complaint!",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "915 Duncan Ln, Austin",
+        "date": "2025-03-29",
+        "id": "25-00099423"
+      },
+      {
+        "text": "-- auto translated (en) --\nIcenhauers music can be heard from 500 yards down the street. It\u2019s very loud and way last cutoff \n-- original (en) --\nIcenhauers music can be heard from 500 yards down the street. It\u2019s very loud and way last cutoff",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "83 Rainey St, Austin",
+        "date": "2024-03-03",
+        "id": "24-00074466"
+      },
+      {
+        "text": "Noise complaint ordinance, disorderly conduct pedicabs playing loud music disturbing the peace of the neighborhood, past midnight sound curfew. Southbound Waller Street towards Cesar Chavez Street. https://youtu.be/361uXtc_eaA?si=BvxAVvbISeB_PMyJ.",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "1710 E 2nd St, Austin",
+        "date": "2025-10-15",
+        "id": "25-00348026"
+      },
+      {
+        "text": "Ongoing code violation issue with Double Trouble at 103 North Loop Blvd having outdoor live music events. Loud amplified noise within feet of residential property. \u201cPermits may not be issued for using sound equipment within 100 feet of the property zoned and used as residential.\u201d Please send code of",
+        "category": "Noise Complaint",
+        "code": "APDNONNO",
+        "address": "103 E North Loop Blvd, Austin",
+        "date": "2025-10-16",
+        "id": "25-00349256"
+      },
+      {
         "text": "Are you going to do something about the very loud music instead of just closing the complaint?",
         "category": "Noise Complaint",
         "code": "APDNONNO",
         "address": "1209 W Anderson Ln, Austin",
         "date": "2025-10-15",
         "id": "25-00348655"
-      },
-      {
-        "text": "A band has been practicing in the adu of 2303 e 17th st for over six hours nonstop. The decibel level is regularly over 80 inside my housebecause of this.",
-        "category": "Noise Complaint",
-        "code": "APDNONNO",
-        "address": "1605 Chestnut Ave, Austin",
-        "date": "2025-10-16",
-        "id": "25-00349276"
-      },
-      {
-        "text": "BODY TO BE REMOVED FROM ROW.  GET THE BUMS OFF OUR STREETS!  SOCIETY SHOULD NOT BE DESENSITIZED TO PEOPLE LAYING ON THE SIDE OF THE ROAD!",
-        "category": "Obstruction",
-        "code": "OBSTMIDB",
-        "address": "6895 Brodie Ln, Austin",
-        "date": "2026-05-09",
-        "id": "26-00146775"
       },
       {
         "text": "It\u2019s 1am and still the city has done nothing about Twin Nightckub blasting music about city limits. The police do not inspect at the time the issue is reported. The city is useless to allow this to go on.",
@@ -630,36 +629,12 @@
         "id": "26-00138258"
       },
       {
-        "text": "Really, really loud music\u2014it\u2019s loud in my apartment 40 floors up! Has to be over decibel limit on the street.",
+        "text": "It is past midnight and non compliant with city ordinance. Squash this!!!!",
         "category": "Outdoor Music Venue",
         "code": "DSOUCVMC",
-        "address": "92 Rainey St, Austin",
-        "date": "2026-05-02",
-        "id": "26-00137055"
-      },
-      {
-        "text": "Victory Lap playing music way over decibel limit. Walking by is a hazard to our hearing.",
-        "category": "Outdoor Music Venue",
-        "code": "DSOUCVMC",
-        "address": "85 Rainey St, Austin",
-        "date": "2026-05-02",
-        "id": "26-00137056"
-      },
-      {
-        "text": "BOOM BOOM BOOM BOOM BOOM yessssss we love when bars and clubs and do whatever they f*** they want bc 311 doesn\u2019t do sh** about it - almost 5 hours of the skybar place breaking the f***ing DBs.  Every bar around and every residential home is pissed off and 311 is f***ing useless - f*** you - I hope y",
-        "category": "Outdoor Music Venue",
-        "code": "DSOUCVMC",
-        "address": "500 W 6th St, Austin",
-        "date": "2026-05-07",
-        "id": "26-00143717"
-      },
-      {
-        "text": "Twin Nightclub is yet again blaring music above permitted decibals. Would be lovely if the city did a d*** thing about it. You should also look at the non-ADA compliance and under-age patrons",
-        "category": "Outdoor Music Venue",
-        "code": "DSOUCVMC",
-        "address": "416 Colorado St, Austin",
-        "date": "2026-05-03",
-        "id": "26-00138219"
+        "address": "900 Red River St, Austin",
+        "date": "2026-05-08",
+        "id": "26-00145066"
       },
       {
         "text": "Persistent low-frequency ba** from The Loading Dock event venue is clearly audible and physically felt inside my home. The ba** continues well past 2 AM and is currently ongoing at 4:30 AM. Even with all doors and windows closed, the vibrations penetrate the structure and have made it impossible to ",
@@ -670,44 +645,20 @@
         "id": "26-00138311"
       },
       {
-        "text": "Luna blasting music outside of OMV regulations",
+        "text": "Victory Lap playing music way over decibel limit. Walking by is a hazard to our hearing.",
         "category": "Outdoor Music Venue",
         "code": "DSOUCVMC",
-        "address": "118 W 5th St, Austin",
-        "date": "2026-04-29",
-        "id": "26-00132938"
+        "address": "85 Rainey St, Austin",
+        "date": "2026-05-02",
+        "id": "26-00137056"
       },
       {
-        "text": "Half Step 20 decibels over after midnight",
+        "text": "Twin Nightclub is yet again blaring music above permitted decibals. Would be lovely if the city did a d*** thing about it. You should also look at the non-ADA compliance and under-age patrons",
         "category": "Outdoor Music Venue",
         "code": "DSOUCVMC",
-        "address": "79 Rainey St, Austin",
-        "date": "2026-05-10",
-        "id": "26-00147322"
-      },
-      {
-        "text": "Twins blasting music over 100 decibels.  The only way to prove it is to not send an enforcement officer 24 hr later. This is happening real time.   Friday. Saturday. Sunday.",
-        "category": "Outdoor Music Venue",
-        "code": "DSOUCVMC",
-        "address": "219 W 4th St, Austin",
-        "date": "2026-05-04",
-        "id": "26-00139041"
-      },
-      {
-        "text": "Clubs on 4th and Colorado are so loud. Can you please do something  this is unliveable",
-        "category": "Outdoor Music Venue",
-        "code": "DSOUCVMC",
-        "address": "121 W 4th St, Austin",
+        "address": "416 Colorado St, Austin",
         "date": "2026-05-03",
-        "id": "26-00138169"
-      },
-      {
-        "text": "Far out is above decibel levels again",
-        "category": "Outdoor Music Venue",
-        "code": "DSOUCVMC",
-        "address": "8504 S Congress Ave, Austin",
-        "date": "2026-05-01",
-        "id": "26-00135734"
+        "id": "26-00138219"
       },
       {
         "text": "Luna is so f***ing loud tonight. They\u2019ve been cited multiple times this week and they\u2019re still going at it. \n\nLuna, if you\u2019re going to play loud, at least play different music. I\u2019m tired of the same stupid a** drums every f***ing weekend. We\u2019re in Austin TX, stop trying to act like you\u2019re a nightclu",
@@ -718,20 +669,60 @@
         "id": "26-00137127"
       },
       {
-        "text": "It is past midnight and non compliant with city ordinance. Squash this!!!!",
+        "text": "Clubs on 4th and Colorado are so loud. Can you please do something  this is unliveable",
         "category": "Outdoor Music Venue",
         "code": "DSOUCVMC",
-        "address": "900 Red River St, Austin",
-        "date": "2026-05-08",
-        "id": "26-00145066"
+        "address": "121 W 4th St, Austin",
+        "date": "2026-05-03",
+        "id": "26-00138169"
       },
       {
-        "text": "3 vehicles parked illegally in a permitted valet lane with a tow away sign attached",
+        "text": "Twins blasting music over 100 decibels.  The only way to prove it is to not send an enforcement officer 24 hr later. This is happening real time.   Friday. Saturday. Sunday.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "219 W 4th St, Austin",
+        "date": "2026-05-04",
+        "id": "26-00139041"
+      },
+      {
+        "text": "BOOM BOOM BOOM BOOM BOOM yessssss we love when bars and clubs and do whatever they f*** they want bc 311 doesn\u2019t do sh** about it - almost 5 hours of the skybar place breaking the f***ing DBs.  Every bar around and every residential home is pissed off and 311 is f***ing useless - f*** you - I hope y",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "500 W 6th St, Austin",
+        "date": "2026-05-07",
+        "id": "26-00143717"
+      },
+      {
+        "text": "Really, really loud music\u2014it\u2019s loud in my apartment 40 floors up! Has to be over decibel limit on the street.",
+        "category": "Outdoor Music Venue",
+        "code": "DSOUCVMC",
+        "address": "92 Rainey St, Austin",
+        "date": "2026-05-02",
+        "id": "26-00137055"
+      },
+      {
+        "text": "illegally parked in our permitted valet lane with a tow away sign",
         "category": "Parking",
         "code": "PARKINGV",
         "address": "509 San Jacinto Blvd, Austin",
-        "date": "2026-05-09",
-        "id": "26-00146976"
+        "date": "2026-05-14",
+        "id": "26-00154062"
+      },
+      {
+        "text": "This person habitually BLOCKS my driveway, can someone please do something about this. It\u2019s almost every single day. It\u2019s impossible for me to get out of my driveway at the sharp angle I have to with him in my driveway!",
+        "category": "Parking",
+        "code": "PARKINGV",
+        "address": "8717 Talyne Chaise Cir, Austin",
+        "date": "2026-05-14",
+        "id": "26-00153144"
+      },
+      {
+        "text": "Large, deep pothole on Brandt road that prevents right turns onto Slaughter Lane. Creates a large traffic bottleneck behind the first car that extends fully down Brandt and snakes around the road if the first car in line isn\u2019t turning right.",
+        "category": "Pothole",
+        "code": "SBPOTREP",
+        "address": "2428 Brandt Rd, Austin",
+        "date": "2026-05-12",
+        "id": "26-00151290"
       },
       {
         "text": "These trash can a are continually on the street using three parking spaces and creating an eyesore. Do they have a permit? They belong to the holiday inn express",
@@ -742,20 +733,12 @@
         "id": "26-00134279"
       },
       {
-        "text": "The sign at the intersection of  Horse Trap Ln and Rattlesnake Trl got damaged during the heavy winds we saw over the weekend.  Please help fix it.  Thank you.",
-        "category": "Street Sign",
-        "code": "SIGNSTRE",
-        "address": "9000 Rattlesnake Trl, Austin",
-        "date": "2026-03-19",
-        "id": "26-00083914"
-      },
-      {
-        "text": "Trash dumped all along the side of the road heading westbound on Sprinkle Cutoff",
-        "category": "Street Sweeping",
-        "code": "ZZARSTSW",
-        "address": "10126 Sprinkle Rd, Austin",
-        "date": "2026-04-13",
-        "id": "26-00114432"
+        "text": "A crew cut down what looked to be a protected Pecan tree at 308 Kemp St.  Lot is undeveloped, but just acquired a permit to build.",
+        "category": "Tree/Environmental",
+        "code": "DSDENVCO",
+        "address": "308 Kemp St, Austin",
+        "date": "2026-04-29",
+        "id": "26-00134186"
       },
       {
         "text": "Making an update to previous report. Caught this on camera at 2am. These dogs killed a skunk this morning and have attempted to bite several neighbors and dogs.  The address dogs live is 5105 Woodmoor Dr. 78721 & just moved in a couple of months ago when dogs were 1st seen running loose (not 5101). ",
@@ -772,6 +755,14 @@
         "address": "85 Navasota St, Austin",
         "date": "2026-05-07",
         "id": "26-00143921"
+      },
+      {
+        "text": "A family of skunks, some appear to be rabid (daytime movements), live under the shed in the back of this property that is adjacent to Township Drive.",
+        "category": "Wildlife",
+        "code": "WILDEXPO",
+        "address": "11102 Township Cv, Austin",
+        "date": "2026-05-14",
+        "id": "26-00153747"
       }
     ]
   }
