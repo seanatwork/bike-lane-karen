@@ -24,6 +24,8 @@ from typing import Optional
 
 import requests
 
+from open311_client import open311_get
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -49,8 +51,21 @@ def _app_token() -> str:
     return os.getenv("AUSTINAPIKEY", "")
 
 
+def _fetch_open311(params: dict) -> Optional[list]:
+    """Fetch from Open311 using the shared retry-aware client (respects Retry-After, 8 retries)."""
+    session = _get_session()
+    token = _app_token()
+    if token:
+        params = {**params, "$$app_token": token}
+    try:
+        return open311_get(session, OPEN311_URL, params)
+    except Exception as e:
+        logger.warning(f"Open311 fetch failed: {e}")
+        return None
+
+
 def _fetch_json(url: str, params: dict, max_retries: int = 3) -> Optional[list]:
-    """Fetch JSON from an API with retries."""
+    """Fetch JSON from a non-Open311 API (Socrata/TABC) with basic retries."""
     session = _get_session()
     token = _app_token()
     if token:
@@ -226,7 +241,7 @@ def _load_coyotes() -> Optional[dict]:
     start = now - timedelta(days=365)
     start_str = start.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    records = _fetch_json(OPEN311_URL, {
+    records = _fetch_open311({
         "service_code": "ACCOYTE",
         "start_date": start_str,
         "per_page": 500,
@@ -290,7 +305,7 @@ def _load_graffiti() -> Optional[dict]:
     start = now - timedelta(days=365)
     start_str = start.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    records = _fetch_json(OPEN311_URL, {
+    records = _fetch_open311({
         "service_code": "HHSGRAFF",
         "start_date": start_str,
         "per_page": 500,
@@ -382,7 +397,7 @@ def _load_parking() -> Optional[dict]:
     start = now - timedelta(days=90)
     start_str = start.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    records = _fetch_json(OPEN311_URL, {
+    records = _fetch_open311({
         "service_code": "PARKINGV",
         "start_date": start_str,
         "per_page": 500,
@@ -457,7 +472,7 @@ def _load_graffiti_speedrun() -> Optional[dict]:
     start = now - timedelta(days=365)
     start_str = start.strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    records = _fetch_json(OPEN311_URL, {
+    records = _fetch_open311({
         "service_code": "HHSGRAFF",
         "start_date": start_str,
         "per_page": 500,
@@ -667,7 +682,7 @@ def _load_funny_descriptions() -> Optional[dict]:
     total_fetched = 0
 
     for code, category in _FUNNY_CODES:
-        records = _fetch_json(OPEN311_URL, {
+        records = _fetch_open311({
             "service_code": code,
             "per_page": 100,
             "page": 1,
@@ -698,7 +713,7 @@ def _load_funny_descriptions() -> Optional[dict]:
 
         logger.info(f"  {code} ({category}): {len(records)} rec, {code_hits} funny")
 
-        time.sleep(0.3)
+        time.sleep(0.5)
 
     if not all_candidates:
         return None
